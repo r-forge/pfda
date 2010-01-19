@@ -1,0 +1,180 @@
+Version 0.6.0
+-------------
+Reworked pfdaSingle and pfdaDual to combine together into pfda function that will also handle binary data
+Major file system rework
+C code is now documented in Doxygen format
+Binary Single Algorithm
+
+VERSION 0.5.10
+--------------
+3/21/2009 10:18 AM Forked out SplineBasis code to orthogonalsplinebasis package. 
+Expanded new memory allocation specification.
+
+VERSION 0.5.9
+-------------
+Fix in SplineBasis Functions to handle probelsm in knot specification.
+
+
+VERSION 0.5.8
+-------------
+Major inner workings updates.
+new C functions:
+	Added for main functionality:
+		pfdaDual_m4
+		pfdaDual_m5
+		pfdaDual_m5_1
+		pfdaDual_m5_2
+		pfdaDual_e
+		pfdaDual_e1
+		pfdaDual_e2
+		pfdaDual_e2_1
+		pfdaDual_e2_2
+		pfdaDual_e3_1
+		pfda_cond_dd
+		pfda_sum_cond_dd
+		pfda_cond_ab
+		pfda_sum_cond_ab
+	Utilities Added:
+		checkdebug
+		pfda_matrix_outer_quadratic_form
+		pfda_matrix_inner_quadratic_form
+		uppersym2full
+		fillsym
+		pfda_eigens
+All of these functions handle their own memory/temorary variables and working space for solve and eigen value problems.
+Also symetric matrices are enforced to be full matrices, although on input symetric matrices are assumed to be Upper matrices, never use compact (sp) matrices.
+Documentation for individual functions are included in the function as comments.
+Only necessary inputs and outputs are passed to the functions.
+The debug system was overhauled.  
+The new debug system requires a vector where the first position indicated the length of the debug vector, the rest are treated as boolean indicators.
+Each C function is given at least one debug number that number is check against the array to knor if that function is being debugged or not.
+This allows for precise selection of which functions are to be debugged and which are not.
+The debug levels are recorded in the checkdebug function definition comments.
+
+
+
+VERSION 0.5.7
+-------------
+2/20/2009 3:55 PM - added cutoff for sigma_eta at delta for diagonal elements. Some datasets turn out negative variances here during convergence.
+2/20/2009 10:53 AM - added penalty generic to exctract penalty parameters from the model
+10:11 PM 2/19/2009 - fixed a bug in identifying the Da
+
+VERSION 0.5.6 (12/18/2008 1:43 PM)
+-------------
+12/18/2008 1:30 PM
+Fixed bug for computing logLik for PFDModel.
+
+VERSION 0.5.5
+-------------
+12/2/2008 12:31 PM
+Added printing Da to class PFDAModelParameters.
+12/2/2008 12:33 PM
+Fixed bug for plot moethod for class PFDModel where the z curves had label Y for the y axis.  Added optional parameter zlab, 'z' by default.
+
+VERSION 0.5.4
+-------------
+11/24/2008 12:32 PM
+fixed bug with datasets with small variance Da.  When Da[1] is approx. delta all following are delta preventing criteria being met.
+
+11/21/2008 1:38 PM
+Fixed last bug the prevented finding the number principle components.  Related to trying to supress warning.
+Fixed Rd Error and typeos
+
+
+VERSION 0.5.3
+-------------
+11/20/2008 5:48 PM
+Removed Startfrom Options.  Find Inits is more stable, and there are problems with passing in the values for Alpha and Beta.
+
+
+VERSION 0.5.2
+-------------
+11/20/2008 10:13 AM
+Fixed a bug in the computation of sigma_etaInv(needed to be set to a diag before sovled)
+11/19/2008 11:51 PM
+Rolled back changed to inverting matrices.
+instead opted for bounding variances below by delta.
+I left the fudge/ridge or adding delta to the LH Matrix in solving for tf_i, as the matrix is not guaranteed to be non-singular, but should make little difference.
+The bound on sigma_epsilon might have fixed the problem. worth investigating.
+but finally the program ran through an entire pfdaDual optimizing over penalties that did not crash.
+
+VERSION 0.5.1
+-------------
+Added a fudge factor to Da when inverting in e-step for pfdaSingle and pfdaDual.
+This seems to have remedied the crashing issues.
+
+VERSION 0.5.0
+-------------
+11/18/2008 6:12 PM
+Continued from code base for 0.2.2 merged some code from version 0.3.3
+added delta to solving for Theta_f in step 3 to help convergence with small penalties.
+added delta to solving in E-step to prevent singular matrices causing buffer problems that then cause the memory violation.
+It would appear that this version performs correctly and does not crash. (better but not quite fixed yet)
+rollback policy changes in version 0.3.3 through 0.3.0
+
+
+Version 0.3.3
+-------------
+Coding policy change:
+R_alloc and S_alloc are prohibited  all memory must be handled inside C with Calloc and Free.
+
+
+VERSION 0.3.2
+-------------
+11/15/2008 9:03 PM
+instituted coding policies:
+1)No memory allocation inside convergence loops
+1a) No memory allocation inside pfdaSingleCore
+2) use of Rf_error and error are prohibited.
+	all C functions will return errors by error codes
+	and breaking out of loops when necessary.
+
+11/14/2008 3:22 PM
+Added numerous gc() calles to increase stability of R.
+removed insurance memory checks
+
+VERSION 0.3.1
+-------------
+11/3/2008 12:40 PM
+changes computation in pfdaSingleCore to include an addition of delta to diag.
+changes default MaxIter=1e5
+
+VERSION 0.3.0
+-------------
+10/31/2008 12:40 PM
+logLik now computes correctly
+changed pfdaDual to compute convergence on average relative difference rather than sum of absolute.
+this now matched the pfdaSingle version
+
+VERSION 0.2.2 
+-------------
+10/10/2008 10:10 AM
+Changes step 4&5 of single algorithm.  Orthogonalization now occures twice.  This prduces accuracte estimates for the variances (Da) corresponding to the orthogonalized principle components, not the non-orthogonal ones.  This was particularly problematic with vary large penalties.
+10/10/2008 10:18 AM
+Changed convergence criteria in pfdaSingle to be mean of mean of relative differences rather than sum of abs differences.
+Considering the different components could have very different scales it seemed more logical.
+10/10/2008 2:45 PM
+Changed default tolerance to be 1e-3
+
+VERSION 0.2.1
+-------------
+Internal Code Changes L changed to Lambda to make it more identifyable in pfdaDual
+Changed stopping for minimum variance.  Added additional criteria that at least 1% of the numer of iterations have passed.
+Bug fixed in positive first row that was causing big problems with convergence, particularly with larger number of principle components, for some odd reason.
+
+VERSION 0.2.0
+-------------
+Fixed computation of logLik for PFDModel class.
+added CVlogLik slot to PFDAModelAnalysis virtual class (parent of FDModel and PFDModel).
+changed pfdaSingle and pfdaDual to store CVlogLik slot of above class.
+
+VERSION 0.2.0
+-------------
+Added NAMESPACE
+Added Documentation files
+Added cv parameter to pfdaSingle and pfdaDual R functions.
+
+VERSION 0.1.1
+-------------
+Fixed StartFrom parameter handling.
+Fixed passing optimstart from k step to penalties step.

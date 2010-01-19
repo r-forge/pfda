@@ -1,0 +1,15 @@
+useDynLib(pfda)
+
+importFrom("utils","head","tail")
+importFrom("graphics","plot")
+importFrom("stats", "logLik", "residuals","predict")
+importFrom("orthogonalsplinebasis","SplineBasis","evaluate")
+
+export(		
+			"pfdaControl",
+			"Cdebug",
+			"dual.ca",
+			"single.c",
+			"single.b"
+			)
+			

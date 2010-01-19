@@ -1,0 +1,1397 @@
+{ # general steps
+.gen.tm<-function(y,B,subject,tf,alpha,sigma,l,K){
+	left<-sigma*l*K
+	right<-matrix(0,NCOL(B),1)
+	for(i in seq(nlevels(subject))){
+		ix <- i == as.integer(subject)
+		Bi<-B[ix,]
+		left  = left + crossprod(Bi)
+		right = right + crossprod(Bi,y[ix]-Bi%*%tf%*%alpha[i,])
+	}
+	solve(left,right)
+}
+.gen.tf<-function(y,B,subject,tm,tf,alpha,sigma,aa,lf,K){
+	n<-nlevels(subject)
+	k<-NCOL(tf)
+	for(est in seq(k)){
+		left  <- sigma*lf*K
+		right <- matrix(0,NCOL(B),1)
+		for(i in seq(n)){
+			ix <- i == as.integer(subject)
+			Bi <- B[ix,]
+ 			left  = left  + crossprod(Bi)*(aa[est,est,i])
+			sne <- matrix(0,NROW(Bi),1)
+			for(l in setdiff(seq(k),est))sne = sne + Bi%*%tf[,l]*aa[est,l,i]
+			right = right + crossprod(Bi,	(y[ix]-Bi%*%tm)*alpha[i,est] - sne	)
+		}
+		tf[,est]<-solve(left,right)
+	}
+	tf*rep(sign(tf[1,]),each=NROW(tf))
+}
+.gen.dual.lambda<-function(sum.aa,sum.ab){
+	t(sum.ab)%*%solve(sum.aa)
+}
+.gen.orthog<-function(tf,alpha,sum.aa){
+	n<-NROW(alpha)
+	k<-NCOL(tf)
+	Sa<-sum.aa/n
+	e<-eigen(tf%*%tcrossprod(Sa,tf))
+	qf = e$vectors[,seq_len(k),drop=FALSE]
+	qf = qf*rep(sign(qf[1,]),each=NROW(qf))
+	Da = x=e$values[seq_len(k)]
+	R = crossprod(qf,tf)
+	list(tf=qf,D=Da,d=tcrossprod(alpha,R),transformation=R)
+}
+.gen.dual.sigmas<-function(By,Bz,tf,tg,lambda,Da,Db,s.eps,s.xi){
+	Seta <- diag(Db,length(Db))-lambda%*%tcrossprod(diag(Da,length(Da)),lambda)
+	Setai<- solve(Seta)
+	phi  <- By %*% tf
+	psi  <- Bz %*% tg
+	Sa   <- diag(1/Da,length(Da)) + crossprod(lambda,Setai)%*%lambda + crossprod(phi)/s.eps
+	Sab1 <- -crossprod(lambda,Setai)
+	Sb   <- Setai+crossprod(psi)/s.xi
+	Saa  <- solve(Sa - Sab1%*%solve(Sb,t(Sab1)))
+	Sab  <- -Saa%*%Sab1%*%solve(Sb)
+	Sbb  <- solve(Sb - crossprod(Sab1,solve(Sa,Sab1)))
+	list(Saa=Saa,Sab=Sab,Sbb=Sbb)
+}
+.gen.symblock.solve<-function(A,B,C){
+#!	Solves matrixof form
+#!  [[  A   B]
+#!	 [t(B) C]]
+#!	Returning the block inverses
+#!
+
+	stopifnot(NROW(A)==NROW(B))
+	stopifnot(NCOL(C)==NCOL(B))
+
+	svAB = solve(A,B)
+	Ci = solve(C-crossprod(B,svAB))
+	Bi = -svAB%*%Ci
+	Ai = solve(A)+ svAB%*%tcrossprod(Ci,svAB)
+
+	list(Ai,Bi,Ci)
+}
+}
+{ # utilities and convenience functions
+.u.single.resid<-function(y,B,subject,tm,tf,alpha){
+	for(i in seq_len(nlevels(subject))){
+		ix = i == as.integer(subject)
+		y[ix]<-y[ix]-B[ix,,drop=FALSE]%*%(tm+tf%*%alpha[i,])
+	}
+	y
+}
+.u.orthogonalize<-function(U,v){
+	# U is assumed to be orthogonal already
+	u = as.vector(if(ncol(U)>0) v-U%*%as.vector(crossprod(v,U)) else v)
+	u/sqrt(crossprod(u))
+}
+cv.folds<-function(n, folds = 10){
+    split(sample(1:n), rep(1:folds, length = n))
+}
+positive.first.row<-function(X){
+	stopifnot(is.matrix(X))
+	X*rep(sign(X[1,]),each=nrow(X))
+}
+.pfda.df<-function(B,l,K){
+	tr<-function(x)sum(diag(x))
+  L<- crossprod(B)+l*K
+	if(kappa(L)>1e10) return(2)
+	tr(solve(L,crossprod(B)))
+}
+l.from.df<-function(df,B,K)if(is.na(df)) NA else uniroot(function(l).pfda.df(B,l,K)-df,c(1e-4,1e10))$root
+}
+{ # single version
+.single.c.i<-function(y,B,subject,k,min.v){
+	tm = solve(crossprod(B)+diag(min.v,NCOL(B)),crossprod(B,y))
+	Ry = y-B%*%tm
+	N = nlevels(subject)
+	tfa<-matrix(0,NCOL(B),N)
+	T=matrix(0,NCOL(B),NCOL(B))
+	for(i in seq_len(nlevels(subject))){
+		ix <- i==as.integer(subject)
+		tfa[,i] = solve(crossprod(B[ix,])+min.v*diag(NCOL(B)),crossprod(B[ix,],Ry[ix]))
+		Ry[ix]<-Ry[ix]-B[ix,]%*%tfa[,i]
+		T<-T+tcrossprod(tfa[,i])
+	}
+	e<-eigen(T)
+	tf<-e$vectors[,seq_len(k),drop=FALSE]
+	tf<-tf*rep(sign(tf[1,]),each=NROW(tf))
+	alpha<-matrix(0,N,k)
+	aa<-list()
+	for(i in seq_len(nlevels(subject))){
+		alpha[i,]<-solve(crossprod(tf),crossprod(tf,tfa[,i]))
+		aa[[i]] <- tcrossprod(alpha[i,])
+	}
+	sigma=crossprod(.u.single.resid(y,B,subject,tm,tf,alpha))/length(y)
+	return(list(tm=tm,tf=tf,alpha=alpha,aa=aa,Da=e$values[seq_len(k)],sigma=sigma))
+}
+.single.c.1.1<-function(yi,Bi,tm,tf,Da,sigma){
+	Sa = solve(crossprod(Bi%*%tf)+diag(1/Da,length(Da)))
+	mu = Sa%*%crossprod(Bi%*%tf,yi-Bi%*%tm)/sigma
+	aa = tcrossprod(mu)+Sa
+	list(alpha=mu,Sa=Sa,aa=aa)
+}
+.single.c.1<-function(y,B,subject,tm,tf,Da,sigma){
+	alpha<-matrix(nrow=nlevels(subject),ncol=NCOL(tf))
+	aa<-array(0,dim=c(NCOL(tf),NCOL(tf),nlevels(subject)))
+	Sa<-array(0,dim=c(NCOL(tf),NCOL(tf),nlevels(subject)))
+	for(i in seq_len(nlevels(subject))){
+		ix = i==as.integer(subject)
+		r<-.single.c.1.1(y[ix],B[ix,],tm,tf,Da,sigma)
+		alpha[i,]<-r$alpha
+		Sa[,,i]<-r$Sa
+		aa[,,i]<-r$aa
+	}
+	list(alpha=alpha,Saa=Sa,aa=aa)
+}
+.single.c.2<-function(y,B,subject,tm,tf,alpha,Sa){
+	Ry <- y-B%*%tm
+	s<-0
+	for(i in seq_len(nlevels(subject))){
+		ix<- i==as.integer(subject)
+		phi=B[ix,,drop=FALSE]%*%tf
+		s<-s+crossprod(Ry[ix]-phi%*%alpha[i,])+sum(diag(phi%*%Sa[,,i]%*%t(phi)))
+	}
+	list(sigma=as.vector(s/length(subject)))
+}
+.single.c.3<-function(y,B,subject,tf,alpha,sigma,lm,K){
+	list(tm=.gen.tm(y,B,subject,tf,alpha,sigma,lm,K))
+}
+.single.c.4<-function(y,B,subject,tm,tf,alpha,sigma,aa,lf,K){
+	list(tf=.gen.tf(y,B,subject,tf,tm,alpha,sigma,aa,lf,K))
+}
+.single.c.5<-function(tf,alpha,aa){
+	saa<-matrix(0,NCOL(tf),NCOL(tf))
+	for(sub in seq(NROW(alpha))) saa = saa + aa[[sub]]
+	a<-.gen.orthog(tf,alpha,saa)
+	list(tf=a$tf,Da=a$D, alpha = a$d)
+}
+single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
+	{ #Initial values
+		r<-.single.c.i(y,B,subject,k,min.v)
+		tm=r$tm
+		tf=r$tf
+		alpha=r$alpha
+		aa=r$aa
+		Da=r$Da
+		sigma=r$sigma
+		I=0
+		.cc<-numeric(0)
+	}
+	while(I<-I+1){
+		s1<-.single.c.1(y,B,subject,tm,tf,Da,sigma)
+		s2<-.single.c.2(y,B,subject,tm,tf,s1$alpha,s1$Saa)
+		s3<-.single.c.3(y,B,subject,tf,s1$alpha,s2$sigma,lm,K)
+		s4<-.single.c.4(y,B,subject,s3$tm,tf,s1$alpha,s2$sigma,s1$aa,lf,K)
+		s5<-.single.c.5(s4$tf,s1$alpha,s1$aa)
+		{ # convergence checks
+			ccl<-numeric(0)
+			ccl['tm'] <- sum(abs((tm-s3$tm)/s3$tm))
+			ccl['tf'] <- sum(abs((tf-s5$tf)/s5$tf))
+			ccl['Da'] <- sum(abs((Da-s5$Da)/s5$Da))
+			cc <- sum(ccl)
+			.cc<-c(.cc,cc)
+			if(cc<tol)break
+			if(I>=max.I){
+				warning('Maximum number of iterations exceeded, convergence not obtained.')
+				break
+			}
+			{ # reassign values to
+				tm<-s3$tm
+				tf<-s5$tf
+				alpha<-s5$alpha
+				Da<-s5$Da
+				sigma<-s2$sigma
+				aa<-s5$aa
+				Saa<-s1$Saa
+			}
+		}
+	}
+	list(tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,I=I,cc=cc)
+}
+.single.c.n2L<-function(y, subject, B, tm, tf, Da, sigma){
+	phi<-B%*%tf
+	L <- 0.0
+	for(i in seq_len(nlevels(subject))){
+		ix<-i==as(subject,"integer")
+		Sy<-phi[ix,,drop=FALSE]%*%tcrossprod(diag(x=Da,ncol=length(Da)),phi[ix,,drop=FALSE])+diag(sigma,nrow=sum(ix))
+		Ry<-y[ix]-B[ix,]%*%tm
+		D<-determinant(Sy,logarithm=TRUE)
+		if(D$sign<0)stop("Negative determinant encountered for variance matrix.")
+		L<-L+as.numeric(D$modulus+crossprod(Ry,solve(Sy,Ry)))
+	}
+	L
+}
+.single.c.AIC.core<-function(n2L,B,k,lm,lf,K){
+ as.vector(n2L)+2*(.pfda.df(B,lm,K)+k*.pfda.df(B,lf,K))
+}
+.single.c.AIC.rawC<-function(Cmodel, t,y,B, subject, lm, lf, K){
+	.single.c.AIC.core(
+		.single.c.n2L(y, subject, B, Cmodel$tm, Cmodel$tf, Cmodel$Da, Cmodel$sigma), 
+		B,length(Cmodel$Da),lm,lf,K)
+}
+single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset){
+	name.t = deparse(substitute(t))
+	{ # handle Z
+		if(missing(Z)||is.null(Z))
+			matrix(nrow=length(y),ncol=0)
+		else {
+			if(is(Z,"formula"))
+				Z = model.matrix(Z)
+		  else Z = as.matrix(Z)
+		}
+	}
+	if(!missing(subset)){
+		Z<-Z[subset,]
+		y<-y[subset]
+		t<-t[subset]
+		subject<-subject[subject,drop=T]
+	}
+	{ # knots identification
+		if(is.null(knots)){
+			kt<-expand.knots(unique(quantile(t,0:20/20)))
+		} else kt<-knots
+		tbase = OBasis(kt)
+		Bt = evaluate(tbase,t)
+		Kt = OuterProdSecondDerivative(tbase)
+	}
+	{ # penalties
+		if(is.null(penalties)){
+			penalties<- if(is.null(df)) rep(NA,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt))
+		}
+	}
+	if(any(is.na(k))||is.null(k)){
+		stop("identification of number of principle components is not done yet.")
+	} else
+	if (any(is.na(penalties))) {
+		pix<-which(is.na(penalties))
+		funcall <- match.call()
+		if(is.null(control$penalty.method) || control$penalty.method=="AIC"){
+			AIC.from.p<-function(p){
+				fc=funcall
+				fc$penalties=p
+				model<-eval(fc)
+				.single.c.AIC.rawC(model, t, y, Bt, subject, p[1], p[2], Kt)
+			}
+			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+			if(is.null(control$optimstart))control$optimstart<-rep(1e5,length(pix))
+			optimpar<-optim(control$optimstart,AIC.from.p,method=control$optimMethod)
+			penalties[pix]<-exp(optimpar$par)
+		}
+		else if(control$penalty.method=="CV") {
+			if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
+			ews<-function(s,p){
+				ix = !(subject %in% s)
+				fc=funcall
+				fc$penalties=p
+				fc$subset=ix
+				model<-eval(fc)
+				#.single.c.n2L(y[!ix],Z[!ix,,drop=FALSE],Bt[!ix,,drop=FALSE],B[!ix,,drop=FALSE],subject[!ix,drop=TRUE],model$tz,model$tt,model$tx,model$tf,model$tg,model$lambda,model$Dg,model$Dd,model$sigma,log=TRUE)
+				with(model,.single.c.n2L(y[!ix], subject[!ix,drop=TRUE], B[!ix,,drop=TRUE], tm, tf, Da, sigma))
+			}
+			cvf<-function(pen,...){
+				p<-penalties
+				p[pix]<-exp(pen)
+				cat("p=",p,"\n")
+				cvl<-try(lapply(control$folds,ews,p=p),TRUE)
+				if(class(cvl)=="try-error")return(NA)
+				print(sum(unlist(cvl)))
+			}
+			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+			optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
+			penalties[pix]<-exp(optimpar$par)
+		}
+		Recall(y,Z,t,subject,knots=knots,penalties=penalties,k=k,control)
+	}
+	else {
+		rtn<-if(control$useC){
+			{ # setup for passing to Compiled code
+				kz  = if(is.null(Z))0L else NCOL(Z)
+				k  = as.integer(k[1])
+				N   = nlevels(subject)
+				nobs= table(subject)
+				M   = length(y)
+				p  = ncol(Bt)
+				{ #Compute Memory Requirements
+					pfda_computeResid =           M*k 
+					pfda_s_i =                    p*p + M + N*p + p*p + max(
+					                                pfda_eigens =8*p,
+					                                pfda_computeResid )
+					single_c_resid =              pfda_computeResid 
+					pfda_m1 =                     M + M*k + 2*k^2 
+					pfda_m2 =                     M + M*k + p^2
+					pfda_m3_for_subjectnum =      p 
+					pfda_m3_for_estcol =          p^2 + pfda_m3_for_subjectnum
+					pfda_m3_core =                M + pfda_m3_for_estcol
+					pfda_m3 =                     k^2 + pfda_m3_core
+					pfda_m5_0 =                   p^2 + p^2 + p + k + max(
+																					pfda_eigens = 8*p, 
+																					pfda_matrix_outer_quadratic_form =k*p)
+					pfda_m5_1 =                   k^2 + pfda_m5_0 
+					pfdaSingle_m5 =               k^2 + pfda_m5_1 
+					pfdaSingle_e_1 =              k + 2*k^2 
+					pfdaSingle_e =                M + M*k + k*N + max(
+																					pfda_computeResid , 
+																					pfdaSingle_e_1 ) 
+					single_c_E =                  M + pfdaSingle_e
+					single_c_unpenalized =        M + kz*kz + max(
+																					single_c_resid , 
+																					dsysv_=10*kz) 
+					single_c_penalized =          M + pfda_m2
+					single_c_princcomp =          M + p*p*N + pfda_m3_core
+					single_c_variances =          M + max(
+																					pfda_m1 , 
+																					pfdaSingle_m5 ) 
+					single_c_core =               p*p*N + pfda_s_i + p + p*k + k + max(
+																					single_c_E , 
+																					single_c_unpenalized , 
+																					single_c_penalized , 
+																					single_c_princcomp , 
+																					single_c_variances , 
+																					single_c_resid )
+					ipl<-8*p
+					dpl<- single_c_core
+				}
+			}
+			.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+		} else {
+			single.c.core(y,Bt,subject,k,lm=penalties[1],lf=penalties[2],Kt,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+		}
+		rtn$tbase<-tbase
+		rtn$y<-y
+		rtn$subject<-subject
+		return(rtn)
+	}
+}
+}
+{ # single binaries
+.roberts1<-function(c){
+	a<-(c+sqrt(c^2+4))/2
+	while(TRUE){
+		u=runif(1)
+		z=c-log(u)/a
+		p=exp(-(z-a)^2/2)
+		v=runif(1)
+		if(v<=p)return(z)
+	 }
+}
+.reject1<-function(c){
+	while(TRUE){
+		z=rnorm(1)
+		if(z>c)return(z)
+	}
+}
+.rtruncnormlower<-function(m,mean,sd,lower){
+	c = (lower-mean)/sd
+	if(c>0){
+		replicate(m,.roberts1(c))
+	} else {
+		replicate(m,.reject1(c))
+	}
+}
+.single.b.i<-function(y,B,subject,k,min.v){
+	.single.c.i(y,B,subject,k,min.v)[1:5]
+}
+.single.b.1a.Sa.i<-function(B,tf,Da)solve(crossprod(B%*%tf)+solve(Da))
+.single.b.1a.mu.i<-function(B,w, tm, tf, Sa)Sa%*%crossprod(B%*%tf, w-B%*%tm)
+.single.b.1b.aa.i<-function(B,w,ww,tm,tf,Sa){
+	phi=B%*%tf
+	s1=-Sa%*%crossprod(phi,B%*%tm)
+	s2=Sa%*%crossprod(phi,tcrossprod(as.matrix(w),s1))
+
+
+	Sa%*%t(phi)%*%ww%*%phi%*%t(Sa) +
+	s2 + t(s2) +
+	tcrossprod(s1) +
+	Sa
+}
+.single.b.1.i<-function(B,w,ww,tm,tf,Da){
+	Sa = .single.b.1a.Sa.i(B,tf,Da)
+	alpha = .single.b.1a.mu.i(B, w, tm, tf, Sa)
+	aa = .single.b.1b.aa.i(B,w,ww,tm,tf,Sa)
+	list(alpha=alpha,aa=aa,Sa=Sa)
+}
+.single.b.1<-function(B,subject,w,ww,tm,tf,Da){
+	subject<-as.integer(as.factor(subject))
+	n<-max(subject)
+	k<-NCOL(tf)
+	aa<-vector('list',n)
+	alpha<-matrix(nrow=n,ncol=ncol(tf))
+	Sa<-array(0,dim=c(k,k,n))
+	for(i in seq(n)){
+		ix<-i == as.integer(subject)
+		r<-.single.b.1.i(B[ix,],w[ix],ww[[i]],tm,tf,Da)
+		Sa[,,i]<-r$Sa
+		alpha[i,]<-r$alpha
+		aa[[i]]<-r$aa
+	}
+	list(alpha=alpha,aa=aa,Sa=Sa)
+}
+.single.b.2<-function(B,subject,w,tf,alpha,lm,K){
+	list(tm=.gen.tm(w,B,subject,tf,alpha,1,lm,K))
+}
+.single.b.3<-function(B,subject,w,tm,tf,alpha,aa,lf,K){
+	list(tf=.gen.tf(w,B,subject,tm,tf,alpha,1,aa,lf,K))
+}
+.single.b.4<-function(tf,alpha,aa){
+	saa<-matrix(0,NCOL(tf),NCOL(tf))
+	for(sub in seq(NROW(alpha))) saa = saa + aa[[sub]]
+	a<-.gen.orthog(tf,alpha,saa)
+	list(tf=a$tf,Da=a$D, alpha = a$d)
+}
+.single.b.w.genw<-function(yi,wi,Bi,tm,tf,Da,kr,j){
+	# R version of pfda_bin_s_gen_w in C code
+	Bij <- Bi[-j,,drop=F]
+	wij <- wi[-j]
+
+	# pfda_bin_single_generate_w_parms1
+	Ss <- solve(crossprod(Bij%*%tf)+solve(diag(Da,length(Da))))
+	mu <- Ss%*%t(Bij%*%tf)%*%(wij-Bij%*%tm)
+
+	# pfda_bin_single_generate_w_parms2
+	a <- t(Bi[j,])%*%tm + t(Bi[j,])%*%tf%*%mu
+	s <- 1+t(Bi[j,])%*%tf%*%Ss%*%t(tf)%*%Bi[j,]
+
+	a+if(yi[j]) s*.rtruncnormlower(kr,0,1,-a/s) else -s*.rtruncnormlower(kr,0,1,a/s)
+}
+.single.b.w.1<-function(yi,Bi,wi,tm,tf,Da,kr){
+	# R version of pfda_bin_single_approximate_moments_forobs
+	n<-NROW(Bi)
+	w_sim<-sapply(seq_len(n),.single.b.w.genw,kr=kr,yi=yi,Bi=Bi,wi=wi,tm=tm,tf=tf,Da=Da)
+	wi<-apply(w_sim,2,mean)
+	# wwa<-array(apply(w_sim,2,tcrossprod),dim=c(n,n,kr))
+	# wws<-matrix(0,n,n)
+	# for(l in seq_len(kr))wws<-wws+wwa[,,l]
+	wwi<-crossprod(w_sim)/kr
+	return(list(wi=wi,wwi=wwi))
+}
+.single.b.w<-function(y,B,subject,w,ww,tm,tf,Da,weight,kr){
+	for(i in seq_len(nlevels(subject))){
+		ix    <- i==as.integer(subject)
+		rtn     <- .single.b.w.1(y[ix],B[ix,,drop=F],w[ix],tm,tf,Da,kr)
+		w[ix] <- (1-weight)*w[ix]+weight*rtn[[1]]
+		ww[[i]] <- (1-weight)*ww[[i]]+weight*rtn[[2]]
+	}
+	return(list(w=w,ww=ww))
+}
+.single.b.core<-function(y,B,subject,k,lm,lf,K,minimum.variance, max.iterations,convergence.tolerance){
+	{ # setup variables & initial values
+		M<-NROW(y)
+		N<-nlevels(subject)
+		nobs<-table(subject)
+		w <- y 
+		ww<-vector('list',N)
+			for(i in seq_len(N)) ww[[i]]<-matrix(0,nobs[i],nobs[i])
+		Saa<-array(0,dim=c(k,k,N))
+		rtn<-.single.b.i(y,B,subject,k,minimum.variance)
+		tm<-rtn$tm
+		tf<-rtn$tf
+		Da<-rtn$Da
+		alpha<-rtn$alpha
+		old<-vector('list',0)
+		aa <- rtn$aa	#vector('list',N); for(i in seq_len(N)) aa<-matrix(0,k,k)
+		I=0
+		.cc<-numeric(0)
+	}
+	while(I<-I+1){
+		{ #step w                                                                         
+			r0=k0=100
+			kr=10
+			if(I<r0){
+				weight=1
+				rtn<-.single.b.w(y,B,subject,w,ww,tm,tf,Da,k0,weight)
+			} else {
+				weight=10/(10+I)
+				rtn<-.single.b.w(y,B,subject,w,ww,tm,tf,Da,kr,weight)
+			}
+			w<-rtn$w
+			ww<-rtn$ww
+		}
+		s1 <- .single.b.1(B,subject,w,ww,tm,tf,Da)
+		s2 <- .single.b.2(B,subject,w,tf,s1$alpha,lm,K)
+		s3 <- .single.b.3(B,subject,w,s2$tm,tf,s1$alpha,s1$aa,lf,K)
+		s4 <- .single.b.4(tf,alpha,aa)
+		{ #check convergence
+			ccl<-numeric(0)
+			ccl['tm'] <- sum(abs((tm-s2$tm)/s2$tm))
+			ccl['tf'] <- sum(abs((tf-s4$tf)/s4$tf))
+			ccl['Da'] <- sum(abs((Da-s4$Da)/s4$Da))
+			cc <- sum(ccl)
+			if(cc<convergence.tolerance)break
+			if(I>=max.iterations){
+				warning('Maximum number of iterations exceeded, convergence not obtained.')
+				break
+			}
+			.cc<-c(.cc,cc)
+			{ #reassign variable
+				tm    <- s2$tm
+				tf    <- s4$tf
+				Da    <- s4$Da
+				alpha <- s4$alpha
+				aa    <- s1$aa
+				Saa   <- s1$Sa
+			}
+		}
+	}
+	list(tm=tm,tf=tf,Da=Da,aa=aa,Saa=Saa,I=I,cc=cc)
+}
+bin.s.loglik.1<-function(Bi,tm,tf,alpha,Da){
+mui = pnorm(Bi%*%(tm+tf%*%alpha))
+Omega = Bi%*%tf
+
+# Ui=diag(vi/)
+-.5*log(sum(Da))-.5*determinant(diag(NROW(Da)) + crossprod(Omega,Ui%*%Omega%*%diag(Da,NROW(Da))))$modulus +
+	crossprod(alpha,solve(Da)%*%alpha)/2 +
+	sum(yi*log(mui)+ (1-yi)*log(1-mui))
+}
+bin.s.loglik<-function(object,...){
+	y<-object@FittingData[[1]][[1]]
+	t<-object@FittingData[[2]]
+	subject<-object@FittingData[[3]]
+	B<-evaluate(object@Basis,t)
+	
+	ll<-0
+	for(subnum in seq_len(nlevels(subject))){
+		ll = ll + bin.s.loglik.1(B[subnum==as.integer(subject),],object@parameters@theta_mu, object@parameters@Theta_f, object@parameters@Alpha[subnum,],object@parameters@Da)
+	} 
+} 
+single.b<-function(formula, data=environment(formula), knots=NULL, k=NULL, penalties=NULL, control=pfdaControl(),...){
+	{ # extract model
+		model <- if(class(formula)=='formula') as(pfda:::pfdaParseFormula(formula,data=data),'FunctionalData')
+		else if(is(formula, 'FunctionalData')) formula
+		else if(is(formula, 'data.frame'))     as(formula,'FunctionalData')
+		else stop(gettextf('Unusable class (%s) passed for formula parameter.  Try specifying a formula.',class(formula)))
+		validObject(model)
+
+		response	<- model[[1]]
+		domain	<- model[[2]]
+		subject	<- model[[3]]
+		if(!(is.factor(subject)||is.integer(subject)))stop("bad class for subject")
+	}
+	{ # validity tests
+		NR<-NCOL(response)
+		if(NR>1)stop("too many responses found.")
+
+		if(missing(k))stop('k missing')
+		if(missing(penalties))stop('penalties missing')
+	}
+	{ # compute basis and related quantities
+		order<-if(hasArg(order))order else 4
+		if(is.null(knots))knots<-expand.knots(unique(quantile(domain,seq(0,1,length=11))),order=order) #' knots are determined by quantiles of the domain using linear interpolation
+		obase<-OBasis(knots,order=order)
+		B<-Bmatrix<-evaluate(obase,domain)
+		K<-Kmatrix <- OuterProdSecondDerivative(obase)
+		p	<- as.integer(dim(obase)[2])
+	}
+	core<-.single.b.core(response,B,subject,k,penalties[1],penalties[2],K,
+		control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
+	Saa<-unlist(Saa)
+	dim(Saa)<-c(k,k,nlevels(subject))
+	parameters={ new("pfdaBinaryModelParameters",
+		theta_mu=as.numeric(core$tm), Theta_f=core$tf,
+		Alpha=core$alpha, Da = core$Da, npc=as.integer(k),
+		penalties=penalties, Sigma=core$Saa)}
+	newFDModel = new("pfdaBinaryModel",Basis=obase, ConvergenceCriteria=core$cc, iterations = as.integer(core$I), FittingData = model, parameters=parameters)
+	return(newFDModel)
+}
+}
+{ # Dual (Continuous/Continuous) case
+.dual.cc.i<-function(y,z,B,subject,ka,kb,min.v){
+	a<-.single.c.i(y,B,subject,ka,min.v)
+	b<-.single.c.i(z,B,subject,kb,min.v)
+	lambda=crossprod(b$alpha,a$alpha)%*%solve(crossprod(a$alpha))
+	ab<-array(0,dim=c(ka,kb,nlevels(subject)))
+	for(i in seq_len(nlevels(subject)))ab[,,i]<-tcrossprod(a$alpha[i,],b$alpha[i,])
+
+	{ list(tm=a$tm,tn=b$tm,
+		tf=a$tf,tg=b$tf,
+		alpha=a$alpha,beta=b$alpha,
+		Da=a$Da,Db=b$Da,
+		lambda=lambda,
+		s.eps=a$sigma,s.xi=b$sigma,
+		aa=a$aa,ab=ab,bb=b$aa
+	)}
+}
+.dual.cc.1.1<-function(yi,zi,Bi,tm,tn,tf,tg,lambda,Da,Db,s.eps,s.xi,Setai){
+	phi = Bi%*%tf
+	psi = Bi%*%tg
+
+	Saa = diag(1/Da,length(Da)) + t(lambda)%*%Setai%*%lambda+crossprod(phi)/s.eps
+	Sab = crossprod(-lambda,Setai)
+	Sbb = Setai+crossprod(psi)/s.xi
+
+	Sbbi = solve(Sbb)
+
+	Zaa = solve(Saa-Sab%*%Sbbi%*%t(Sab))
+	Zab = -Zaa%*%Sab%*%Sbbi
+	Zbb = solve(Sbb-t(Sab)%*%solve(Saa)%*%Sab)
+
+	mu.a = Zaa%*%crossprod(phi,yi-Bi%*%tm)/s.eps + Zab%*%crossprod(psi,zi-Bi%*%tn)
+	mu.b = t(Zab)%*%crossprod(phi,yi-Bi%*%tm)/s.eps + Zbb%*%crossprod(psi,zi-Bi%*%tn)
+
+	aa = tcrossprod(mu.a)+Zaa
+	ab = tcrossprod(mu.a,mu.b)+Zab
+	bb = tcrossprod(mu.b)+Zbb
+	list(alpha=mu.a, beta=mu.b, Saa=Zaa, Sab=Zab, Sbb = Zbb,aa=aa,ab=ab,bb=bb)
+}
+.dual.cc.1<-function(y,z,B,subject,tm,tn,tf,tg,lambda,Da,Db,s.eps,s.xi){
+	Setai = solve(Db-lambda%*%Da%*%t(lambda))
+	#TODO
+	{
+		Saa = array(0,dim=c(NCOL(tf),NCOL(tf),nlevels(subject)))
+		Sab = array(0,dim=c(NCOL(tf),NCOL(tg),nlevels(subject)))
+		Sbb = array(0,dim=c(NCOL(tg),NCOL(tg),nlevels(subject)))
+		alpha = matrix(nrow=nlevels(subject),ncol=NCOL(tf))
+		beta  = matrix(nrow=nlevels(subject),ncol=NCOL(tg))
+		aa = array(0,dim=c(NCOL(tf),NCOL(tf),nlevels(subject)))
+		ab = array(0,dim=c(NCOL(tf),NCOL(tg),nlevels(subject)))
+		bb = array(0,dim=c(NCOL(tg),NCOL(tg),nlevels(subject)))
+	}
+	for(i in seq_len(nlevels(subject))){
+		ix = i == as.integer(subject)
+		r<-.dual.cc.1.1(y[ix],z[ix],B[ix,],tm,tn,tf,tg,lambda,Da,Db,s.eps,s.xi,Setai)
+		{  # assign values
+			Saa[,,i] <-r$Saa
+			Sab[,,i] <-r$Sab
+			Sbb[,,i] <-r$Sbb
+			alpha[i,]<-r$alpha
+			beta[i,] <-r$beta
+			aa[,,i]  <-r$aa
+			ab[,,i]  <-r$ab
+			bb[,,i]  <-r$bb
+		}
+	}
+	list(alpha=alpha,beta=beta,Saa=Saa,Sab=Sab,Sbb=Sbb,aa=aa,ab=ab,bb=bb)
+}
+.dual.cc.2<-function(y,z,B,subject,tm,tn,tf,tg,alpha,beta,Saa,Sbb){
+	list(
+	s.eps = .single.c.2(y,B,subject,tm,tf,alpha,Saa)$sigma,
+	s.xi  = .single.c.2(z,B,subject,tn,tg,beta ,Sbb)$sigma)
+}
+.dual.cc.3<-function(y,z,B,subject,tf,tg,alpha,beta,s.eps,s.xi,lm,ln,K){
+	list(
+	tm = .gen.tm(y,B,subject,tf,alpha,s.eps,lm,K),
+	tn = .gen.tm(y,B,subject,tg,beta ,s.xi ,ln,K))
+}
+.dual.cc.4<-function(y,z,B,subject,tm,tn,tf,tg,alpha,beta,s.eps,s.xi,aa,bb,lf,lg,K){
+	list(
+	tf = .gen.tf(y,B,subject,tm,tf,alpha,s.eps,aa,lf,K),
+	tg = .gen.tf(z,B,subject,tn,tg,beta ,s.xi ,bb,lg,K))
+}
+.dual.cc.5<-function(aa,ab){
+	sum.aa<-matrix(0,dim(aa)[1],dim(aa)[2])
+	sum.ab<-matrix(0,dim(ab)[1],dim(ab)[2])
+	for(i in seq_len(dim(aa)[3])){
+		sum.aa = sum.aa + aa[,,i]
+		sum.ab = sum.ab + ab[,,i]
+	}
+	list(lambda = .gen.dual.lambda(sum.aa,sum.ab))
+}
+.dual.cc.6<-function(tf,tg,alpha,beta,lambda,aa,bb){
+	sum.aa<-matrix(0,dim(aa)[1],dim(aa)[2])
+	sum.bb<-matrix(0,dim(bb)[1],dim(bb)[2])
+	for(sub in seq(NROW(alpha))){
+		sum.aa = sum.aa + aa[,,sub]
+		sum.bb = sum.bb + bb[,,sub]
+	}
+	a<-.gen.orthog(tf,alpha,sum.aa)
+	b<-.gen.orthog(tg,beta ,sum.bb)
+
+	list(tf = a$tf, tg = b$tf, Da=a$D, Db=b$D, alpha = a$d, beta = b$d,
+		lambda = b$transformation%*%lambda%*%solve(a$transformation))
+}
+.dual.cc.AIC.core<-function(n2L, B, ka, kb, lm, ln, lf, lg, K){
+	.dual.ca.AIC.core(n2L, B, B, ka, kb, lm, ln, lf, lg, K, K)
+}
+.dual.cc.n2L<-function(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi){
+	ka<-length(Da)
+	kb<-length(Db)
+	phi<-B%*%tf
+	psi<-B%*%tg
+	ll<-0
+	for(i in seq_len(nlevels(subject))){
+		ind<-i==as(subject,"integer")
+		ni<-sum(ind)
+		Sy<-phi[ind,,drop=FALSE]%*%diag(x=Da,ka,ka)%*%t(phi[ind,,drop=FALSE])+diag(seps,sum(ind))
+		Sz<-psi[ind,,drop=FALSE]%*%diag(x=Db,kb,kb)%*%t(psi[ind,,drop=FALSE])+diag(sxi,sum(ind))
+		Syz<-phi[ind,,drop=FALSE]%*%diag(Da,ka,ka)%*%t(lambda)%*%t(psi[ind,,drop=FALSE])
+		Ry<-y[ind]-B[ind,]%*%tm
+		Rz<-z[ind]-B[ind,]%*%tn
+		
+		Cmat<-rbind(cbind(Sy,Syz),cbind(t(Syz),Sz))
+		Cimat<-solve(Cmat)
+		Sy.inv <-Cimat[seq_len(ni),seq_len(ni)]			#solve(Sy-crossprod(Syz, solve(Sz,t(Syz))))
+		Sz.inv <- Cimat[seq_len(ni)+ni,seq_len(ni)+ni]			#Szi+Szi%*%t(Syz)%*%Sy.inv%*%Syx%*%Szi		#solve(Sz-tcrossprod(Syz,solve(Sy,t(Syz))))
+		Syz.inv<- Cimat[seq_len(ni),seq_len(ni)+ni]			#-solve(Sy, Syz)%*%Sz.inv		
+		
+		Dety<-determinant(Sy,logarithm=TRUE)
+		Detzinv<-determinant(Sz.inv,logarithm=TRUE)
+		if((Dety$sign<0)|(Detzinv$sign<0))stop("Negative determinant encountered for variance matrix.")
+		ll<- ll + Dety$modulus-Detzinv$modulus
+		ll<- ll + crossprod(Ry,Sy.inv%*%Ry)
+		ll<- ll + crossprod(Rz,Sz.inv%*%Rz)
+		ll<- ll + 2*crossprod(Ry,Syz.inv%*%Rz)
+	}
+	ll
+}
+.dual.cc.AIC.rawC<-function(Cmodel, t, y, z, B, subject, lm, ln, lf, lg, K){
+	.dual.cc.AIC.core(
+		.dual.cc.n2L(t, y, z, B, subject, Cmodel$tm, Cmodel$tn, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Da, Cmodel$Db, Cmodel$seps, Cmodel$sxi)
+		, B, Cmodel$ka, Cmodel$kb, Cmodel$lm, Cmodel$ln, Cmodel$lf, Cmodel$lg, K)
+}
+dual.cc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
+	{ #initial values
+		init<-.dual.cc.i(y,z,B,subject,ka,kb,min.v)
+		tm<-init$tm
+		tn<-init$tn
+		tf<-init$tf
+		tg<-init$tg
+		alpha<-init$alpha
+		beta<-init$beta
+		aa<-init$aa
+		ab<-init$ab
+		bb<-init$bb
+		Da<-init$Da
+		Db<-init$Db
+		lambda<-init$lambda
+		n<-nlevels(subject)
+		Saa<-vector('list',n); for(i in seq_len(n))Saa[[i]]<-matrix(0,ka,ka)
+		Sab<-vector('list',n); for(i in seq_len(n))Sab[[i]]<-matrix(0,ka,kb)
+		Sbb<-vector('list',n); for(i in seq_len(n))Sbb[[i]]<-matrix(0,kb,kb)
+		s.eps<-as.vector(init$s.eps)
+		s.xi<-as.vector(init$s.xi)
+		I<-0
+		nobs<-table(subject)
+		.cc<-numeric(0)
+	}
+	while(I<-I+1){
+		s1<-.dual.cc.1(y,z,B,subject,tm,tn,tf,tg,lambda,Da,Db,s.eps,s.xi)
+		s2<-.dual.cc.2(y,z,B,subject,tm,tn,tf,tg,s1$alpha,s1$beta,s1$Saa,s1$Sbb)
+		s3<-.dual.cc.3(y,z,B,subject,tf,tg,alpha,beta,s2$s.eps,s2$s.xi,lm,ln,K)
+		s4<-.dual.cc.4(y,z,B,subject,s3$tm,s3$tn,tf,tg,s1$alpha,s1$beta,s2$s.eps,s2$s.xi,s1$aa,s1$bb,lf,lg,K)
+		s5<-.dual.cc.5(s1$aa,s1$ab)
+		s6<-.dual.cc.6(s4$tf,s4$tg,s1$alpha,s1$beta,s5$lambda,s1$aa,s1$bb)
+		{ # convergence
+			ccl<-numeric(0)
+			ccl['tm']<-sum(abs(tm-s3$tm))
+			ccl['tn']<-sum(abs(tn-s3$tn))
+			ccl['tf']<-sum(abs(tf-s6$tf))
+			ccl['tg']<-sum(abs(tf-s6$tg))
+			ccl['Da']<-sum(abs(Da-s6$Da))
+			ccl['Db']<-sum(abs(Da-s6$Db))
+			ccl['lambda']<-sum(abs(lambda-s6$lambda))
+			(cc<-sum(ccl))
+			{ # reassign values
+				aa<-s1$aa
+				ab<-s1$ab
+				bb<-s1$bb
+				Saa<-s1$Saa
+				Sab<-s1$Sab
+				Sbb<-s1$Sab
+				s.eps<-s2$s.eps
+				s.xi<-s2$s.xi
+				tm<-s3$tm
+				tn<-s3$tn
+				tf<-s6$tf
+				tg<-s6$tg
+				Da<-s6$Da
+				Db<-s6$Db
+				alpha<-s6$alpha
+				beta<-s6$beta
+				lambda<-s6$lambda
+			}
+			if(cc<tol)break
+			if(I>max.I){
+				warning('Maximum number of iterations exceeded, convergence not obtained.')
+				break
+			}
+			.cc<-c(.cc,cc)
+		}
+	}
+	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.eps=s.eps,s.xi=s.xi)
+}
+}
+{ # Dual(Binary/Continuous) case
+.dual.bc.i<-function(y,z,B,subject,ka,kb,min.v){
+	a<-.single.b.i(y,B,subject,ka,min.v)
+	b<-.single.c.i(z,B,subject,kb,min.v)
+	lambda=crossprod(b$alpha,a$alpha)%*%solve(crossprod(a$alpha))
+
+	list(tm=a$tm,tn=b$tm,tf=a$tf,tg=b$tf,alpha=a$alpha,beta=b$alpha,aa=a$aa,bb=b$aa,Da=a$Da,Db=b$Da,lambda=lambda,s.xi=b$sigma)
+}
+.dual.bc.1a<-function(zi,Bi,wi,tm,tn,tf,tg,s.xi,Saa,Sab){
+	crossprod(Bi%*%tf%*%Saa,wi-Bi%*%tm)+Sab%*%crossprod(Bi%*%tg,zi-Bi%*%tn)/s.xi
+}
+.dual.bc.1b<-function(zi,Bi,wi,tm,tn,tf,tg,s.xi,Sab,Sbb){
+	crossprod(Bi%*%tf%*%Sab,wi-Bi%*%tm)+Sbb%*%crossprod(Bi%*%tg,zi-Bi%*%tn)/s.xi
+}
+.dual.bc.1cde<-function(zi,Bi,wi,wwi,tm,tn,tf,tg,s.xi,Saa,Sab,Sbb){
+	S1<-.dual.bc.1a(zi,Bi,0,tm,tn,tf,tg,s.xi,Saa,Sab)
+	S2<-.dual.bc.1b(zi,Bi,0,tm,tn,tf,tg,s.xi,Sab,Sbb)
+	S3<-tcrossprod(Saa,Bi%*%tf)
+	S4<-S3%*%wi
+	S5<-t(Bi%*%tf%*%Sab)
+	S6<-S5%*%wi
+
+	list(
+		aa= Saa+tcrossprod(S1)+tcrossprod(S1,S4)+tcrossprod(S4,S1) + S3%*%wwi%*%t(S3)
+		,
+		ab= Sab+tcrossprod(S1,S2)+tcrossprod(S4,S2)+tcrossprod(S1,S6)+S3%*%tcrossprod(wwi,S5)
+		,
+		bb= Sbb+tcrossprod(S2)+tcrossprod(S6,S2)+tcrossprod(S2,S6)+S5%*%tcrossprod(wwi,S5)
+	)
+}
+.dual.bc.1<-function(z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,s.xi){
+	m<-NROW(B)
+	n<-nlevels(subject)
+	ka<-NCOL(tf)
+	kb<-NCOL(tg)
+
+	alpha<-matrix(nrow=n,ncol=ka)
+	beta <-matrix(nrow=n,ncol=kb)
+	aa <- array(dim=c(ka,ka,n))
+	ab <- array(dim=c(ka,kb,n))
+	bb <- array(dim=c(kb,kb,n))
+	Saa<-vector('list',n)
+	Sab<-vector('list',n)
+	Sbb<-vector('list',n)
+	for(sn in seq_len(n)){
+		ix<-sn==as.integer(subject)
+		Bi<-B[ix,]
+		s<-.gen.dual.sigmas(Bi,Bi,tf,tg,lambda,Da,Db,1,s.xi)
+		alpha[sn,]<-.dual.bc.1a(z[ix],Bi,w[ix],tm,tn,tf,tg,s.xi,s$Saa,s$Sab)
+		beta [sn,]<-.dual.bc.1b(z[ix],Bi,w[ix],tm,tn,tf,tg,s.xi,s$Sab,s$Sbb)
+		cde<-.dual.bc.1cde(z[ix],Bi,w[ix],ww[[sn]],tm,tn,tf,tg,s.xi,s$Saa,s$Sab,s$Sbb)
+		aa[,,sn]<-cde$aa
+		ab[,,sn]<-cde$ab
+		bb[,,sn]<-cde$bb
+		Saa[[sn]]<-s$Saa
+		Sab[[sn]]<-s$Sab
+		Sbb[[sn]]<-s$Sbb
+	}
+	list(alpha=alpha,beta=beta,aa=aa,ab=ab,bb=bb,Saa=Saa,Sab=Sab,Sbb=Sbb)
+}
+.dual.bc.2<-function(z,B,subject,tn,tg,beta,Sbb){
+	m<-NROW(B)
+	Rz<-z-B%*%tn
+	sum.xi<-0
+	for(i in seq_len(nlevels(subject))){
+		ix<- i == as.integer(subject)
+		sum.xi<-sum.xi+sum(diag(B[ix,]%*%tg%*%tcrossprod(Sbb[[i]],B[ix,]%*%tg)))
+		Rz[ix]<-Rz[ix]-B[ix,]%*%tg%*%beta[i,]
+	}
+	list(s.xi=(sum.xi+crossprod(Rz))/m)
+}
+.dual.bc.3<-function(z,B,subject,w,tf,tg,alpha,beta,s.xi,lm,ln,K){
+	list(
+	tm=.gen.tm(w,B,subject,tf,alpha,1   ,lm,K),
+	tn=.gen.tm(z,B,subject,tg,beta ,s.xi,ln,K)
+	)
+}
+.dual.bc.4<-function(z,B,subject,w,tm,tn,tf,tg,alpha,beta,s.xi,aa,bb,lf,lg,K){
+	list(
+	tf=	.gen.tf(w,B,subject,tm,tf,alpha,1   ,aa,lf,K),
+	tg= .gen.tf(z,B,subject,tn,tg,beta ,s.xi,bb,lg,K))
+}
+.dual.bc.5<-function(aa,ab){
+	.dual.cc.5(aa,ab)
+}
+.dual.bc.6<-function(tf,tg,alpha,beta,lambda,aa,bb){
+	.dual.cc.6(tf,tg,alpha,beta,lambda,aa,bb)
+}
+.dual.bc.genw<-function(j,kr,yi,wi,zi,Bi,tm,tn,tf,tg,Da,Db,lambda){
+	#
+	Bij <- Bi[-j,,drop=F]
+	wij <- wi[-j]
+
+	#
+	r<-.gen.dual.sigmas(Bij,Bi,tf,tg,lambda,Da,Db,1,1)
+	mu = r$Saa%*%crossprod(Bij%*%tf,wij-Bij%*%tm)+r$Sab%*%crossprod(Bi%*%tg,zi-Bi%*%tn)
+
+	# Ss <- solve(crossprod(Bij%*%tf)+solve(diag(Da,length(Da))))
+	# mu <- Ss%*%t(Bij%*%tf)%*%(wij-Bij%*%tm)
+
+	# pfda_bin_single_generate_w_parms2
+	a <- t(Bi[j,])%*%tm + t(Bi[j,])%*%tf%*%mu
+	s <- 1+ t(Bi[j,])%*%tf%*%r$Saa%*%t(tf)%*%Bi[j,]
+
+	a+if(yi[j]){
+		s*.rtruncnormlower(kr,0,1,-a/s)
+	} else {
+		-s*.rtruncnormlower(kr,0,1,a/s)
+	}
+}
+.dual.bc.w.1<-function(kr,yi,wi,zi,Bi,tm,tn,tf,tg,Da,Db,lambda){
+	# R version of
+	n<-NROW(Bi)
+	w_sim<-sapply(seq_len(n),.dual.bc.genw,kr,yi,wi,zi,Bi,tm,tn,tf,tg,Da,Db,lambda)
+	wi<-apply(w_sim,2,mean)
+	wwi<-crossprod(w_sim)/kr
+	list(wi=wi,wwi=wwi)
+}
+.dual.bc.w<-function(y,z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,weight,kr){
+	for(i in seq_len(nlevels(subject))){
+		ix      <- i==as.integer(subject)
+		rtn     <- .dual.bc.w.1(kr,y[ix],w[ix],z[ix],B[ix,,drop=F],tm,tn,tf,tg,Da,Db,lambda)
+		w[ix]   <- (1-weight)*w[ix]+weight*rtn[[1]]
+		ww[[i]] <- (1-weight)*ww[[i]]+weight*rtn[[2]]
+	}
+	return(list(w=w,ww=ww))
+}
+dual.bc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
+	{ #initial values
+		init<-.dual.bc.i(y,z,B,subject,ka,kb,min.v)
+		tm<-init$tm
+		tn<-init$tn
+		tf<-init$tf
+		tg<-init$tg
+		alpha<-init$alpha
+		beta<-init$beta
+		aa<-init$aa
+		ab<-init$ab
+		bb<-init$bb
+		Da<-init$Da
+		Db<-init$Db
+		lambda<-init$lambda
+		n<-nlevels(subject)
+		Saa<-vector('list',n); for(i in seq_len(n))Saa[[i]]<-matrix(0,ka,ka)
+		Sab<-vector('list',n); for(i in seq_len(n))Sab[[i]]<-matrix(0,ka,kb)
+		Sbb<-vector('list',n); for(i in seq_len(n))Sbb[[i]]<-matrix(0,kb,kb)
+		s.xi<-as.vector(init$s.xi)
+		I<-0
+		w<-as.double(y)
+		nobs<-table(subject)
+		ww<-vector('list',n); for(i in seq_len(n))ww[[i]]<-matrix(0,nobs[i],nobs[i])
+		r0=k0=100 ##TODO fix this to read from control values.
+		kr=10
+		.cc<-numeric(0)
+	}
+	while(I<-I+1){
+		{ # step w
+			if(I<r0){
+				weight=1
+				rtn<-.dual.bc.w(y,z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,weight,k0)
+			} else {
+				weight=10/(10+I)
+				rtn<-.dual.bc.w(y,z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,weight,kr)
+			}
+			w<-rtn$w
+			ww<-rtn$ww
+		}
+		s1<-.dual.bc.1(z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,s.xi)
+		s2<-.dual.bc.2(z,B,subject,tn,tg,s1$Saa)
+		s3<-.dual.bc.3(z,B,subject,w,tf,tg,s1$alpha,s2$s.xi,s1$beta,lm,ln,K)
+		s4<-.dual.bc.4(z,B,w,s3$tm,s3$tn,tf,tg,s1$alpha,s1$beta,s2$s.xi,s1$aa,s1$bb,lf,lg,K)
+		s5<-.dual.bc.5(s1$aa,s1$ab)
+		s6<-.dual.bc.6(s4$tf,s4$tg,s1$alpha,s1$beta,s5$lambda,s1$aa,s1$bb)
+		{ # convergence
+			ccl<-numeric(0)
+			ccl['tm']<-sum(abs(tm-s3$tm))
+			ccl['tn']<-sum(abs(tn-s3$tn))
+			ccl['tf']<-sum(abs(tf-s6$tf))
+			ccl['tg']<-sum(abs(tf-s6$tg))
+			ccl['Da']<-sum(abs(Da-s6$Da))
+			ccl['Db']<-sum(abs(Da-s6$Db))
+			ccl['lambda']<-sum(abs(lambda-s6$lambda))
+			(cc<-sum(ccl))
+			{ # reassign values
+				aa<-s1$aa
+				ab<-s1$ab
+				bb<-s1$bb
+				Saa<-s1$Saa
+				Sab<-s1$Sab
+				Sbb<-s1$Sab
+				s.xi<-s2$s.xi
+				tm<-s3$tm
+				tn<-s3$tn
+				tf<-s6$tf
+				tg<-s6$tg
+				Da<-s6$Da
+				Db<-s6$Db
+				alpha<-s6$alpha
+				beta<-s6$beta
+				lambda<-s6$lambda
+			}
+			if(cc<tol)break
+			if(I>max.I){
+				warning('Maximum number of iterations exceeded, convergence not obtained.')
+				break
+			}
+			.cc<-c(.cc,cc)
+		}
+	}
+	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.xi=s.xi)
+}
+}
+{ # Additive aka Calcium Model
+.dual.ca.i<-function(y,Z,Bt,Bx,subject,kg,kd,min.v){
+	tz<- if(!is.null(Z) && NCOL(Z)>=1) solve(crossprod(Z),crossprod(Z,y)) else numeric(0)
+	a<-.single.c.i(y,Bt,subject,kg,min.v)
+	b<-.single.c.i(y,Bx,subject,kd,min.v)
+	lambda <- crossprod(b$alpha,a$alpha)%*%solve(crossprod(a$alpha))
+	gd<-array(0,dim=c(kg,kd,nlevels(subject)))
+
+	R=y - Z%*%tz - Bt%*%a$tm - Bx%*%b$tm
+	for(i in seq_len(nlevels(subject))){
+		ix = i==as.integer(subject)
+		R[ix]=R[ix] - Bt[ix,]%*%a$tf%*%a$alpha[i,] - Bx[ix,]%*%b$tf%*%b$alpha[i,]
+	}
+	sigma  = as.vector(crossprod(R)/length(R))
+
+	for(i in seq_len(nlevels(subject)))gd[,,i]<-tcrossprod(a$alpha[i,],b$alpha[i,])
+	{ list(
+		tz=tz,
+		tt=a$tm,tx=b$tm,
+		tf=a$tf,tg=b$tf,
+		gamma=a$alpha,delta=b$alpha,
+		Dg=a$Da,Dd=b$Da,
+		lambda=lambda,
+		sigma=sigma,
+		gg=array(unlist(a$aa),c(kg,kg,nlevels(subject))),
+		gd=gd,
+		dd=array(unlist(b$aa),c(kd,kd,nlevels(subject)))
+	)}
+}
+.dual.ca.E.1<-function(Ri,tt,tx,sigma, phi, psi, O){
+	# phi = Bti %*% tf
+	# psi = Bxi %*% tg
+	# O is  list of block inverted Dg,C,Dd from .gen.symblock.solve
+
+	S = .gen.symblock.solve(
+		O[[1]]+crossprod(phi)/sigma,
+		O[[2]]+crossprod(phi,psi)/sigma,
+		O[[3]]+crossprod(psi)/sigma)
+
+	a=crossprod(phi,Ri/sigma)
+	b=crossprod(psi,Ri/sigma)
+
+	g=S[[1]]%*%a+S[[2]]%*%b
+	d=crossprod(S[[2]],a)+S[[3]]%*%b
+	list(
+	mu.gamma = as.vector(g),
+	mu.delta = as.vector(d),
+	Sigma=S,
+	gg = tcrossprod(g)+S[[1]],
+	gd = tcrossprod(g,d)+S[[2]],
+	dd = tcrossprod(d)+S[[3]]
+	)
+}
+.dual.ca.E<-function(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma){
+	O<-.gen.symblock.solve(
+		diag(Dg,length(Dg)),
+		tcrossprod(diag(Dg,length(Dg)),lambda),
+		diag(Dd,length(Dd)))
+	{
+		kg<-NCOL(tf)
+		kd<-NCOL(tg)
+		n<-nlevels(subject)
+		Sgg<-array(0,dim=c(kg,kg,n))
+		Sgd<-array(0,dim=c(kg,kd,n))
+		Sdd<-array(0,dim=c(kd,kd,n))
+		gg <-array(0,dim=c(kg,kg,n))
+		gd <-array(0,dim=c(kg,kd,n))
+		dd <-array(0,dim=c(kd,kd,n))
+		gamma<-matrix(nrow=n,ncol=kg)
+		delta<-matrix(nrow=n,ncol=kd)
+		R<-y-Z%*%tz-Bt%*%tt-Bx%*%tx
+		phi = Bt%*%tf
+		psi = Bx%*%tg
+	}
+	for(i in seq_len(n)){
+		ix = i==as.integer(subject)
+		r<-.dual.ca.E.1(R[ix],tt,tx,sigma,phi[ix,,drop=F],psi[ix,,drop=F],O)
+		{
+			Sgg[,,i]<-r$Sigma[[1]]
+			Sgd[,,i]<-r$Sigma[[2]]
+			Sdd[,,i]<-r$Sigma[[3]]
+			gg[,,i]<-r$gg
+			gd[,,i]<-r$gd
+			dd[,,i]<-r$dd
+			gamma[i,]<-r$mu.gamma
+			delta[i,]<-r$mu.delta
+		}
+	}
+	list(Sgg=Sgg,Sgd=Sgd,Sdd=Sdd,gamma=gamma,delta=delta,gg=gg,gd=gd,dd=dd)
+}
+.dual.ca.unpenalized<-function(y,Z,Bt,Bx,subject,tt,tx,tf,tg,gamma,delta,sigma){
+	if(is.null(Z)||NCOL(Z)==0)return(list(tz=numeric(0)))
+	R=y-Bt%*%tt-Bx%*%tx
+	for(i in seq_len(nlevels(subject))){
+		ix = i==as.integer(subject)
+		R[ix]=R[ix] - Bt[ix,]%*%tf%*%gamma[i,] - Bx[ix,]%*%tg%*%delta[i,]
+	}
+	list(tz=solve(crossprod(Z),crossprod(Z,R)))
+}
+.dual.ca.penalized.1<-function(R, B, sigma, l, K){
+	solve(crossprod(B)+sigma*l*K,crossprod(B,R))
+}
+.dual.ca.penalized<-function(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,gamma,delta,sigma,lt,lx,Kt,Kx){
+	R=y-Z%*%tz
+	for(i in seq_len(nlevels(subject))){
+		ix = i==as.integer(subject)
+		R[ix]=R[ix] - Bt[ix,]%*%tf%*%gamma[i,] - Bx[ix,]%*%tg%*%delta[i,]
+	}
+
+	list( tt= .dual.ca.penalized.1(R-Bx%*%tx,Bt,sigma,lt,Kt),
+	      tx= .dual.ca.penalized.1(R-Bt%*%tt,Bx,sigma,lx,Kx))
+}
+.dual.ca.princcomp<-function(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,gamma,delta,sigma,gg,gd,dd, lf,lg,Kt,Kx){
+	R = y - Z%*%tz -Bt%*%tt - Bx%*%tx
+	# tf
+	for(j in seq_len(NCOL(tf))){
+		left=sigma*lf*Kt
+		right=numeric(NROW(tf))
+		for(i in seq_len(nlevels(subject))){
+			ix = i==as.integer(subject)
+			left = left + gg[j,j,i]*crossprod(Bt[ix,])
+			right= right+ crossprod(
+				Bt[ix,,drop=F],
+				R[ix]*gamma[i,j]-
+					Bx[ix,,drop=F]%*%tg%*%gd[j,,i]-
+					(if(NCOL(tf)>1)Bt[ix,,drop=F]%*%tf[,-j]%*%gg[j,-j,i] else 0))
+		}
+		tf[,j]= .u.orthogonalize(tf[,seq_len(j-1),drop=FALSE],solve(left,right))
+	}
+
+	# tg
+	for(j in seq_len(NCOL(tg))){
+		left=sigma*lg*Kx
+		right=numeric(NROW(tg))
+		for(i in seq_len(nlevels(subject))){
+			ix = i==as.integer(subject)
+			left = left + dd[j,j,i]*crossprod(Bx[ix,])
+			right= right+ crossprod(
+				Bx[ix,,drop=F],
+				R[ix]*delta[i,j]-
+					Bt[ix,,drop=F]%*%tf%*%gd[,j,i] -
+					(if(NCOL(tg)>1)Bx[ix,,drop=F]%*%tg[,-j]%*%dd[j,-j,i] else 0))
+		}
+		tg[,j]= .u.orthogonalize(tg[,seq_len(j-1),drop=FALSE],solve(left,right))
+	}
+
+	# return value
+	list(tf = tf, tg = tg)
+}
+.dual.ca.variances<-function(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,gamma,delta,sigma,gg,gd,dd){
+	R=y - Z%*%tz - Bt%*%tt - Bx%*%tx
+	sum.gg<-matrix(0,NCOL(tf),NCOL(tf))
+	sum.gd<-matrix(0,NCOL(tf),NCOL(tg))
+	sum.dd<-matrix(0,NCOL(tg),NCOL(tg))
+	for(i in seq_len(nlevels(subject))){
+		ix = i==as.integer(subject)
+		R[ix]=R[ix] - Bt[ix,]%*%tf%*%gamma[i,] - Bx[ix,]%*%tg%*%delta[i,]
+		sum.gg<-sum.gg+gg[,,i]
+		sum.gd<-sum.gd+gd[,,i]
+		sum.dd<-sum.dd+dd[,,i]
+	}
+	sigma  = as.vector(crossprod(R)/length(R))
+
+	eg<-eigen(sum.gg/nlevels(subject))
+	ed<-eigen(sum.dd/nlevels(subject))
+
+	Tg<-eg$vectors*rep(sign(tf[1,]%*%eg$vectors),each=nrow(eg$vectors))
+	Td<-ed$vectors*rep(sign(tg[1,]%*%ed$vectors),each=nrow(ed$vectors))
+
+	lambda = t(solve(sum.gg,sum.gd))
+
+	list(sigma=sigma,
+		Dg = eg$values,
+		Dd = ed$values,
+		lambda = t(Td)%*%lambda%*%Tg,
+		tf = tf%*%Tg,
+		tg = tg%*%Td,
+		gamma = gamma%*%Tg,
+		delta = delta%*%Td
+	)
+}
+.dual.ca.core<-function(y,Z,Bt,Bx,subject,kg,kd,lt,lx,lf,lg,Kt,Kx,min.v,max.I,tol){
+	{ # initial values
+		if(is.null(Z)) Z<-matrix(nrow=NROW(y),ncol=0)
+		init<-.dual.ca.i(y,Z,Bt,Bx,subject,kg,kd,min.v)
+		init$I<-0
+		init$cctrace<-numeric(0)
+	}
+	within(init,while(I<-I+1){
+		E <- .dual.ca.E(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma)
+		U <- .dual.ca.unpenalized(y,Z,Bt,Bx,subject,       tt,  tx,tf,tg ,E$gamma,E$delta  ,sigma)
+		P <- .dual.ca.penalized(y  ,Z,Bt,Bx,subject,U$tz,  tt,  tx,tf,tg ,E$gamma,E$delta  ,sigma,lt,lx,Kt,Kx)
+		C <- .dual.ca.princcomp(y  ,Z,Bt,Bx,subject,U$tz,P$tt,P$tx,tf,tg ,E$gamma,E$delta  ,sigma,E$gg,E$gd,E$dd, lf,lg,Kt,Kx)
+		V <- .dual.ca.variances(y ,Z,Bt,Bx,subject,U$tz,P$tt,P$tx,C$tf,C$tg,E$gamma,E$delta,sigma,E$gg,E$gd,E$dd)
+		{ #Convergence
+			ccl<-numeric(0)
+			ccl['tz']<-sum(abs((tz-U$tz)/tz))
+			ccl['tt']<-sum(abs((tt-P$tt)/tt))
+			ccl['tx']<-sum(abs((tx-P$tx)/tx))
+			ccl['tf']<-sum(abs((tf-V$tf)/tf))
+			ccl['tg']<-sum(abs((tg-V$tg)/tg))
+			ccl['Dg']<-sum(abs((Dg-V$Dg)/Dg))
+			ccl['Dd']<-sum(abs((Dd-V$Dd)/Dd))
+			(cc<-sum(ccl,na.rm=TRUE))
+			{ # reassign values
+				gg    <-E$gg
+				gd    <-E$gd
+				dd    <-E$dd
+				tz    <-U$tz
+				tt    <-P$tt
+				tx    <-P$tx
+				tf    <-V$tf
+				tg    <-V$tg
+				gamma <-V$gamma
+				delta <-V$delta
+				sigma <-V$sigma
+				Dg    <-V$Dg
+				Dd    <-V$Dd
+				lambda<-V$lambda
+			}
+			if(cc<tol)break
+			if(I>max.I){
+				warning('Maximum number of iterations exceeded, convergence not obtained.')
+				break
+			}
+			cctrace<-c(cctrace,cc)
+		}
+	})
+}
+.dual.ca.n2L<-function(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...){
+	ll<-0
+	phi = Bt%*%tf
+	psi = Bx%*%tg
+	Dg<-diag(Dg,length(Dg))
+	Dd<-diag(Dd,length(Dd))
+	Ry<-y-Bt%*%tt-Bx%*%tx-(if(is.null(Z))0 else Z%*%tz)
+	for(i in nlevels(subject)){
+		ix = i==as.integer(subject)
+		U  = phi[ix,,drop=F]%*%tcrossprod(Dg,psi[ix,]%*%lambda)
+		S  = phi[ix,,drop=F]%*%tcrossprod(Dg,phi[ix,,drop=F])+ psi[ix,,drop=F]%*%tcrossprod(Dd,psi[ix,,drop=F]) + U + t(U) + diag(sigma,sum(ix))
+		ll = ll+determinant(S)$modulus+crossprod(Ry[ix],solve(S)%*%Ry[ix])
+	}
+	attr(ll,"log")<-TRUE
+	ll
+}
+.dual.ca.AIC.core<-function(n2L, Bt, Bx, kz, kg, kd, lt, lx, lf, lg, Kt, Kx){
+	as.vector(n2L)+2*(kz +
+		.pfda.df(Bt,lt,Kt) + kg*.pfda.df(Bt,lf,Kt) + 
+		.pfda.df(Bx,lx,Kx) + kd*.pfda.df(Bx,lg,Kx)
+	)
+}
+.dual.ca.AIC.rawC<-function(Cmodel, y, Z, Bt, Bx, subject, Kt, Kx){
+	.dual.ca.AIC.core(
+		.dual.ca.n2L(y,Z,Bt,Bx,subject, Cmodel$tz, Cmodel$tt, Cmodel$tx, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Dg, Cmodel$Dd, Cmodel$sigma), 
+		Bt=Bt, Bx=Bx, kz=length(Cmodel$tz), kg=length(Cmodel$Dg), kd=length(Cmodel$Dd), lt=Cmodel$lt, lx=Cmodel$lx, lf=Cmodel$lf, lg=Cmodel$lg, Kt=Kt, Kx=Kx)
+}
+dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl()){
+	name.t = deparse(substitute(t))
+	name.x = deparse(substitute(x))
+	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
+	{ # knots identification
+		if(is.null(knots)){
+			kt<-expand.knots(unique(quantile(t,0:20/20)))
+			kx<-expand.knots(unique(quantile(x,0:20/20)))
+		} else if(length(knots)==2) {
+			if(name.t %in% names(knots)) kt <-knots[[name.t]]
+			else if('t' %in% names(knots)) kt<-knots[['t']]
+			else kt <- knots[[1]]
+			if(name.x %in% names(knots)) kx <-knots[[name.x]]
+			else if('x' %in% names(knots)) kx<-knots[['x']]
+			else kx <- knots[[2]]
+		} else stop("knots needs to be a list of length 2")
+		tbase = OBasis(kt)
+		xbase = OBasis(kx)
+		Bt = evaluate(tbase,t)
+		Bx = evaluate(xbase,x)
+		Kt = OuterProdSecondDerivative(tbase)
+		Kx = OuterProdSecondDerivative(xbase)
+		knots<-list(kt,kx)
+		names(knots)<-c(name.t,name.x)
+	}
+	{ # k (numbero fo principle components
+		if(is.null(k)) k<-rep(NA,2)
+		else if(length(k)!=1) rep(as.vector(k),length.out=2)
+		# if(names(k)==NULL) names(k)<-c(name.t,name.x)
+	}
+	{ # penalties
+		if(is.null(penalties)){
+			penalties<- if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bx,Kx),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bx,Kx))
+		}
+		if(!class(penalties)=='matrix') penalties<-matrix(penalties,2,2)
+		if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
+	}
+	if(any(is.na(k))){
+		stop("identification of number of principle components is not done yet.")
+
+	} else
+	if (any(is.na(penalties))) {
+		pix<-which(is.na(penalties))
+		if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
+		funcall <- match.call()
+		ews<-function(s,p){
+			ix = !(subject %in% s)
+			fc=funcall
+			fc$penalties=p
+			model<-eval(fc)
+			# Recall(y[ix],Z[ix,,drop=FALSE],Bt[ix,,drop=FALSE],Bx[ix,,drop=FALSE],subject[ix,drop=TRUE],
+				# kg=k[1],kd=k[2],lt=p[1],lf=p[2],lx=p[3],lg=p[4],Kt=Kt,Kx=Kx,min.v=control$minimum.variance,max.I=control$max.iterations,tol=control$convergence.tolerance)
+			.dual.ca.n2L(y[!ix],Z[!ix,,drop=FALSE],Bt[!ix,,drop=FALSE],Bx[!ix,,drop=FALSE],subject[!ix,drop=TRUE],model$tz,model$tt,model$tx,model$tf,model$tg,model$lambda,model$Dg,model$Dd,model$sigma,log=TRUE)
+		}
+		cvf<-function(pen,...){
+			p<-penalties
+			p[pix]<-exp(pen)
+			cat("p=",p,"\n")
+			cvl<-try(lapply(control$folds,ews,p=p),TRUE)
+			if(class(cvl)=="try-error")return(NA)
+			print(sum(unlist(cvl)))
+		}
+		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+		optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
+		penalties[pix]<-exp(optimpar$par)
+		Recall(y,Z,t,x,subject,knots=knots,penalties=penalties,k=k,control)
+	}
+	else {
+		rtn<-if(control$useC){
+			{
+				kz  = if(is.null(Z))0L else NCOL(Z)
+				kg  = as.integer(k[1])
+				kd  = as.integer(k[2])
+				N   = nlevels(subject)
+				nobs= table(subject)
+				M   = length(y)
+				pt  = ncol(Bt)
+				Bx<-Bx[,-1]  #Removing the last column of Bx is to improve stability and remove interdependence between t and x
+				Kx<-Kx[-1,-1]
+				px  = ncol(Bx)
+				p   = max(pt, px)
+				k   = max(kg, kd)
+				dpl = kz + kg + kd + pt +px + pt*kg + px*kd + kg*kd + max(
+					pt*pt*N + px*px*N + 2*p^2 + M + M*k+ p*N + 8*p,
+					2^kg^2 + 2*kd^2 + kg*kd+ max(kg,kd)*10 + 2*kg*kd+(1+kg+kd)*M,
+					M + kz^2 + 10*kz + M*max(kg, kd),
+					10*p + p^2 +M,
+					M + p^2 + p + max( 10*pt ,  M + N*(kg+kd) + M*max(kg,kd) ),
+					2*kg^2 + 2*kd^2 + M + 10*k + 9*p + 3*p^2 + N*k + M*k
+					)
+			}
+			.C('dual_ca_core', residuals=y, Z=Z, Bt=Bt, Bx=Bx,
+				tz=double(kz), tt=double(pt), tx=double(px),
+				tf=matrix(0,pt,kg), tg=matrix(0,px,kd),
+				gamma=matrix(0,N,kg), delta=matrix(0,N,kd),
+				lambda=matrix(0,kd,kg), Dg=double(kg), Dd=double(kd),
+				sigma=0.0,
+				gg=array(0,c(kg,kg,N)),   gd=array(0,c(kg,kd,N)),  dd=array(0,c(kd,kd,N)),
+				Sgg=array(0,c(kg,kg,N)), Sgd=array(0,c(kg,kd,N)), Sdd=array(0,c(kd,kd,N)),
+				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
+				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+		} else {
+			.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+		}
+		rtn$tbase<-tbase
+		rtn$xbase<-xbase
+		rtn$y<-y
+		rtn$subject<-subject
+		class(rtn)<-'pfda.dual.ca'
+		return(rtn)
+	}
+}
+}

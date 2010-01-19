@@ -1,0 +1,10 @@
+Package: pfda
+Type: Package
+Title: Paired Functional Data Analysis
+Version: 0.6.0
+Date: 4/8/2009
+Author: Andrew Redd	
+Depends: orthogonalsplinebasis (>= 0.1.2), methods, utils, graphics, stats, MASS
+Maintainer: Andrew Redd <aredd@stat.tamu.edu>
+Description: Paired functional data analysis via principle component analysis using orthogonalized spline basis functions.
+License: GPL (>= 2)
