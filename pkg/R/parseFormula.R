@@ -23,23 +23,34 @@ pfdaParseFormula<-function(formula, data=environment(formula), ...)
 		op<-formula[[1]]
 		if(op=='~'){
 			lhs<-if(length(formula)==3) Recall(formula[[2]],data=data,...) else NULL
+			attr(lhs,'pfda.role')<-'response'
+			
 			rhs<-Recall(formula[[length(formula)]],data=data,...)
+			attr(rhs,'pfda.role')<-'predictors'
 			
 			mm<-data.frame(NA,rhs)
 			mm[[1]]<-lhs
 			colnames(mm)[1]<-expr2char(formula[[2]])
 			mm
-		} else if(op=='&') {
+		} else if(op=='%&%') {
 			first  <- Recall(formula[[2]],data=data,...)
 			second <- Recall(formula[[3]],data=data,...)
-			data.frame(first,second)
-		} else if(op=='|') {
+			bound<-data.frame(first,second)
+			attr(bound,'pfda.role')<-'predictors'
+			bound
+		} else if(op=='%|%') {
 			variable  <- Recall(formula[[2]], data=data, ...)
+			attr(variable,'pfda.role')<-'spline variable'
 			subjectID <- Recall(formula[[3]], data=data, ...)
-			#if((NCOL(variable)>1)||(NCOL(subjectID)>1))stop("only 1 variable allowed on each side of `|` in formula.")
+			attr(subjectID,'pfda.role')<-'subjectID'
 			if(!is.factor(subjectID[[1]]))
-				stop(gettextf("The variable `%s` on the right hand side of `|` should be a factor.",expr2char(formula[[3]])))
+				stop(gettextf("The variable `%s` on the right hand side of `%%|%%` should be a factor.",expr2char(formula[[3]])))
 			vardata<-data.frame(variable,subjectID)
+		} else if(op=='+') {
+			cbind(
+				Recall(formula[[2]],data=data),
+				Recall(formula[[3]],data=data) 
+			)
 		} else {
 			stop(paste("I don't know what to do with this operator ",op))
 		} 
@@ -47,4 +58,12 @@ pfdaParseFormula<-function(formula, data=environment(formula), ...)
 		x = substitute(~m, list(m = formula))
 		model.frame(x,data=data,...)
 	}
+}
+traverseFormula<-function(x,level=0){
+	switch(class(x),
+		name = { replicate(level, cat(". ")); cat(x,'\n')},
+		formula = { traverseFormula(x[[2]],level=level+1); replicate(level, cat(". ")); cat('~\n'); traverseFormula(x[[3]],level=level+1)},
+		call = { replicate(level, cat(". ")); cat(x[[1]],'\n'); lapply(x[-1],traverseFormula,level=level+1)}
+	)
+	invisible(NULL)
 }

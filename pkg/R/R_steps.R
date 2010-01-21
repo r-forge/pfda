@@ -1395,3 +1395,8 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	}
 }
 }
+{ # general
+	pfda<-function(model,...,driver){
+		
+	}
+}
