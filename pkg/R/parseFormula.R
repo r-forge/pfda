@@ -16,16 +16,16 @@
 #' @callgraph
 #' @seealso subset, formula, model.frame
 #' 
-pfdaParseFormula<-function(formula, data=environment(formula), ...)
+pfdaParseFormula<-function(formula, data=environment(formula))
 {
 	expr2char <- function(x) paste(deparse(x), collapse = "")
 	if(length(formula)==3){ 
 		op<-formula[[1]]
 		if(op=='~'){
-			lhs<-if(length(formula)==3) Recall(formula[[2]],data=data,...) else NULL
+			lhs<-if(length(formula)==3) Recall(formula[[2]],data=data) else NULL
 			attr(lhs,'pfda.role')<-'response'
 			
-			rhs<-Recall(formula[[length(formula)]],data=data,...)
+			rhs<-Recall(formula[[length(formula)]],data=data)
 			attr(rhs,'pfda.role')<-'predictors'
 			
 			mm<-data.frame(NA,rhs)
@@ -33,32 +33,40 @@ pfdaParseFormula<-function(formula, data=environment(formula), ...)
 			colnames(mm)[1]<-expr2char(formula[[2]])
 			mm
 		} else if(op=='%&%') {
-			first  <- Recall(formula[[2]],data=data,...)
-			second <- Recall(formula[[3]],data=data,...)
+			first  <- Recall(formula[[2]],data=data)
+			second <- Recall(formula[[3]],data=data)
 			bound<-data.frame(first,second)
-			attr(bound,'pfda.role')<-'predictors'
+			attr(bound,'pfda.role')<-'bound'
 			bound
 		} else if(op=='%|%') {
-			variable  <- Recall(formula[[2]], data=data, ...)
-			attr(variable,'pfda.role')<-'spline variable'
-			subjectID <- Recall(formula[[3]], data=data, ...)
+			variable  <- Recall(formula[[2]], data=data)
+			attr(variable,'pfda.role')<-'splinevariable'
+			subjectID <- Recall(formula[[3]], data=data)
 			attr(subjectID,'pfda.role')<-'subjectID'
 			if(!is.factor(subjectID[[1]]))
 				stop(gettextf("The variable `%s` on the right hand side of `%%|%%` should be a factor.",expr2char(formula[[3]])))
 			vardata<-data.frame(variable,subjectID)
+			attr(vardata,"pfda.role")<-"splinegroup"
 		} else if(op=='+') {
-			cbind(
-				Recall(formula[[2]],data=data),
-				Recall(formula[[3]],data=data) 
-			)
+			var1<-Recall(formula[[2]],data=data)
+			var2<-Recall(formula[[3]],data=data) 
+			if(class(var1)==data.frame) if(attr(var1,'pfda.role')!='splinegroup' && attr(var2,'pfda.role')!='splinegroup' ) {
+				data.frame(var1,var2)
+			} else if(attr(var1,'pfda.role')=='splinegroup') {
+				list(splinegroup=var1,var2)
+			} else if(attr(var2,'pfda.role')=='splinegroup' ) {
+				list(splinegroup=var2, var1)
+			} else 
 		} else {
 			stop(paste("I don't know what to do with this operator ",op))
 		} 
 	} else { #individual variables
 		x = substitute(~m, list(m = formula))
-		model.frame(x,data=data,...)
+		model.frame(x,data=data)
+		
 	}
 }
+
 traverseFormula<-function(x,level=0){
 	switch(class(x),
 		name = { replicate(level, cat(". ")); cat(x,'\n')},
