@@ -66,7 +66,6 @@ pfdaParseFormula<-function(formula, data=environment(formula))
 		
 	}
 }
-
 traverseFormula<-function(x,level=0){
 	switch(class(x),
 		name = { replicate(level, cat(". ")); cat(x,'\n')},
@@ -75,3 +74,28 @@ traverseFormula<-function(x,level=0){
 	)
 	invisible(NULL)
 }
+pfda.model.join<-function(addto = NULL, response = NULL, splinegroup = NULL, additive = NULL){
+	if(!is.null(addto)){
+		if(valid.pfda.model.frame(addto)){
+			if(!is.null(response)){
+				if(is.null(addto$response)) addto$response = response else stop("this object already has a response variable.")
+			}
+			if(!is.null(splinegroup)){
+				if(is.null(addto$splinegroup)) addto$splinegroup = splinegroup else stop("this object already has a spline group.")
+			}
+			if(!is.null(splinegroup)){
+       	if(is.null(addto$additive)) addto$additive = additive else addto$additive = data.frame(addto$additive, additive)
+			}
+		} else stop("not a valid object to add to.")
+	} else {
+		addto <- list(response = response, splinegroup = splinegroup, additive = additive)
+		class(addto) <- c('list','pfda.model.frame')
+	}
+}
+valid.pfda.model.frame<-function(object){
+	if(!("pfda.model.frame" %in% class(object))) return FALSE
+	if(length(object) != 3) return FALSE
+	if(!all(c('response','splinegroup','additive') %in% names(object))) return FALSE
+	TRUE	
+}
+
