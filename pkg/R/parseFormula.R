@@ -115,3 +115,36 @@ valid.pfda.splinegroup<-function(object){
 	if(!is(object[,NCOL(object)],'factor'))return(FALSE)
 	TRUE
 }
+infer.driver<-function(mf){
+	noadds<-function(c)if(!is.null(mf$additive) && NCOL(mf$additive))stop(gettextf("Inferred class '%s' does not allow additive variables.",c))
+	stopifnot(is(mf,'pfda.model.frame'))
+	stopifnot(valid.pfda.model.frame(mf))
+	if(NCOL(mf$response)==1){ # single or additive
+		if(NCOL(mf$splinegroup)==2) { # single
+			if(is(mf$response,'factor')) {
+				noadds('single.binary')
+				if(nlevels(mf$response[[1]])) return('single.binary') else stop("Too many factor levels.")
+			} else if(is(mf$response[[1]],'logical') || (is(mf$response[[1]],'integer')&&length(unique(mf$response[[1]]))==2)) {
+				noadds('single.binary')
+				return('single.binary')
+			} else if(is(mf$response[[1]],'numeric')) {
+				return('single.continuous')
+			} else stop('Unusable response class')
+		} else if(NCOL(mf$splinegroup)==3) { #additive
+			return('additive')
+		} else stop('Bad spline group')
+	} else if(NCOL(mf$response)==2) {
+		noadds('dual')
+		y = mf$response[[1]]
+		z = mf$response[[2]]
+		if(is(z,'factor')|| is(z,'logical')) stop(gettextf("Second variable in dual models is not allowed to be a '%s'",class(z)))
+		else if(is(z,'numeric')) {
+			if(is(y,'factor')){
+				if(nlevels(y)!=2) stop(gettextf("too many levels in %s, you might need to use drop.levels",names(mf$response)[1]))
+				else return('dual.mixed')
+			} else if(is(y,'logical') || (is(y,'integer')&&length(unique(y))==2)) return('dual.mixed')
+			else if(is(y,'numeric')) return('dual.continuous')
+			else stop(gettextf("bad class, '%s', for variable %s",class(y),names(mf$response)[1]))
+		} else stop(gettextf("bad class, '%s', for variable %s",class(z),names(mf$response)[2]))
+	} else stop("Unusable number of response variables.")
+}
