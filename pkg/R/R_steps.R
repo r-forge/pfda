@@ -72,6 +72,39 @@
 
 	list(Ai,Bi,Ci)
 }
+.X.handle.z<-expression({ # handle Z
+	stopifnot(exists('Z'))
+	if(missing(Z)||is.null(Z))
+		matrix(nrow=length(y),ncol=0)
+	else {
+		if(is(Z,"formula"))
+			Z = model.matrix(Z)
+	  else Z = as.matrix(Z)
+	}
+})
+.X.subset<-expression({
+	stopifnot(exists('subset',inherits=FALSE))
+	if(!missing(subset)){
+		if(exists('Z',inherits=FALSE))Z<-subset(Z,subset)
+		y<-subset(y,subset)
+		t<-subset(t,subset)
+		if(exists('x',inherits=FALSE))x<-subset(x,subset)
+		subject<-subject[subject,drop=T]
+	}
+})
+.X.single.knots<-expression({ # knots identification
+	if(is.null(knots)){
+		kt<-expand.knots(unique(quantile(t,0:20/20)))
+	} else kt<-knots
+	tbase = OBasis(kt)
+	Bt = evaluate(tbase,t)
+	Kt = OuterProdSecondDerivative(tbase)
+})
+.X.single.penalties<-expression({ # penalties
+	if(is.null(penalties)){
+		penalties<- if(is.null(df)) rep(NA,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt))
+	}
+}
 }
 { # utilities and convenience functions
 .u.single.resid<-function(y,B,subject,tm,tf,alpha){
@@ -233,34 +266,10 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 }
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset){
 	name.t = deparse(substitute(t))
-	{ # handle Z
-		if(missing(Z)||is.null(Z))
-			matrix(nrow=length(y),ncol=0)
-		else {
-			if(is(Z,"formula"))
-				Z = model.matrix(Z)
-		  else Z = as.matrix(Z)
-		}
-	}
-	if(!missing(subset)){
-		Z<-Z[subset,]
-		y<-y[subset]
-		t<-t[subset]
-		subject<-subject[subject,drop=T]
-	}
-	{ # knots identification
-		if(is.null(knots)){
-			kt<-expand.knots(unique(quantile(t,0:20/20)))
-		} else kt<-knots
-		tbase = OBasis(kt)
-		Bt = evaluate(tbase,t)
-		Kt = OuterProdSecondDerivative(tbase)
-	}
-	{ # penalties
-		if(is.null(penalties)){
-			penalties<- if(is.null(df)) rep(NA,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt))
-		}
-	}
+	eval(.X.handle.z)
+	eval(.X.subset)
+	eval(.X.single.knots)
+	eval(.X.single.penalties)
 	if(any(is.na(k))||is.null(k)){
 		stop("identification of number of principle components is not done yet.")
 	} else
@@ -557,44 +566,63 @@ bin.s.loglik<-function(object,...){
 		ll = ll + bin.s.loglik.1(B[subnum==as.integer(subject),],object@parameters@theta_mu, object@parameters@Theta_f, object@parameters@Alpha[subnum,],object@parameters@Da)
 	} 
 } 
-single.b<-function(formula, data=environment(formula), knots=NULL, k=NULL, penalties=NULL, control=pfdaControl(),...){
-	{ # extract model
-		model <- if(class(formula)=='formula') as(pfda:::pfdaParseFormula(formula,data=data),'FunctionalData')
-		else if(is(formula, 'FunctionalData')) formula
-		else if(is(formula, 'data.frame'))     as(formula,'FunctionalData')
-		else stop(gettextf('Unusable class (%s) passed for formula parameter.  Try specifying a formula.',class(formula)))
-		validObject(model)
-
-		response	<- model[[1]]
-		domain	<- model[[2]]
-		subject	<- model[[3]]
-		if(!(is.factor(subject)||is.integer(subject)))stop("bad class for subject")
+single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset){
+	eval(.X.subset)
+	eval(.X.single.knots)
+	eval(.X.single.penalties)
+	if(is.null(k)||any(is.na(k))){
+		stop('number of principal components optimization not finished yet')
+	} else 
+	if(any(is.na(penalties))){
+		stop('not finished with penalty optimization')
+		pix<-which(is.na(penalties))
+		funcall<-match.call()
+		if(is.null(control$penalty.method) || control$penalty.method='AIC'{
+			AIC.from.p<-function(p){
+				fc=funcall
+				fc$penalties = p
+				model <- eval(fc)
+				# binary singe AIC function goes here
+			}
+		}
+	} 
+	else {
+		rtn<-if(control$useC){
+			{ # setup for passing to Compiled code
+				k  = as.integer(k[1])
+				N   = nlevels(subject)
+				nobs= table(subject)
+				M   = length(y)
+				p  = ncol(Bt)
+				{ #Compute Memory Requirements
+					ni = max(nobs)
+					.inits                      = 2*p^2 + M + p*N + 8*p
+					.step.W                	    = ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3 k)
+					.step.1.E              	    = M + M*k + N*k + 2* k^2 + 2 * k + k *ni
+					.step.2                 	= p^2+ M+ M*k
+					.step.3                 	= M + p^2 + p + k^2 
+					.step.4                  	= k + 2*k^2 + 2*p^2 + p + p*max(k,8)
+					dpl <- M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + n + max(.inits, .step.W, .step.1.E, .step.2, .step.3, .step.4)
+					ipl <- 8*p
+				}
+			}			
+			.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl) , p=integer(ipl))
+		} else {
+			.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
+		}
+		rtn$tbase<-tbase
+		rtn$y<-y
+		rtn$subject<-subject
+		return(rtn)
 	}
-	{ # validity tests
-		NR<-NCOL(response)
-		if(NR>1)stop("too many responses found.")
-
-		if(missing(k))stop('k missing')
-		if(missing(penalties))stop('penalties missing')
-	}
-	{ # compute basis and related quantities
-		order<-if(hasArg(order))order else 4
-		if(is.null(knots))knots<-expand.knots(unique(quantile(domain,seq(0,1,length=11))),order=order) #' knots are determined by quantiles of the domain using linear interpolation
-		obase<-OBasis(knots,order=order)
-		B<-Bmatrix<-evaluate(obase,domain)
-		K<-Kmatrix <- OuterProdSecondDerivative(obase)
-		p	<- as.integer(dim(obase)[2])
-	}
-	core<-.single.b.core(response,B,subject,k,penalties[1],penalties[2],K,
-		control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
-	Saa<-unlist(Saa)
-	dim(Saa)<-c(k,k,nlevels(subject))
-	parameters={ new("pfdaBinaryModelParameters",
-		theta_mu=as.numeric(core$tm), Theta_f=core$tf,
-		Alpha=core$alpha, Da = core$Da, npc=as.integer(k),
-		penalties=penalties, Sigma=core$Saa)}
-	newFDModel = new("pfdaBinaryModel",Basis=obase, ConvergenceCriteria=core$cc, iterations = as.integer(core$I), FittingData = model, parameters=parameters)
-	return(newFDModel)
+	# Saa<-unlist(Saa)
+	# dim(Saa)<-c(k,k,nlevels(subject))
+	# parameters={ new("pfdaBinaryModelParameters",
+		# theta_mu=as.numeric(core$tm), Theta_f=core$tf,
+		# Alpha=core$alpha, Da = core$Da, npc=as.integer(k),
+		# penalties=penalties, Sigma=core$Saa)}
+	# newFDModel = new("pfdaBinaryModel",Basis=obase, ConvergenceCriteria=core$cc, iterations = as.integer(core$I), FittingData = model, parameters=parameters)
+	# return(newFDModel)
 }
 }
 { # Dual (Continuous/Continuous) case
@@ -1396,7 +1424,15 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 }
 }
 { # general
-	pfda<-function(model,...,driver){
-		
+	pfda<-function(model,data=data,...,driver){
+		mf <- pfdaParseFormula(model,data)
+		if(missing(driver))driver = infer.driver(mf)
+		with(mf,switch(driver,
+			single.continuous = single.c(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],...),
+			single.binary = stop("binary driver not finished"),
+			dual.continuous = stop("dual.continuous driver not finished"),
+			dual.mixed = stop("dual.mixed driver not finished"),
+			additive = dual.ca(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
+		))
 	}
 }

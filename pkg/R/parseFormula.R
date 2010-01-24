@@ -148,3 +148,4 @@ infer.driver<-function(mf){
 		} else stop(gettextf("bad class, '%s', for variable %s",class(z),names(mf$response)[2]))
 	} else stop("Unusable number of response variables.")
 }
+
