@@ -9,12 +9,11 @@ find initial values for the single algorithm
 
 
 
-void pfdafindinits(double const * const t, double const * const y, double const * const z, int const * const nobs,int const * const M, int const * const N, int const * const ka,int const * const kb,double const * const B, int const * const p, double const * const delta, //input values
+void pfdafindinits( double const * const y, double const * const z, int const * const nobs,int const * const M, int const * const N, int const * const ka,int const * const kb,double const * const B, int const * const p, double const * const delta, //input values
 double* const tm,double* const tn,double* const tf, double* const tg, double* const Da, double* const Db, double* const L, double* const seps, double* const sxi, double* const Alpha, double* const Beta, double* const Saa, double* const Sab, double* const Sbb) //return values
 {
 /*
 inputs:
-t		M×1 vector of time values
 y		M×1 vector of y values
 z		M×1 vector of zvalues
 obs		M×1 vector of subject identifiers

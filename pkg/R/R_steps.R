@@ -87,6 +87,7 @@
 	if(!missing(subset)){
 		if(exists('Z',inherits=FALSE))Z<-subset(Z,subset)
 		y<-subset(y,subset)
+		if(exists('z',inherits=FALSE))z<-subset(z,subset)
 		t<-subset(t,subset)
 		if(exists('x',inherits=FALSE))x<-subset(x,subset)
 		subject<-subject[subject,drop=T]
@@ -104,7 +105,22 @@
 	if(is.null(penalties)){
 		penalties<- if(is.null(df)) rep(NA,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt))
 	}
-}
+})
+.X.dual.k<-expression({ # resloves k input for dual pc (cc/bc/add)
+	if(is.null(k)) k<-rep(NA,2)
+	else if(length(k)!=1) rep(as.vector(k),length.out=2)
+	# if(names(k)==NULL) names(k)<-c(name.t,name.x)
+})
+.X.dual.penalties <-expression({ #  resolve penalties input 
+	if(is.null(penalties)){
+		penalties<- if(exists('Bx'))
+			if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bx,Kx),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bx,Kx))
+	  else
+			if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bt,Kt))
+	}
+	if(!class(penalties)=='matrix') penalties<-matrix(penalties,2,2)
+	if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
+})
 }
 { # utilities and convenience functions
 .u.single.resid<-function(y,B,subject,tm,tf,alpha){
@@ -241,7 +257,7 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 			}
 		}
 	}
-	list(tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,I=I,cc=cc)
+	list(y=y,B=B,subject=subject,tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,lm=lm,lf=lf,K=K,I=I,cc=cc)
 }
 .single.c.n2L<-function(y, subject, B, tm, tf, Da, sigma){
 	phi<-B%*%tf
@@ -259,10 +275,22 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 .single.c.AIC.core<-function(n2L,B,k,lm,lf,K){
  as.vector(n2L)+2*(.pfda.df(B,lm,K)+k*.pfda.df(B,lf,K))
 }
-.single.c.AIC.rawC<-function(Cmodel, t,y,B, subject, lm, lf, K){
+.single.c.AIC.rawC<-function(Cmodel, y,B, subject, lm, lf, K){
 	.single.c.AIC.core(
 		.single.c.n2L(y, subject, B, Cmodel$tm, Cmodel$tf, Cmodel$Da, Cmodel$sigma), 
 		B,length(Cmodel$Da),lm,lf,K)
+}
+AIC.pfda.single.c.rawC<-function(object,...){
+	with(object,.single.c.AIC.rawC(object,y,Bt,subject,lm,lf,K))
+}
+AIC.pfda.single.c.R<-function(object,...){
+ 	wih(object,.single.c.AIC.core(
+		.single.c.n2L(y, subject, B, tm, tf, Da, sigma), 
+		B,length(Da),lm,lf,K))
+}
+logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,n2L=TRUE){
+	r<-with(object,.single.c.n2L(y,subject,B,tm,tf,Da,sigma))
+	if(n2L) r else exp(-r/2)			
 }
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset){
 	name.t = deparse(substitute(t))
@@ -364,9 +392,11 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 					dpl<- single_c_core
 				}
 			}
-			.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+			structure(.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+				,class=c('list','pfda.single.c.rawC'))
 		} else {
-			single.c.core(y,Bt,subject,k,lm=penalties[1],lf=penalties[2],Kt,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+			structure(single.c.core(y,Bt,subject,k,lm=penalties[1],lf=penalties[2],Kt,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+				,class=c('list','pfda.single.c.R'))
 		}
 		rtn$tbase<-tbase
 		rtn$y<-y
@@ -549,7 +579,6 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 bin.s.loglik.1<-function(Bi,tm,tf,alpha,Da){
 mui = pnorm(Bi%*%(tm+tf%*%alpha))
 Omega = Bi%*%tf
-
 # Ui=diag(vi/)
 -.5*log(sum(Da))-.5*determinant(diag(NROW(Da)) + crossprod(Omega,Ui%*%Omega%*%diag(Da,NROW(Da))))$modulus +
 	crossprod(alpha,solve(Da)%*%alpha)/2 +
@@ -577,7 +606,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 		stop('not finished with penalty optimization')
 		pix<-which(is.na(penalties))
 		funcall<-match.call()
-		if(is.null(control$penalty.method) || control$penalty.method='AIC'{
+		if(is.null(control$penalty.method) || control$penalty.method=='AIC'){
 			AIC.from.p<-function(p){
 				fc=funcall
 				fc$penalties = p
@@ -597,7 +626,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 				{ #Compute Memory Requirements
 					ni = max(nobs)
 					.inits                      = 2*p^2 + M + p*N + 8*p
-					.step.W                	    = ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3 k)
+					.step.W                	    = ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k)
 					.step.1.E              	    = M + M*k + N*k + 2* k^2 + 2 * k + k *ni
 					.step.2                 	= p^2+ M+ M*k
 					.step.3                 	= M + p^2 + p + k^2 
@@ -606,23 +635,17 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					ipl <- 8*p
 				}
 			}			
-			.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl) , p=integer(ipl))
+			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl) , p=integer(ipl))
+				,class=c('list','pfda.single.b.rawC'))
 		} else {
-			.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
+			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
+				,class=c('list','pfda.single.b.R'))
 		}
 		rtn$tbase<-tbase
 		rtn$y<-y
 		rtn$subject<-subject
 		return(rtn)
 	}
-	# Saa<-unlist(Saa)
-	# dim(Saa)<-c(k,k,nlevels(subject))
-	# parameters={ new("pfdaBinaryModelParameters",
-		# theta_mu=as.numeric(core$tm), Theta_f=core$tf,
-		# Alpha=core$alpha, Da = core$Da, npc=as.integer(k),
-		# penalties=penalties, Sigma=core$Saa)}
-	# newFDModel = new("pfdaBinaryModel",Basis=obase, ConvergenceCriteria=core$cc, iterations = as.integer(core$I), FittingData = model, parameters=parameters)
-	# return(newFDModel)
 }
 }
 { # Dual (Continuous/Continuous) case
@@ -839,6 +862,88 @@ dual.cc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 		}
 	}
 	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.eps=s.eps,s.xi=s.xi)
+}
+dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),subset){
+		 {
+			 obase<-OrthogonalizeBasis(SplineBasis(knots))
+			 p<-dim(obase)[2]
+			 theta_mu			<-	double(p)
+			 theta_nu			<-	double(p)
+			 Theta_f 			<-	double(p*k_alpha)
+			 Theta_g 			<-	double(p*k_beta)
+			 D_alpha  			<-	double(k_alpha)
+			 D_beta  			<-	double(k_beta)
+			 Lambda  			<-	double(k_alpha*k_beta)
+			 sigma_epsilon 		<-	double(1)
+			 sigma_xi  			<-	double(1)
+			 Alpha 				<- 	double(N*k_alpha)
+			 Beta  				<-	double(N*k_beta)
+			 Sigma_alpha_alpha 	<-	double((k_alpha**2)*N)
+			 Sigma_alpha_beta  	<-	double(k_alpha*k_beta*N)
+			 Sigma_beta_beta   	<-	double((k_beta**2)*N)
+			 incInits<-FALSE
+		}
+		 B	<- evaluate(obase,t)
+		 ISD <- OuterProdSecondDerivative(obase)
+		 { #Compute Memory Requirements        
+			 k<-max(ka,kb)
+			dpl_1     <- M + M*ka + 2*k^2 
+			dpl_2     <- p^2 + M + M*k
+			dpl_3     <- M + p^2 + p + k^2
+			dpl_4     <- k^2 + ka*kb
+			dpl_5_1   <- k + 2*p^2 + p +  
+				max(  outer_qf = k*p , eigens = 8*p)
+			dpl_5_2   <- ka^2 + kb*ka
+			dpl_5     <- ka^2 + kb^2 + 
+				max(dpl_5_1  ,dpl_5_2 )
+			dpl_E_1   <- kb^2 + ka^2 + 
+				max( outer_qf = ka*kb, 
+					   sym_inv = 2* kb^2, 
+					   inner_qf = ka*kb )
+			dpl_E_2_1 <- 2*k^2
+			dpl_E_2_2 <- 3*k^2
+			dpl_E_2   <- kb^2 + max(dpl_E_2_1,dpl_E_2_2,ka*kb)
+			dpl_E_3_1 <- 2*k*max(nobs)
+			dpl_E_3   <- dpl_E_3_1
+			dpl_E     <- 2*M + M*ka + M*kb + ka^2 + kb^2 + ka*kb + 
+				max(dpl_E_1, dpl_E_2, dpl_E_3)
+			dpl<- N*(p**2) + p*2 + p*ka+p*kb + ka*kb + ka + kb + 
+				max(dpl_1, dpl_2, dpl_3, dpl_4, dpl_5, dpl_E )
+			ipl<-8*p
+		}
+		results<-{ .C("pfdaDual",
+			y=as.double(y), z=as.double(z),
+			nobs=as.integer(nobs),
+			M=as.integer(M), 
+			N=N, 
+			ka=as.integer(k_alpha),
+			kb=as.integer(k_beta),
+			B=as.double(B), 
+			p=as.integer(p),
+			delta=as.double(delta),
+			penalties = as.double(penalties),
+			K = Kt,
+			tm=as.double(theta_mu),
+			tn=as.double(theta_nu),
+			tf=as.double(Theta_f),
+			tg=as.double(Theta_g),
+			Da =as.double(D_alpha),
+			Db =as.double(D_beta),
+			lambda =as.double(Lambda),
+			seps =	as.double(sigma_epsilon),
+			sxi =as.double(sigma_xi),
+			alpha =as.double(Alpha),
+			beta =as.double(Beta),
+			Saa =as.double(Sigma_alpha_alpha),
+			Sab =as.double(Sigma_alpha_beta),
+			Sbb =as.double(Sigma_beta_beta),
+			tolerance=as.double(tol),
+			Iterations=as.integer(MaxIter),
+			dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl),
+			dp=double(dpl),
+			ip=integer(ipl)
+		) }
+
 }
 }
 { # Dual(Binary/Continuous) case
@@ -1334,21 +1439,10 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		knots<-list(kt,kx)
 		names(knots)<-c(name.t,name.x)
 	}
-	{ # k (numbero fo principle components
-		if(is.null(k)) k<-rep(NA,2)
-		else if(length(k)!=1) rep(as.vector(k),length.out=2)
-		# if(names(k)==NULL) names(k)<-c(name.t,name.x)
-	}
-	{ # penalties
-		if(is.null(penalties)){
-			penalties<- if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bx,Kx),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bx,Kx))
-		}
-		if(!class(penalties)=='matrix') penalties<-matrix(penalties,2,2)
-		if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
-	}
+	eval(.X.dual.k)
+	eval(.X.dual.penalties)
 	if(any(is.na(k))){
 		stop("identification of number of principle components is not done yet.")
-
 	} else
 	if (any(is.na(penalties))) {
 		pix<-which(is.na(penalties))
@@ -1358,6 +1452,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 			ix = !(subject %in% s)
 			fc=funcall
 			fc$penalties=p
+			fc$subset=ix
 			model<-eval(fc)
 			# Recall(y[ix],Z[ix,,drop=FALSE],Bt[ix,,drop=FALSE],Bx[ix,,drop=FALSE],subject[ix,drop=TRUE],
 				# kg=k[1],kd=k[2],lt=p[1],lf=p[2],lx=p[3],lg=p[4],Kt=Kt,Kx=Kx,min.v=control$minimum.variance,max.I=control$max.iterations,tol=control$convergence.tolerance)

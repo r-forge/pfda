@@ -193,38 +193,32 @@ MEMORY:
 }
 
 void pfdaDual(
-	/* input Values */
-	const double * const t,
 	double * const y, double * const z,
+	const double * const B,
+	double * const tm,	double * const tn,
+	double * const tf,	double * const tg,
+	double * const alpha,	double * const beta,
+	double * const lambda,
+	double * const Da,	double * const Db,
+	double * const seps,	double * const sxi,
+	double * const Sigma_aa,	double * const Sigma_ab,
+	double * const Sigma_bb,
 	const int * const nobs,
 	const int * const M,
 	const int * const N,
 	const int * const ka, const int * const kb,
-	const double * const B,
 	const int * const p,
-	const double * const minimum_variance,
 	const double * const penalties,
 	const double * const ISD,
-	/* State Values */
-	double * const tm,	double * const tn,
-	double * const tf,	double * const tg,
-	double * const Da,	double * const Db,
-	double * const Lambda,
-	double * const seps,	double * const sxi,
-	double * const alpha,	double * const Beta,
-	double * const Sigma_aa,	double * const Sigma_ab,
-	double * const Sigma_bb,
-	/* Control Values */
-	double * const tol,
+	const double * const minimum_variance,
 	int * const MaxIter,
-	const int * const incInits,
+	double * const tol,
 	const int * const dl,
 	double * dp,	int * ip
 	)
 /*DESCRIPTION:
 		This function performs the bivariate fit for paired functional data analysis by Zhou, et al.
 	INPUTS:
-		t		Mx1 vector of time values
 		y		Mx1 vector of y values   (Also an output for residuals)
 		z		Mx1 vector of zvalues  (Also an output for residuals)
 		nobs		Nx1 vector of number of observations per subject
@@ -293,7 +287,6 @@ void pfdaDual(
 		if(checkdebug(dl,debugnum_dual_steps))pfda_debug_msg("Entering pfdaDual\n");
 		if(checkdebug(dl,debugnum_dual_inputs)){
 			pfda_debug_msg("INPUTS\n----------------------------------------\n");
-			pfda_debug_msg("t:\n"); printmat(t, 1, *M);
 			pfda_debug_msg("y:\n"); printmat(y, 1, *M);
 			pfda_debug_msg("z:\n"); printmat(z, 1, *M);
 			pfda_debug_msg("M:\n%d\n\n",*M);
@@ -330,8 +323,8 @@ void pfdaDual(
 		fflush(stdout);
 	}
 	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Finding Initial values.\n");fflush(stdout);}
-	if(!*incInits)pfdafindinits( t,  y,  z,  nobs, M,  N,  ka, kb, B,  p, minimum_variance, //input values
-								tm, tn, tf,  tg,  Da,  Db,  Lambda,  seps,  sxi,  alpha,  Beta,  Sigma_aa,  Sigma_ab,  Sigma_bb); //return values
+	pfdafindinits( y,  z,  nobs, M,  N,  ka, kb, B,  p, minimum_variance, //input values
+	   						tm, tn, tf,  tg,  Da,  Db,  Lambda,  seps,  sxi,  alpha,  Beta,  Sigma_aa,  Sigma_ab,  Sigma_bb); //return values
 	setMinVar(seps, &one, minimum_variance);
 	setMinVar(sxi, &one, minimum_variance);
 	setMinVar(Da, ka, minimum_variance);

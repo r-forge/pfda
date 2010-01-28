@@ -1,21 +1,3 @@
-#' Formula paring for pfda package that supports the & and | symbols.
-#' 
-#' Designed to correctly structure a data frame for the pfda functions
-#' 
-#' @param formula a formula object
-#' @param data a data frame or envirnoment
-#' @param ... passed to model.frame
-#' 
-#' @return a data.frame object with three elements, correctly formated for the FunctionalData class.
-#' 		The first element should be a data.frame objects. The motivation for this being that we need 
-#'		to preserve classes of integer, logical, and factor variables to determine appropriate methods.
-#' 		In Second position is the domain variable.  Third should be a factor and defines the subject grouping.
-#' 
-#' 
-#' 
-#' @callgraph
-#' @seealso subset, formula, model.frame
-#' 
 pfdaParseFormula<-function(formula, data=environment(formula)){
 	expr2char <- function(x) paste(deparse(x), collapse = "")
 	if(length(formula)==3){ 
