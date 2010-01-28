@@ -634,8 +634,8 @@ computes the estimates and itterates until convergence
 */
 void dual_bc_core(
 	int    * const y,
-	double * const B,
 	double * const z,
+	double * const B,
 	double * const tm,
 	double * const tn,
 	double * const tf,

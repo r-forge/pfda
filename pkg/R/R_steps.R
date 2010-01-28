@@ -109,6 +109,8 @@
 .X.dual.k<-expression({ # resloves k input for dual pc (cc/bc/add)
 	if(is.null(k)) k<-rep(NA,2)
 	else if(length(k)!=1) rep(as.vector(k),length.out=2)
+	ka = as.integer(k[1])
+	kb = as.integer(k[2])
 	# if(names(k)==NULL) names(k)<-c(name.t,name.x)
 })
 .X.dual.penalties <-expression({ #  resolve penalties input 
@@ -120,6 +122,25 @@
 	}
 	if(!class(penalties)=='matrix') penalties<-matrix(penalties,2,2)
 	if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
+})
+.X.read.parameters <- expression({
+		if(exists('Z')){kz  = if(is.null(Z))0L else NCOL(Z)}
+		k  = as.integer(k)
+		N   = nlevels(subject)
+		nobs= table(subject)
+		M   = length(y)
+		p  = ncol(Bt)
+})
+.X.binary.y<-expression({ # enforces the conditions on a binary y
+	y<-if(is(y,'factor')){
+		stopifnot(nlevels(y)==2)
+		as.integer(y)-1
+	} else if(is(y,'logical')){
+		as.integer(y)
+	} else {
+		stopifnot(identical(as.integer(sort(unique(y))), as.integer(0:1)))
+		as.integer(y)
+	}
 })
 }
 { # utilities and convenience functions
@@ -296,7 +317,6 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 	name.t = deparse(substitute(t))
 	eval(.X.handle.z)
 	eval(.X.subset)
-	eval(.X.single.knots)
 	eval(.X.single.penalties)
 	if(any(is.na(k))||is.null(k)){
 		stop("identification of number of principle components is not done yet.")
@@ -343,14 +363,10 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		Recall(y,Z,t,subject,knots=knots,penalties=penalties,k=k,control)
 	}
 	else {
+		eval(.X.single.knots)
 		rtn<-if(control$useC){
 			{ # setup for passing to Compiled code
-				kz  = if(is.null(Z))0L else NCOL(Z)
-				k  = as.integer(k[1])
-				N   = nlevels(subject)
-				nobs= table(subject)
-				M   = length(y)
-				p  = ncol(Bt)
+
 				{ #Compute Memory Requirements
 					pfda_computeResid =           M*k 
 					pfda_s_i =                    p*p + M + N*p + p*p + max(
@@ -597,7 +613,6 @@ bin.s.loglik<-function(object,...){
 } 
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset){
 	eval(.X.subset)
-	eval(.X.single.knots)
 	eval(.X.single.penalties)
 	if(is.null(k)||any(is.na(k))){
 		stop('number of principal components optimization not finished yet')
@@ -616,6 +631,8 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 		}
 	} 
 	else {
+		eval(.X.single.knots)
+		eval(.X.binary.y)
 		rtn<-if(control$useC){
 			{ # setup for passing to Compiled code
 				k  = as.integer(k[1])
@@ -864,86 +881,80 @@ dual.cc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.eps=s.eps,s.xi=s.xi)
 }
 dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),subset){
-		 {
-			 obase<-OrthogonalizeBasis(SplineBasis(knots))
-			 p<-dim(obase)[2]
-			 theta_mu			<-	double(p)
-			 theta_nu			<-	double(p)
-			 Theta_f 			<-	double(p*k_alpha)
-			 Theta_g 			<-	double(p*k_beta)
-			 D_alpha  			<-	double(k_alpha)
-			 D_beta  			<-	double(k_beta)
-			 Lambda  			<-	double(k_alpha*k_beta)
-			 sigma_epsilon 		<-	double(1)
-			 sigma_xi  			<-	double(1)
-			 Alpha 				<- 	double(N*k_alpha)
-			 Beta  				<-	double(N*k_beta)
-			 Sigma_alpha_alpha 	<-	double((k_alpha**2)*N)
-			 Sigma_alpha_beta  	<-	double(k_alpha*k_beta*N)
-			 Sigma_beta_beta   	<-	double((k_beta**2)*N)
-			 incInits<-FALSE
+	eval(.X.subset)
+	eval(.X.dual.k)
+	eval(.X.dual.penalties)
+	if(any(is.na(k))){
+		stop("not finished with number of principal component optimization.")
+	} 
+	else if(any(is.na(penalties))){
+		stop("not finished with dual penalty optimization")	
+	} 
+	else{ # Pass to core function
+		eval(.X.single.knots)
+		rtn<-if(control$useC){	
+			eval(.X.read.parameters)
+			{ #Compute Memory Requirements        
+				k<-max(ka,kb)
+				dpl_1     <- M + M*ka + 2*k^2 
+				dpl_2     <- p^2 + M + M*k
+				dpl_3     <- M + p^2 + p + k^2
+				dpl_4     <- k^2 + ka*kb
+				dpl_5_1   <- k + 2*p^2 + p +  
+					max(  outer_qf = k*p , eigens = 8*p)
+				dpl_5_2   <- ka^2 + kb*ka
+				dpl_5     <- ka^2 + kb^2 + 
+					max(dpl_5_1  ,dpl_5_2 )
+				dpl_E_1   <- kb^2 + ka^2 + 
+					max( outer_qf = ka*kb, 
+							 sym_inv = 2* kb^2, 
+							 inner_qf = ka*kb )
+				dpl_E_2_1 <- 2*k^2
+				dpl_E_2_2 <- 3*k^2
+				dpl_E_2   <- kb^2 + max(dpl_E_2_1,dpl_E_2_2,ka*kb)
+				dpl_E_3_1 <- 2*k*max(nobs)
+				dpl_E_3   <- dpl_E_3_1
+				dpl_E     <- 2*M + M*ka + M*kb + ka^2 + kb^2 + ka*kb + 
+					max(dpl_E_1, dpl_E_2, dpl_E_3)
+				dpl<- N*(p**2) + p*2 + p*ka+p*kb + ka*kb + ka + kb + 
+					max(dpl_1, dpl_2, dpl_3, dpl_4, dpl_5, dpl_E )
+				ipl<-8*p
+			}
+			{structure(.C("pfdaDual",
+				y=as.double(y), z=as.double(z),
+				B=as.double(Bt), 
+				tm=double(p),			tn=double(p),
+				tf=double(p*ka),			tg=double(p*kb),
+				alpha =double(N*ka),
+				beta =double(NN*kb),
+				lambda =double(ka*kb),
+				Da =double(ka),
+				Db =double(kb),
+				seps =	double(1),
+				sxi =double(1),
+				Saa =double((ka**2)*N),
+				Sab =double(ka*kb*N),
+				Sbb =double((kb**2)*N),
+				nobs=as.integer(nobs),
+				M=as.integer(M), 
+				N=N, 
+				ka=as.integer(ka),
+				kb=as.integer(kb),
+				p=as.integer(p),
+				penalties = penalties,
+				K = Kt,
+				minV=control$minimum.variance,
+				Iterations=control$max.iterations,
+				tol=control$convergence.tolerance,
+				dl=if(is.null(control$C.debug))NULL else control$C.debug,
+				dp=double(dpl),
+				ip=integer(ipl)
+			),class=c('list','pfda.dual.cc','pfda.dual.cc.rawC'))}
+		} else {
+			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
+				,class=c('list','pfda.dual.cc','pfda.dual.cc.R'))
 		}
-		 B	<- evaluate(obase,t)
-		 ISD <- OuterProdSecondDerivative(obase)
-		 { #Compute Memory Requirements        
-			 k<-max(ka,kb)
-			dpl_1     <- M + M*ka + 2*k^2 
-			dpl_2     <- p^2 + M + M*k
-			dpl_3     <- M + p^2 + p + k^2
-			dpl_4     <- k^2 + ka*kb
-			dpl_5_1   <- k + 2*p^2 + p +  
-				max(  outer_qf = k*p , eigens = 8*p)
-			dpl_5_2   <- ka^2 + kb*ka
-			dpl_5     <- ka^2 + kb^2 + 
-				max(dpl_5_1  ,dpl_5_2 )
-			dpl_E_1   <- kb^2 + ka^2 + 
-				max( outer_qf = ka*kb, 
-					   sym_inv = 2* kb^2, 
-					   inner_qf = ka*kb )
-			dpl_E_2_1 <- 2*k^2
-			dpl_E_2_2 <- 3*k^2
-			dpl_E_2   <- kb^2 + max(dpl_E_2_1,dpl_E_2_2,ka*kb)
-			dpl_E_3_1 <- 2*k*max(nobs)
-			dpl_E_3   <- dpl_E_3_1
-			dpl_E     <- 2*M + M*ka + M*kb + ka^2 + kb^2 + ka*kb + 
-				max(dpl_E_1, dpl_E_2, dpl_E_3)
-			dpl<- N*(p**2) + p*2 + p*ka+p*kb + ka*kb + ka + kb + 
-				max(dpl_1, dpl_2, dpl_3, dpl_4, dpl_5, dpl_E )
-			ipl<-8*p
-		}
-		results<-{ .C("pfdaDual",
-			y=as.double(y), z=as.double(z),
-			nobs=as.integer(nobs),
-			M=as.integer(M), 
-			N=N, 
-			ka=as.integer(k_alpha),
-			kb=as.integer(k_beta),
-			B=as.double(B), 
-			p=as.integer(p),
-			delta=as.double(delta),
-			penalties = as.double(penalties),
-			K = Kt,
-			tm=as.double(theta_mu),
-			tn=as.double(theta_nu),
-			tf=as.double(Theta_f),
-			tg=as.double(Theta_g),
-			Da =as.double(D_alpha),
-			Db =as.double(D_beta),
-			lambda =as.double(Lambda),
-			seps =	as.double(sigma_epsilon),
-			sxi =as.double(sigma_xi),
-			alpha =as.double(Alpha),
-			beta =as.double(Beta),
-			Saa =as.double(Sigma_alpha_alpha),
-			Sab =as.double(Sigma_alpha_beta),
-			Sbb =as.double(Sigma_beta_beta),
-			tolerance=as.double(tol),
-			Iterations=as.integer(MaxIter),
-			dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl),
-			dp=double(dpl),
-			ip=integer(ipl)
-		) }
-
+	}
 }
 }
 { # Dual(Binary/Continuous) case
@@ -1156,6 +1167,73 @@ dual.bc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 		}
 	}
 	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.xi=s.xi)
+}
+dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),subset){
+	eval(.X.subset)
+	eval(.X.dual.k)
+	eval(.X.dual.penalties)
+	if(any(is.na(k))){
+		stop("not finished with number of principal component optimization.")
+	} 
+	else if(any(is.na(penalties))){
+		stop("not finished with dual penalty optimization")	
+	} 
+	else{ # Pass to core function
+		eval(.X.single.knots)
+		eval(.X.binary.y)
+		rtn<-if(control$useC){	
+			eval(.X.read.parameters)
+			{ #compute memory requirements
+				k=max(ka,kb)
+				ni=max(nobs)
+				kr=max(control$binary.k0, control$binary.kr)
+				dpl = M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + max(
+					ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k),# step W
+					M + M*k + N*k + 2* k^2 + 2 * k + k *ni                    ,# step 1/E
+					p^2+ M+ M*k                                               ,# step 2  
+					M + p^2 + p + k^2                                         ,# step 3  
+					k + 2*k^2 + 2*p^2 + p + p*max(k,8)                        ,# step 4  
+					2*p^2 + M + p*N + 8*p)                                     # inits
+				ipl = 8*p
+			}
+		{structure(.C("dual_bc_core", 
+				y=y, z=as.double(z),
+				B=as.double(Bt), 
+				tm=double(p),			tn=double(p),
+				tf=double(p*ka),			tg=double(p*kb),
+				alpha =double(N*ka),
+				beta =double(NN*kb),
+				lambda =double(ka*kb),
+				Da =double(ka),
+				Db =double(kb),
+				sxi =double(1),
+				Saa =double((ka**2)*N),
+				Sab =double(ka*kb*N),
+				Sbb =double((kb**2)*N),
+				Saa =double((ka**2)*N),
+				Sab =double(ka*kb*N),
+				Sbb =double((kb**2)*N),
+				nobs=as.integer(nobs),
+				M=as.integer(M), 
+				N=N, 
+				ka=as.integer(ka),
+				kb=as.integer(kb),
+				p=as.integer(p),
+				lm=penalties[1], ln=penalties[2], lf=penalties[3], lg=penalties[4], 
+				K = Kt,
+				minV=control$minimum.variance,
+				k0 = control$binary.k0, kr=control$binary.kr,	
+				Iterations=control$max.iterations,
+				tol=control$convergence.tolerance,
+				dl=if(is.null(control$C.debug))NULL else control$C.debug,
+				dp=double(dpl),
+				ip=integer(ipl)
+			),class=c('list','pfda.dual.bc','pfda.dual.bc.rawC'))}
+		} else {
+			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
+				,class=c('list','pfda.dual.bc','pfda.dual.bc.R'))
+		}
+	}
 }
 }
 { # Additive aka Calcium Model
@@ -1519,7 +1597,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 }
 }
 { # general
-	pfda<-function(model,data=data,...,driver){
+	pfda<-function(model, data=NULL, ..., driver){
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
 		with(mf,switch(driver,

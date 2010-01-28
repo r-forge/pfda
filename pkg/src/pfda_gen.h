@@ -8,7 +8,7 @@
 
 #ifndef PFDA_GEN_H_
 #define PFDA_GEN_H_
-extern void pfdafindinits(double const * const t, double const * const y, double const * const z, int const * const nobs,int const * const M, int const * const N, int const * const ka,int const * const kb,double const * const B, int const * const p, double const * const delta, //input values
+extern void pfdafindinits(double const * const y, double const * const z, int const * const nobs,int const * const M, int const * const N, int const * const ka,int const * const kb,double const * const B, int const * const p, double const * const delta, //input values
 double* const tm,double* const tn,double* const tf, double* const tg, double* const Da, double* const Db, double* const L, double* const seps, double* const sxi, double* const Alpha, double* const Beta, double* const Saa, double* const Sab, double* const Sbb); //return values
 
 extern void pfdaFindInitSingle(
