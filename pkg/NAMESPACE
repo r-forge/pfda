@@ -12,4 +12,4 @@ export(
 			"single.c",
 			"single.b"
 			)
-			
+S3method(AIC,pfda.additive)

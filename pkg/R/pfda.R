@@ -426,10 +426,11 @@ Cdebug<-function(...){
 #' 	@param turn on tracing messages
 #' 	
 #' 	
-pfdaControl<-function(...,minimum.variance = 1e-4, convergence.tolerance = 1e-2, 
+pfdaControl<-function(...,penalty.method=c('AIC','CV'),minimum.variance = 1e-4, convergence.tolerance = 1e-2, 
 	max.iterations=10000, pc.tolerance=1/12, nfolds = 10, trace=TRUE,
 	useC=TRUE,binary.k0=100, binary.kr=10, C.debug=Cdebug()){
 	list(
+		penalty.method=match.arg(penalty.method),
 		minimum.variance=as.double(minimum.variance),
 		convergence.tolerance = as.double(convergence.tolerance),
 		max.iterations=as.integer(max.iterations),

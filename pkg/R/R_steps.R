@@ -1492,6 +1492,17 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		.dual.ca.n2L(y,Z,Bt,Bx,subject, Cmodel$tz, Cmodel$tt, Cmodel$tx, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Dg, Cmodel$Dd, Cmodel$sigma), 
 		Bt=Bt, Bx=Bx, kz=length(Cmodel$tz), kg=length(Cmodel$Dg), kd=length(Cmodel$Dd), lt=Cmodel$lt, lx=Cmodel$lx, lf=Cmodel$lf, lg=Cmodel$lg, Kt=Kt, Kx=Kx)
 }
+AIC.pfda.additive<-function(object,...){
+ with(object,.dual.ca.AIC.rawC(object, y, Z, Bt, Bx, subject, Kt, Kx))
+}
+logLik.pfda.additive<-function(object,...,newdata,n2L=TRUE){
+	if(missing(newdata))with(object,
+		.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)
+	) else if(all(c('y','Z','Bt','Bx','subject') %in% names(newdata)))
+	with(object,with(newdata,
+		.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)
+	)) else stop('bad newdata list')
+}
 dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl()){
 	name.t = deparse(substitute(t))
 	name.x = deparse(substitute(x))
@@ -1524,31 +1535,44 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	} else
 	if (any(is.na(penalties))) {
 		pix<-which(is.na(penalties))
-		if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
 		funcall <- match.call()
-		ews<-function(s,p){
-			ix = !(subject %in% s)
-			fc=funcall
-			fc$penalties=p
-			fc$subset=ix
-			model<-eval(fc)
-			# Recall(y[ix],Z[ix,,drop=FALSE],Bt[ix,,drop=FALSE],Bx[ix,,drop=FALSE],subject[ix,drop=TRUE],
-				# kg=k[1],kd=k[2],lt=p[1],lf=p[2],lx=p[3],lg=p[4],Kt=Kt,Kx=Kx,min.v=control$minimum.variance,max.I=control$max.iterations,tol=control$convergence.tolerance)
-			.dual.ca.n2L(y[!ix],Z[!ix,,drop=FALSE],Bt[!ix,,drop=FALSE],Bx[!ix,,drop=FALSE],subject[!ix,drop=TRUE],model$tz,model$tt,model$tx,model$tf,model$tg,model$lambda,model$Dg,model$Dd,model$sigma,log=TRUE)
+		if(control$penalty.method=='CV'){
+			if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
+			ews<-function(s,p){
+				ix = !(subject %in% s)
+				fc=funcall
+				fc$penalties=p
+				fc$subset=ix
+				model<-eval(fc)
+				logLik(model,newdata=list(y=y[!ix],Z=Z[!ix,,drop=FALSE],Bt=Bt[!ix,,drop=FALSE],Bx=Bx[!ix,,drop=FALSE],subject=subject[!ix,drop=TRUE]),n2L=TRUE)
+			}
+			cvf<-function(pen,...){
+				p<-penalties
+				p[pix]<-exp(pen)
+				cvl<-try(lapply(control$folds,ews,p=p),TRUE)
+				if(class(cvl)=="try-error")return(NA)
+				(sum(unlist(cvl)))
+			}
+			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+			optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
+			penalties[pix]<-exp(optimpar$par)
+			funcall$penalties=penalties
+			eval(funcall)
+		} else if(control$penaltymethod=='AIC'){
+      aicf<-function(pen){
+      	 p<-penalties
+				 p[pix]<-exp(pen)
+				 fc$penalties<-p
+				 AIC(eval(fc))
+			}
+			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+			optimpar<-optim(control$optimstart,aicf,method=control$optimMethod)
+			penalties[pix] <- exp(optimpar$par)
+			funcall$penalties=penalties
+			eval(funcall)
 		}
-		cvf<-function(pen,...){
-			p<-penalties
-			p[pix]<-exp(pen)
-			cat("p=",p,"\n")
-			cvl<-try(lapply(control$folds,ews,p=p),TRUE)
-			if(class(cvl)=="try-error")return(NA)
-			print(sum(unlist(cvl)))
-		}
-		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-		optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
-		penalties[pix]<-exp(optimpar$par)
-		Recall(y,Z,t,x,subject,knots=knots,penalties=penalties,k=k,control)
 	}
 	else {
 		rtn<-if(control$useC){
@@ -1574,7 +1598,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 					2*kg^2 + 2*kd^2 + M + 10*k + 9*p + 3*p^2 + N*k + M*k
 					)
 			}
-			.C('dual_ca_core', residuals=y, Z=Z, Bt=Bt, Bx=Bx,
+			structure(.C('dual_ca_core', residuals=y, Z=Z, Bt=Bt, Bx=Bx,
 				tz=double(kz), tt=double(pt), tx=double(px),
 				tf=matrix(0,pt,kg), tg=matrix(0,px,kd),
 				gamma=matrix(0,N,kg), delta=matrix(0,N,kd),
@@ -1584,14 +1608,15 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 				Sgg=array(0,c(kg,kg,N)), Sgd=array(0,c(kg,kd,N)), Sdd=array(0,c(kd,kd,N)),
 				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
 				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+		  ,class=c('pfda.additive.rawC','pfda.additive','list'))
 		} else {
-			.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+			structure(.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
+			,class=c('pfda.additive.R','pfda.additive','list'))
 		}
 		rtn$tbase<-tbase
 		rtn$xbase<-xbase
 		rtn$y<-y
 		rtn$subject<-subject
-		class(rtn)<-'pfda.dual.ca'
 		return(rtn)
 	}
 }
