@@ -115,7 +115,7 @@
 })
 .X.dual.penalties <-expression({ #  resolve penalties input 
 	if(is.null(penalties)){
-		penalties<- if(exists('Bx'))
+		penalties<- if(exists('Bx',inherits=FALSE))
 			if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bx,Kx),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bx,Kx))
 	  else
 			if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bt,Kt))
@@ -124,7 +124,7 @@
 	if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
 })
 .X.read.parameters <- expression({
-		if(exists('Z')){kz  = if(is.null(Z))0L else NCOL(Z)}
+		if(exists('Z')){ kz  = if(is.null(Z))0L else NCOL(Z)}
 		k  = as.integer(k)
 		N   = nlevels(subject)
 		nobs= table(subject)
@@ -890,7 +890,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	else if(any(is.na(penalties))){
 		stop("not finished with dual penalty optimization")	
 	} 
-	else{ # Pass to core function
+	else { # Pass to core function
 		eval(.X.single.knots)
 		rtn<-if(control$useC){	
 			eval(.X.read.parameters)
@@ -920,7 +920,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 					max(dpl_1, dpl_2, dpl_3, dpl_4, dpl_5, dpl_E )
 				ipl<-8*p
 			}
-			{structure(.C("pfdaDual",
+			{ structure(.C("pfdaDual",
 				y=as.double(y), z=as.double(z),
 				B=as.double(Bt), 
 				tm=double(p),			tn=double(p),
@@ -949,7 +949,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				dl=if(is.null(control$C.debug))NULL else control$C.debug,
 				dp=double(dpl),
 				ip=integer(ipl)
-			),class=c('list','pfda.dual.cc','pfda.dual.cc.rawC'))}
+			),class=c('list','pfda.dual.cc','pfda.dual.cc.rawC')) }
 		} else {
 			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
 				,class=c('list','pfda.dual.cc','pfda.dual.cc.R'))
@@ -1178,7 +1178,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	else if(any(is.na(penalties))){
 		stop("not finished with dual penalty optimization")	
 	} 
-	else{ # Pass to core function
+	else { # Pass to core function
 		eval(.X.single.knots)
 		eval(.X.binary.y)
 		rtn<-if(control$useC){	
@@ -1196,7 +1196,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 					2*p^2 + M + p*N + 8*p)                                     # inits
 				ipl = 8*p
 			}
-		{structure(.C("dual_bc_core", 
+			{ structure(.C("dual_bc_core", 
 				y=y, z=as.double(z),
 				B=as.double(Bt), 
 				tm=double(p),			tn=double(p),
@@ -1525,6 +1525,8 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		Bx = evaluate(xbase,x)
 		Kt = OuterProdSecondDerivative(tbase)
 		Kx = OuterProdSecondDerivative(xbase)
+		Bx<-Bx[,-1]  #Removing the last column of Bx is to improve stability and remove interdependence between t and x
+		Kx<-Kx[-1,-1]
 		knots<-list(kt,kx)
 		names(knots)<-c(name.t,name.x)
 	}
@@ -1540,7 +1542,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 			if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
 			ews<-function(s,p){
 				ix = !(subject %in% s)
-				fc=funcall
+				fc<-funcall
 				fc$penalties=p
 				fc$subset=ix
 				model<-eval(fc)
@@ -1559,9 +1561,10 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 			penalties[pix]<-exp(optimpar$par)
 			funcall$penalties=penalties
 			eval(funcall)
-		} else if(control$penaltymethod=='AIC'){
+		} else if(control$penalty.method=='AIC') {
       aicf<-function(pen){
-      	 p<-penalties
+      	fc<-funcall
+				p<-penalties
 				 p[pix]<-exp(pen)
 				 fc$penalties<-p
 				 AIC(eval(fc))
@@ -1576,7 +1579,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	}
 	else {
 		rtn<-if(control$useC){
-			{
+			{ # compute memory and parameters
 				kz  = if(is.null(Z))0L else NCOL(Z)
 				kg  = as.integer(k[1])
 				kd  = as.integer(k[2])
@@ -1584,8 +1587,6 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 				nobs= table(subject)
 				M   = length(y)
 				pt  = ncol(Bt)
-				Bx<-Bx[,-1]  #Removing the last column of Bx is to improve stability and remove interdependence between t and x
-				Kx<-Kx[-1,-1]
 				px  = ncol(Bx)
 				p   = max(pt, px)
 				k   = max(kg, kd)
@@ -1608,7 +1609,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 				Sgg=array(0,c(kg,kg,N)), Sgd=array(0,c(kg,kd,N)), Sdd=array(0,c(kd,kd,N)),
 				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
 				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
-		  ,class=c('pfda.additive.rawC','pfda.additive','list'))
+			,class=c('pfda.additive.rawC','pfda.additive','list'))
 		} else {
 			structure(.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
 			,class=c('pfda.additive.R','pfda.additive','list'))
