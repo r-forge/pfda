@@ -206,12 +206,15 @@ positive.first.row<-function(X){
 	stopifnot(is.matrix(X))
 	X*rep(sign(X[1,]),each=nrow(X))
 }
-.pfda.df<-function(B,l,K){
+.pfda.df<-Vectorize(function(B,l,K){
 	tr<-function(x)sum(diag(x))
-  L<- crossprod(B)+l*K
-	if(kappa(L)>1e10) return(2)
+	while(TRUE){
+		L <- crossprod(B)+l*K
+		if(kappa(L)<1e14)break
+		else l <- l*.90
+	}
 	tr(solve(L,crossprod(B)))
-}
+},'l')
 l.from.df<-function(df,B,K)if(is.na(df)) NA else uniroot(function(l).pfda.df(B,l,K)-df,c(1e-4,1e10))$root
 }
 { # single version
