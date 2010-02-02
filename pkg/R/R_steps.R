@@ -142,6 +142,49 @@
 		as.integer(y)
 	}
 })
+.X.optimize.penalties<-expression({
+	pix<-which(is.na(penalties))
+	if(control$penalty.method=='CV'){
+		if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
+		ews<-function(s,p){
+			ix = !(subject %in% s)
+			fc<-funcall
+			fc$penalties=p
+			fc$subset=ix
+			model<-eval(fc)
+			logLik(model,newdata=list(y=y[!ix],Z=Z[!ix,,drop=FALSE],Bt=Bt[!ix,,drop=FALSE],Bx=Bx[!ix,,drop=FALSE],subject=subject[!ix,drop=TRUE]),n2L=TRUE)
+		}
+		cvf<-function(pen,...){
+			p<-penalties
+			p[pix]<-exp(pen)
+			if(any(is.infinite(p)))return(Inf)
+			cvl<-try(lapply(control$folds,ews,p=p),TRUE)
+			if(class(cvl)=="try-error")return(NA)
+			(sum(unlist(cvl)))
+		}
+		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+		optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
+		penalties[pix]<-exp(optimpar$par)
+		funcall$penalties=penalties
+		eval(funcall)
+	} else if(control$penalty.method=='AIC') {
+		aicf<-function(pen){
+			fc<-funcall
+			p<-penalties
+	  	p[pix]<-exp(pen)
+			if(any(is.infinite(p)))return(Inf)
+			fc$penalties<-p
+			AIC(eval(fc))
+		}
+		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
+		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
+		optimpar<-optim(control$optimstart,aicf,method=control$optimMethod)
+		penalties[pix] <- exp(optimpar$par)
+		funcall$penalties=penalties
+		eval(funcall)
+	}
+})
 }
 { # utilities and convenience functions
 .u.single.resid<-function(y,B,subject,tm,tf,alpha){
@@ -322,45 +365,8 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		stop("identification of number of principle components is not done yet.")
 	} else
 	if (any(is.na(penalties))) {
-		pix<-which(is.na(penalties))
 		funcall <- match.call()
-		if(is.null(control$penalty.method) || control$penalty.method=="AIC"){
-			AIC.from.p<-function(p){
-				fc=funcall
-				fc$penalties=p
-				model<-eval(fc)
-				.single.c.AIC.rawC(model, t, y, Bt, subject, p[1], p[2], Kt)
-			}
-			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-			if(is.null(control$optimstart))control$optimstart<-rep(1e5,length(pix))
-			optimpar<-optim(control$optimstart,AIC.from.p,method=control$optimMethod)
-			penalties[pix]<-exp(optimpar$par)
-		}
-		else if(control$penalty.method=="CV") {
-			if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
-			ews<-function(s,p){
-				ix = !(subject %in% s)
-				fc=funcall
-				fc$penalties=p
-				fc$subset=ix
-				model<-eval(fc)
-				#.single.c.n2L(y[!ix],Z[!ix,,drop=FALSE],Bt[!ix,,drop=FALSE],B[!ix,,drop=FALSE],subject[!ix,drop=TRUE],model$tz,model$tt,model$tx,model$tf,model$tg,model$lambda,model$Dg,model$Dd,model$sigma,log=TRUE)
-				with(model,.single.c.n2L(y[!ix], subject[!ix,drop=TRUE], B[!ix,,drop=TRUE], tm, tf, Da, sigma))
-			}
-			cvf<-function(pen,...){
-				p<-penalties
-				p[pix]<-exp(pen)
-				cat("p=",p,"\n")
-				cvl<-try(lapply(control$folds,ews,p=p),TRUE)
-				if(class(cvl)=="try-error")return(NA)
-				print(sum(unlist(cvl)))
-			}
-			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-			optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
-			penalties[pix]<-exp(optimpar$par)
-		}
-		Recall(y,Z,t,subject,knots=knots,penalties=penalties,k=k,control)
+		eval(.X.optimize.penalties)
 	}
 	else {
 		eval(.X.single.knots)
@@ -617,19 +623,10 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 	if(is.null(k)||any(is.na(k))){
 		stop('number of principal components optimization not finished yet')
 	} else 
-	if(any(is.na(penalties))){
-		stop('not finished with penalty optimization')
-		pix<-which(is.na(penalties))
-		funcall<-match.call()
-		if(is.null(control$penalty.method) || control$penalty.method=='AIC'){
-			AIC.from.p<-function(p){
-				fc=funcall
-				fc$penalties = p
-				model <- eval(fc)
-				# binary singe AIC function goes here
-			}
-		}
-	} 
+	if(any(is.na(penalties))) {
+		funcall <- match.call()
+		eval(.X.optimize.penalties)  
+	}
 	else {
 		eval(.X.single.knots)
 		eval(.X.binary.y)
@@ -887,9 +884,9 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	if(any(is.na(k))){
 		stop("not finished with number of principal component optimization.")
 	} 
-	else if(any(is.na(penalties))){
-		stop("not finished with dual penalty optimization")	
-	} 
+	else if(any(is.na(penalties))){ 
+		funcall <- match.call()
+		eval(.X.optimize.penalties) } 
 	else { # Pass to core function
 		eval(.X.single.knots)
 		rtn<-if(control$useC){	
@@ -1175,9 +1172,9 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	if(any(is.na(k))){
 		stop("not finished with number of principal component optimization.")
 	} 
-	else if(any(is.na(penalties))){
-		stop("not finished with dual penalty optimization")	
-	} 
+	else if(any(is.na(penalties))){ 
+		funcall <- match.call()
+		eval(.X.optimize.penalties) } 
 	else { # Pass to core function
 		eval(.X.single.knots)
 		eval(.X.binary.y)
@@ -1535,48 +1532,9 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	if(any(is.na(k))){
 		stop("identification of number of principle components is not done yet.")
 	} else
-	if (any(is.na(penalties))) {
-		pix<-which(is.na(penalties))
+	if (any(is.na(penalties))) { 
 		funcall <- match.call()
-		if(control$penalty.method=='CV'){
-			if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
-			ews<-function(s,p){
-				ix = !(subject %in% s)
-				fc<-funcall
-				fc$penalties=p
-				fc$subset=ix
-				model<-eval(fc)
-				logLik(model,newdata=list(y=y[!ix],Z=Z[!ix,,drop=FALSE],Bt=Bt[!ix,,drop=FALSE],Bx=Bx[!ix,,drop=FALSE],subject=subject[!ix,drop=TRUE]),n2L=TRUE)
-			}
-			cvf<-function(pen,...){
-				p<-penalties
-				p[pix]<-exp(pen)
-				cvl<-try(lapply(control$folds,ews,p=p),TRUE)
-				if(class(cvl)=="try-error")return(NA)
-				(sum(unlist(cvl)))
-			}
-			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-			optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
-			penalties[pix]<-exp(optimpar$par)
-			funcall$penalties=penalties
-			eval(funcall)
-		} else if(control$penalty.method=='AIC') {
-      aicf<-function(pen){
-      	fc<-funcall
-				p<-penalties
-				 p[pix]<-exp(pen)
-				 fc$penalties<-p
-				 AIC(eval(fc))
-			}
-			if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-			if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-			optimpar<-optim(control$optimstart,aicf,method=control$optimMethod)
-			penalties[pix] <- exp(optimpar$par)
-			funcall$penalties=penalties
-			eval(funcall)
-		}
-	}
+		eval(.X.optimize.penalties) }
 	else {
 		rtn<-if(control$useC){
 			{ # compute memory and parameters
@@ -1607,8 +1565,10 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 				sigma=0.0,
 				gg=array(0,c(kg,kg,N)),   gd=array(0,c(kg,kd,N)),  dd=array(0,c(kd,kd,N)),
 				Sgg=array(0,c(kg,kg,N)), Sgd=array(0,c(kg,kd,N)), Sdd=array(0,c(kd,kd,N)),
-				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
-				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, 
+				lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
+				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, 
+				dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
 			,class=c('pfda.additive.rawC','pfda.additive','list'))
 		} else {
 			structure(.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
