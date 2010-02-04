@@ -211,7 +211,7 @@ positive.first.row<-function(X){
 	while(TRUE){
 		L <- crossprod(B)+l*K
 		if(kappa(L)<1e14)break
-		else l <- l*.90
+		else if(l>1) l <- l*.90 else stop()
 	}
 	tr(solve(L,crossprod(B)))
 },'l')
@@ -1532,7 +1532,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	}
 	eval(.X.dual.k)
 	eval(.X.dual.penalties)
-	if(any(is.na(k))){
+	structure(if(any(is.na(k))){
 		stop("identification of number of principle components is not done yet.")
 	} else
 	if (any(is.na(penalties))) { 
@@ -1581,8 +1581,17 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		rtn$xbase<-xbase
 		rtn$y<-y
 		rtn$subject<-subject
-		return(rtn)
-	}
+		rtn
+	},name.t=name.t,name.x=name.x)
+}
+plot.pfda.additive<-function(object,...){
+	with(object,{
+		layout(matrix(1:4,nrow=2,ncol=2,byrow=T))
+		plot(tbase,tt, main=paste("Plot of mean curve for",attr(object,'name.t')),xlab='time',ylab='cd4')
+		plot(tbase,tf, main=paste("Principle components for",attr(object,'name.t')),xlab='time',ylab='cd4')
+		plot(xbase,c(0,tx), main=paste("Plot of mean curve for ",attr(object,'name.x')),xlab="RNA",ylab='cd4')
+		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(object,'name.x')),xlab='RNA',ylab='cd4')
+	})
 }
 }
 { # general

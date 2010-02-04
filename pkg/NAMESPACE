@@ -13,3 +13,4 @@ export(
 			"single.b"
 			)
 S3method(AIC,pfda.additive)
+S3method(plot,pfda.additive)
