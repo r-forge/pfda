@@ -6,6 +6,7 @@ importFrom("stats", "logLik", "residuals","predict")
 importFrom("orthogonalsplinebasis","SplineBasis","evaluate")
 
 export(		
+			"pfda",
 			"pfdaControl",
 			"Cdebug",
 			"dual.ca",

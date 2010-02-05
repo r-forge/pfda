@@ -95,7 +95,7 @@
 })
 .X.single.knots<-expression({ # knots identification
 	if(is.null(knots)){
-		kt<-expand.knots(unique(quantile(t,0:20/20)))
+		kt<-expand.knots(unique(quantile(t,0:10/10)))
 	} else kt<-knots
 	tbase = OBasis(kt)
 	Bt = evaluate(tbase,t)
