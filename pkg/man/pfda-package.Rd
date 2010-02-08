@@ -1,6 +1,7 @@
-\name{pfda}
-\alias{pfda}
-\title{Paired Functional Data Analysis}
+\name{pfda-package}
+\alias{pfda-package}
+\docType{package}
+\title{Paired Functional Data Analysis, using Principle Components}
 \description{Paired functional data analysis using functional principle components.  The princple components are formed using orthogonalized spline basis.
 }
 \details{
