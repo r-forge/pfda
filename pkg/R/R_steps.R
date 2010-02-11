@@ -965,6 +965,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 	}
 }
+
 }
 { # Dual(Binary/Continuous) case
 .dual.bc.i<-function(y,z,B,subject,ka,kb,min.v){

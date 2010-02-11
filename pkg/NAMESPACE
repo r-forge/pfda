@@ -12,3 +12,5 @@ export(
 S3method(AIC,pfda.additive)
 S3method(plot,pfda.additive)
 S3method(logLik,pfda.additive)
+S3method(AIC,pfda.dual.cc)
+S3method(logLik,pfda.dual.cc)
