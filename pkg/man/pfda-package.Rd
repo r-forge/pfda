@@ -2,10 +2,11 @@
 \alias{pfda-package}
 \docType{package}
 \title{Paired Functional Data Analysis, using Principle Components}
-\description{Paired functional data analysis using functional principle components.  The princple components are formed using orthogonalized spline basis.
+\description{Paired functional data analysis using functional principle components.  The principal components are formed using orthogonalized spline basis.
 }
 \details{
-	The functions the do the main computation s of interest are \code{\link{pfdaSingle}} and \code{\link{pfdaDual}} for estimating a single curve and a paired curves, respectivly.  Also of interest is the functions for working with \code{\link{SplineBasis}}.
+	Computes the models of functional principal components for the single, single binary, paired, with mixed binary and continuous responses, and the additive model.  All the models are accessed through the \code{\link{pfda}} function.
+  Also of interest is the functions for working with \code{\link{SplineBasis}}.
 }
 \references{
 \emph{Joint modelling of paired sparse functional data using principal components}
@@ -16,5 +17,4 @@ Biometrika 2008 95: 601-619
 	Andrew Redd
 	Maintainer: Andrew Redd <aredd at stat.tamu.edu>
 }
-
 \keyword{package}

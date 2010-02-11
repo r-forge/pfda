@@ -7,11 +7,8 @@ importFrom("orthogonalsplinebasis","SplineBasis","evaluate")
 
 export(		
 			"pfda",
-			"pfdaControl",
-			"Cdebug",
-			"dual.ca",
-			"single.c",
-			"single.b"
+			"pfdaControl"
 			)
 S3method(AIC,pfda.additive)
 S3method(plot,pfda.additive)
+S3method(logLik,pfda.additive)

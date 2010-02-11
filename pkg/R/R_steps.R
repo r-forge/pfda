@@ -355,8 +355,8 @@ AIC.pfda.single.c.R<-function(object,...){
 		.single.c.n2L(y, subject, B, tm, tf, Da, sigma), 
 		B,length(Da),lm,lf,K))
 }
-logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,n2L=TRUE){
-	r<-with(object,.single.c.n2L(y,subject,B,tm,tf,Da,sigma))
+logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=NULL, n2L=TRUE){
+	r<-with(object,with(newdata,.single.c.n2L(y,subject,B,tm,tf,Da,sigma)))
 	if(n2L) r else exp(-r/2)			
 }
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset){
@@ -417,7 +417,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 					dpl<- single_c_core
 				}
 			}
-			structure(.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+			structure(.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
 				,class=c('list','pfda.single.c.rawC'))
 		} else {
 			structure(single.c.core(y,Bt,subject,k,lm=penalties[1],lf=penalties[2],Kt,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
@@ -601,24 +601,27 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 	}
 	list(tm=tm,tf=tf,Da=Da,aa=aa,Saa=Saa,I=I,cc=cc)
 }
-bin.s.loglik.1<-function(Bi,tm,tf,alpha,Da){
-mui = pnorm(Bi%*%(tm+tf%*%alpha))
-Omega = Bi%*%tf
-# Ui=diag(vi/)
--.5*log(sum(Da))-.5*determinant(diag(NROW(Da)) + crossprod(Omega,Ui%*%Omega%*%diag(Da,NROW(Da))))$modulus +
-	crossprod(alpha,solve(Da)%*%alpha)/2 +
-	sum(yi*log(mui)+ (1-yi)*log(1-mui))
+.single.b.n2L.1<-function(Bi,tm,tf,alpha,Da){
+	mui = pnorm(Bi%*%(tm+tf%*%alpha))
+	Omega = Bi%*%tf
+	# Ui=diag(vi/)
+	-.5*log(sum(Da))-.5*determinant(diag(NROW(Da)) + crossprod(Omega,Ui%*%Omega%*%diag(Da,NROW(Da))))$modulus +
+		crossprod(alpha,solve(Da)%*%alpha)/2 +
+		sum(yi*log(mui)+ (1-yi)*log(1-mui))
 }
-bin.s.loglik<-function(object,...){
+.single.b.n2L<-function(y, t, subject, B, tm, tf, alpha, Da){
+	ll<-0
+	for(subnum in seq_len(nlevels(subject))){
+		ll = ll + .single.b.n2L.1(B[subnum==as.integer(subject),],object@parameters@theta_mu, object@parameters@Theta_f, object@parameters@Alpha[subnum,],object@parameters@Da)
+	} 
+}
+loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 	y<-object@FittingData[[1]][[1]]
 	t<-object@FittingData[[2]]
 	subject<-object@FittingData[[3]]
 	B<-evaluate(object@Basis,t)
 	
-	ll<-0
-	for(subnum in seq_len(nlevels(subject))){
-		ll = ll + bin.s.loglik.1(B[subnum==as.integer(subject),],object@parameters@theta_mu, object@parameters@Theta_f, object@parameters@Alpha[subnum,],object@parameters@Da)
-	} 
+
 } 
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset){
 	eval(.X.subset)
@@ -652,7 +655,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					ipl <- 8*p
 				}
 			}			
-			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl) , p=integer(ipl))
+			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
 				,class=c('list','pfda.single.b.rawC'))
 		} else {
 			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
@@ -809,6 +812,12 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 		.dual.cc.n2L(t, y, z, B, subject, Cmodel$tm, Cmodel$tn, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Da, Cmodel$Db, Cmodel$seps, Cmodel$sxi)
 		, B, Cmodel$ka, Cmodel$kb, Cmodel$lm, Cmodel$ln, Cmodel$lf, Cmodel$lg, K)
 }
+AIC.pfda.dual.cc<-function(object,...){
+	with(object,.dual.cc.AIC.rawC(object, t, y, z, B, subject, lm, ln, lf, lg, K))
+}
+logLik.pfda.dual.cc<-function(object,...,newdata=NULL,n2L=TRUE){
+	with(object,with(newdata,.dual.cc.n2L(t,y,z,B,subject,tm,tn,tf,tg,lambda,Da,Db,seps,sxi)))
+}
 dual.cc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 	{ #initial values
 		init<-.dual.cc.i(y,z,B,subject,ka,kb,min.v)
@@ -946,7 +955,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				minV=control$minimum.variance,
 				Iterations=control$max.iterations,
 				tol=control$convergence.tolerance,
-				dl=if(is.null(control$C.debug))NULL else control$C.debug,
+				dl=control$C.debug,
 				dp=double(dpl),
 				ip=integer(ipl)
 			),class=c('list','pfda.dual.cc','pfda.dual.cc.rawC')) }
@@ -1225,13 +1234,13 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				k0 = control$binary.k0, kr=control$binary.kr,	
 				Iterations=control$max.iterations,
 				tol=control$convergence.tolerance,
-				dl=if(is.null(control$C.debug))NULL else control$C.debug,
+				dl=control$C.debug,
 				dp=double(dpl),
 				ip=integer(ipl)
-			),class=c('list','pfda.dual.bc','pfda.dual.bc.rawC'))}
+			),class=c('pfda.dual.bc.rawC','pfda.dual.bc','list'))}
 		} else {
 			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
-				,class=c('list','pfda.dual.bc','pfda.dual.bc.R'))
+				,class=c('pfda.dual.bc.R','pfda.dual.bc','list'))
 		}
 	}
 }
@@ -1495,13 +1504,8 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 AIC.pfda.additive<-function(object,...){
  with(object,.dual.ca.AIC.rawC(object, y, Z, Bt, Bx, subject, Kt, Kx))
 }
-logLik.pfda.additive<-function(object,...,newdata,n2L=TRUE){
-	if(missing(newdata))with(object,
-		.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)
-	) else if(all(c('y','Z','Bt','Bx','subject') %in% names(newdata)))
-	with(object,with(newdata,
-		.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)
-	)) else stop('bad newdata list')
+logLik.pfda.additive<-function(object,...,newdata=NULL,n2L=TRUE){
+	with(object,with(newdata,.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)))
 }
 dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl()){
 	name.t = deparse(substitute(t))
@@ -1571,7 +1575,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, 
 				lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
 				minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, 
-				dl=if(is.null(control$C.debug))NULL else control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+				dl=control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
 			,class=c('pfda.additive.rawC','pfda.additive','list'))
 		} else {
 			structure(.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
@@ -1584,8 +1588,8 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		rtn
 	},name.t=name.t,name.x=name.x)
 }
-plot.pfda.additive<-function(object,...){
-	with(object,{
+plot.pfda.additive<-function(x,...){
+	with(x,{
 		layout(matrix(1:4,nrow=2,ncol=2,byrow=T))
 		plot(tbase,tt, main=paste("Plot of mean curve for",attr(object,'name.t')),xlab='time',ylab='cd4')
 		plot(tbase,tf, main=paste("Principle components for",attr(object,'name.t')),xlab='time',ylab='cd4')
