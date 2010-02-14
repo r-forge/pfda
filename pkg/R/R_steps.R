@@ -151,7 +151,7 @@
 			fc<-funcall
 			fc$penalties=p
 			fc$subset=ix
-			model<-eval(fc)
+			model<-eval(fc,env=attr(fc,'envir'))
 			logLik(model,newdata=list(y=y[!ix],Z=Z[!ix,,drop=FALSE],Bt=Bt[!ix,,drop=FALSE],Bx=Bx[!ix,,drop=FALSE],subject=subject[!ix,drop=TRUE]),n2L=TRUE)
 		}
 		cvf<-function(pen,...){
@@ -167,7 +167,7 @@
 		optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
-		eval(funcall)
+		eval(funcall,env=attr(funcall,'envir'))
 	} else if(control$penalty.method=='AIC') {
 		aicf<-function(pen){
 			fc<-funcall
@@ -175,7 +175,7 @@
 	  	p[pix]<-exp(pen)
 			if(any(is.infinite(p)))return(Inf)
 			fc$penalties<-p
-			AIC(eval(fc))
+			AIC(eval(fc,env=attr(fc,'envir')))
 		}
 		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
 		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
@@ -211,7 +211,7 @@ positive.first.row<-function(X){
 	while(TRUE){
 		L <- crossprod(B)+l*K
 		if(kappa(L)<1e14)break
-		else if(l>1) l <- l*.90 else stop()
+		else if(l>1) l <- l*.90 else NA #l <- l*1.1
 	}
 	tr(solve(L,crossprod(B)))
 },'l')
@@ -1541,7 +1541,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		stop("identification of number of principle components is not done yet.")
 	} else
 	if (any(is.na(penalties))) { 
-		funcall <- match.call()
+		funcall <- structure(match.call(),envir=parent.frame())
 		eval(.X.optimize.penalties) }
 	else {
 		rtn<-if(control$useC){
@@ -1600,14 +1600,14 @@ plot.pfda.additive<-function(x,...){
 }
 }
 { # general
-	pfda<-function(model, data=NULL, ..., driver){
+	pfda<-function(model, data=environment(model), ..., driver){
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
 		with(mf,switch(driver,
 			single.continuous = single.c(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],...),
-			single.binary = stop("binary driver not finished"),
-			dual.continuous = stop("dual.continuous driver not finished"),
-			dual.mixed = stop("dual.mixed driver not finished"),
+			single.binary = single.b(response[[1]],splinegroup[[1]],splinegroup[[2]],...),
+			dual.continuous =  dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
+			dual.mixed = dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
 			additive = dual.ca(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
 		))
 	}
