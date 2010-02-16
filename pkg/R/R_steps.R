@@ -1530,7 +1530,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 		Bx = evaluate(xbase,x)
 		Kt = OuterProdSecondDerivative(tbase)
 		Kx = OuterProdSecondDerivative(xbase)
-		Bx<-Bx[,-1]  #Removing the last column of Bx is to improve stability and remove interdependence between t and x
+		Bx<-Bx[,-1]  #Removing the first column of Bx is to improve stability and remove interdependence between t and x
 		Kx<-Kx[-1,-1]
 		knots<-list(kt,kx)
 		names(knots)<-c(name.t,name.x)
@@ -1598,6 +1598,7 @@ plot.pfda.additive<-function(x,...){
 		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(object,'name.x')),xlab='RNA',ylab='cd4')
 	})
 }
+penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,lf,lg),2,2),dimnames=list(c(attr(object,'name.t'),attr(object,'name.x')),c('mean','pc'))))
 }
 { # general
 	pfda<-function(model, data=environment(model), ..., driver){
