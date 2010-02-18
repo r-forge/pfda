@@ -95,7 +95,7 @@
 })
 .X.single.knots<-expression({ # knots identification
 	if(is.null(knots)){
-		kt<-expand.knots(unique(quantile(t,0:10/10)))
+		kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=control$nknots))))
 	} else kt<-knots
 	tbase = OBasis(kt)
 	Bt = evaluate(tbase,t)
@@ -1514,8 +1514,9 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
 	{ # knots identification
 		if(is.null(knots)){
-			kt<-expand.knots(unique(quantile(t,0:20/20)))
-			kx<-expand.knots(unique(quantile(x,0:20/20)))
+			if(length(control$nknots)==2) { nkt <- control$nknots[1]; nkx <- control$nknots[2] } else nkt <- nkx <- control$nknots[1]
+			kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=nkt))))
+			kx<-expand.knots(unique(quantile(x,seq(0,1,length.out=nkt))))
 		} else if(length(knots)==2) {
 			if(name.t %in% names(knots)) kt <-knots[[name.t]]
 			else if('t' %in% names(knots)) kt<-knots[['t']]

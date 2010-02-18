@@ -1,3 +1,7 @@
+Version 0.6.3
+-------------
+added nknots to pfda control, and added support to the related functions
+
 Version 0.6.0
 -------------
 Reworked pfdaSingle and pfdaDual to combine together into pfda function that will also handle binary data
