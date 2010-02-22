@@ -1606,11 +1606,11 @@ penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,l
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
 		with(mf,switch(driver,
-			single.continuous = single.c(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],...),
-			single.binary = single.b(response[[1]],splinegroup[[1]],splinegroup[[2]],...),
+			single.continuous = single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),
+			single.binary = single.b(response,splinegroup[[1]],splinegroup[[2]],...),
 			dual.continuous =  dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
 			dual.mixed = dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
-			additive = dual.ca(response[[1]],additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
+			additive = dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
 		))
 	}
 }

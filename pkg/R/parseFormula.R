@@ -1,26 +1,26 @@
-pfdaParseFormula<-function(formula, data=environment(formula)){
+pfdaParseFormula<-function(formula, data, envir=environment(formula)){
 	expr2char <- function(x) paste(deparse(x), collapse = "")
 	if(length(formula)==3){ 
 		op<-formula[[1]]
 		if(op=='~'){
-			lhs<-if(length(formula)==3) Recall(formula[[2]],data=data) else NULL
+			lhs<-if(length(formula)==3) Recall(formula[[2]],data) else NULL
 			attr(lhs,'pfda.role')<-'response'
-			rhs<-Recall(formula[[length(formula)]],data=data)
+			rhs<-Recall(formula[[length(formula)]],data)
 			if(is(rhs,"pfda.model.frame"))
 				pfda.model.join(addto = rhs, response = lhs)
 			else if(attr(rhs,'pfda.role')=='splinegroup')
 				pfda.model.frame.new(response = lhs, splinegroup = rhs)
 			else stop("invalid model")
 		} else if(op=='%&%') {
-			first  <- Recall(formula[[2]],data=data)
-			second <- Recall(formula[[3]],data=data)
+			first  <- Recall(formula[[2]],data)
+			second <- Recall(formula[[3]],data)
 			bound<-data.frame(first,second)
 			attr(bound,'pfda.role')<-'bound'
 			bound
 		} else if(op=='%|%') {
-			variable  <- Recall(formula[[2]], data=data)
+			variable  <- Recall(formula[[2]], data)
 			attr(variable,'pfda.role')<-'splinevariable'
-			subjectID <- Recall(formula[[3]], data=data)
+			subjectID <- Recall(formula[[3]], data)
 			attr(subjectID,'pfda.role')<-'subjectID'
 			if(!is.factor(subjectID[[1]]))
 				stop(gettextf("The variable `%s` on the right hand side of `%%|%%` should be a factor.",expr2char(formula[[3]])))
@@ -28,8 +28,8 @@ pfdaParseFormula<-function(formula, data=environment(formula)){
 			attr(vardata,"pfda.role")<-"splinegroup"
 			vardata
 		} else if(op=='+') {
-			var1<-Recall(formula[[2]],data=data)
-			var2<-Recall(formula[[3]],data=data) 
+			var1<-Recall(formula[[2]],data)
+			var2<-Recall(formula[[3]],data) 
 			if((is.null(attr(var1,'pfda.role')) || attr(var1,'pfda.role')!='splinegroup') && (is.null(attr(var2,'pfda.role')) || attr(var2,'pfda.role')!='splinegroup')) {
 				if(is(var1,'pfda.model.frame'))
 					pfda.model.join(addto = var1, additive = var2)
@@ -46,8 +46,8 @@ pfdaParseFormula<-function(formula, data=environment(formula)){
 			stop(paste("I don't know what to do with this operator ",op))
 		} 
 	} else { #individual variables
-		x = substitute(~m, list(m = formula))
-		model.frame(x,data=data)
+		# x = substitute(~m, list(m = formula))
+		eval(formula,data,envir)
 	}
 }
 traverseFormula<-function(x,level=0){
