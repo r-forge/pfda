@@ -142,7 +142,22 @@
 		as.integer(y)
 	}
 })
+.X.funcall.replacevars<-expression({
+	funcall$y=y
+	if(exists("z"))funcall$z=z
+	if(exists("Z"))funcall$Z=Z
+	funcall$t = t
+	funcall$x = x
+	funcall$subject = subject
+	funcall$k=k
+	funcall$penalties = penalties
+	funcall$df = df
+	if(exists("bases"))funcall$bases=bases
+	funcall$knots = knots
+	funcall$control = control
+})
 .X.optimize.penalties<-expression({
+	eval(.X.funcall.replacevars)
 	pix<-which(is.na(penalties))
 	if(control$penalty.method=='CV'){
 		if(is.null(control$folds))control$folds<-cv.folds(nlevels(subject),10)
@@ -1508,11 +1523,13 @@ AIC.pfda.additive<-function(object,...){
 logLik.pfda.additive<-function(object,...,newdata=NULL,n2L=TRUE){
 	with(object,with(newdata,.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)))
 }
-dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl()){
+dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases=NULL,control=pfdaControl()){
 	name.t = deparse(substitute(t))
 	name.x = deparse(substitute(x))
 	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
-	{ # knots identification
+	if(is.null(bases))bases=new.env()
+	stopifnot(is.environment(bases))
+	if(!(exists("tbase",envir=bases) && exists("xbase",envir=bases))){ # knot and base identification
 		if(is.null(knots)){
 			if(length(control$nknots)==2) { nkt <- control$nknots[1]; nkx <- control$nknots[2] } else nkt <- nkx <- control$nknots[1]
 			kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=nkt))))
@@ -1525,16 +1542,18 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 			else if('x' %in% names(knots)) kx<-knots[['x']]
 			else kx <- knots[[2]]
 		} else stop("knots needs to be a list of length 2")
-		tbase = OBasis(kt)
-		xbase = OBasis(kx)
-		Bt = evaluate(tbase,t)
-		Bx = evaluate(xbase,x)
-		Kt = OuterProdSecondDerivative(tbase)
-		Kx = OuterProdSecondDerivative(xbase)
-		Bx<-Bx[,-1]  #Removing the first column of Bx is to improve stability and remove interdependence between t and x
-		Kx<-Kx[-1,-1]
+		assign('tbase',OBasis(kt),envir=bases)
+		assign('xbase',OBasis(kx),envir=bases)
 		knots<-list(kt,kx)
 		names(knots)<-c(name.t,name.x)
+	}
+	{ # evaluate Bases
+		Bt = evaluate(bases$tbase,t)
+		Bx = evaluate(bases$xbase,x)
+		Kt = OuterProdSecondDerivative(bases$tbase)
+		Kx = OuterProdSecondDerivative(bases$xbase)
+		Bx<-Bx[,-1]  #Removing the first column of Bx is to improve stability and remove interdependence between t and x
+		Kx<-Kx[-1,-1]
 	}
 	eval(.X.dual.k)
 	eval(.X.dual.penalties)
@@ -1583,8 +1602,8 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contr
 			structure(.dual.ca.core(y,Z,Bt,Bx,subject,k[1],k[2],penalties[1],penalties[2],penalties[3],penalties[4],Kt,Kx,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
 			,class=c('pfda.additive.R','pfda.additive','list'))
 		}
-		rtn$tbase<-tbase
-		rtn$xbase<-xbase
+		rtn$tbase<-bases$tbase
+		rtn$xbase<-bases$xbase
 		rtn$y<-y
 		rtn$subject<-subject
 		rtn
