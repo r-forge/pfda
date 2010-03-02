@@ -3,7 +3,7 @@ useDynLib(pfda)
 importFrom("utils","head","tail")
 importFrom("graphics","plot")
 importFrom("stats", "logLik", "residuals","predict")
-importFrom("orthogonalsplinebasis","SplineBasis","evaluate")
+importFrom("orthogonalsplinebasis","SplineBasis","evaluate","plot")
 
 export(		
 			"pfda",
@@ -12,5 +12,6 @@ export(
 S3method(AIC,pfda.additive)
 S3method(plot,pfda.additive)
 S3method(logLik,pfda.additive)
+S3method(print,pfda.additive)
 S3method(AIC,pfda.dual.cc)
 S3method(logLik,pfda.dual.cc)

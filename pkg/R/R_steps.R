@@ -1612,11 +1612,18 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 plot.pfda.additive<-function(x,...){
 	with(x,{
 		layout(matrix(1:4,nrow=2,ncol=2,byrow=T))
-		plot(tbase,tt, main=paste("Plot of mean curve for",attr(object,'name.t')),xlab='time',ylab='cd4')
-		plot(tbase,tf, main=paste("Principle components for",attr(object,'name.t')),xlab='time',ylab='cd4')
-		plot(xbase,c(0,tx), main=paste("Plot of mean curve for ",attr(object,'name.x')),xlab="RNA",ylab='cd4')
-		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(object,'name.x')),xlab='RNA',ylab='cd4')
+		plot(tbase,tt, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab='time',ylab='cd4')
+		plot(tbase,tf, main=paste("Principle components for",attr(x,'name.t')),xlab='time',ylab='cd4')
+		plot(xbase,c(0,tx), main=paste("Plot of mean curve for ",attr(x,'name.x')),xlab="RNA",ylab='cd4')
+		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(x,'name.x')),xlab='RNA',ylab='cd4')
 	})
+}
+print.pfda.additive<-function(x,...){
+	cat('Additive Principal Component Model\n')
+	cat('Formula: ', deparse(attr(x,'formula')))
+	cat(attr(x,'name.t'),' has ', NCOL(x$tf),' principal components\n')
+	cat(attr(x,'name.x'),' has ', NCOL(x$tg),' principal components\n')
+	cat('penalties are \n');print( penalty.pfda.additive(x))
 }
 penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,lf,lg),2,2),dimnames=list(c(attr(object,'name.t'),attr(object,'name.x')),c('mean','pc'))))
 }
@@ -1624,12 +1631,12 @@ penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,l
 	pfda<-function(model, data=environment(model), ..., driver){
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
-		with(mf,switch(driver,
+		structure(with(mf,switch(driver,
 			single.continuous = single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),
 			single.binary = single.b(response,splinegroup[[1]],splinegroup[[2]],...),
 			dual.continuous =  dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
 			dual.mixed = dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
 			additive = dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
-		))
+		)), formula = model)
 	}
 }
