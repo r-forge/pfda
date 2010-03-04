@@ -13,7 +13,7 @@ Cdebug<-function(...){
 	cd<-make_c_debug(...)
 	return(as.integer(c(length(cd),cd)))
 }
-pfdaControl<-function(...,penalty.method=c('AIC','CV'),minimum.variance = 1e-4, convergence.tolerance = 1e-2, max.iterations=10000, nfolds = 10,	useC=TRUE,binary.k0=100, binary.kr=10, nknots=11){
+pfdaControl<-function(...,penalty.method=c('AIC','CV'),minimum.variance = 1e-4, convergence.tolerance = 1e-2, max.iterations=10000, nfolds = 10,	useC=TRUE,binary.k0=100, binary.kr=10, binary.burnin = 100, nknots=11){
 	structure(list(
 		penalty.method=match.arg(penalty.method),
 		minimum.variance=as.double(minimum.variance),
@@ -21,7 +21,7 @@ pfdaControl<-function(...,penalty.method=c('AIC','CV'),minimum.variance = 1e-4, 
 		max.iterations=as.integer(max.iterations),
 		nfolds =nfolds,
 		useC=useC,
-		binary.k0=binary.k0, binary.kr=binary.kr,
+		binary.k0=binary.k0, binary.kr=binary.kr, binary.burnin=binary.burnin,
 		nknots=nknots,
 		...
 	),class=c('pfdaControl','list'))

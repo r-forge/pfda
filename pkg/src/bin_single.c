@@ -6,9 +6,9 @@ Handles the single version of the binary single functional data analysis.
 #include "pfda_single.h"
 #include "pfda_bin_single.h"
 
-#define 	burninlength 100
-#define		burningenerate 100
-#define		weightedgenerate 10
+// #define 	burninlength 100
+// #define		burningenerate 100
+// #define		weightedgenerate 10
 
 
 /*! \defgroup binary_single Univariate Binary
@@ -171,6 +171,9 @@ void pfda_bin_single(
 	double const * const minimum_variance, 
 	double       * const convergencetol,
 	int * const MaxIter,
+	int * const burninlength,
+	int * const burningenerate,
+	int * const weightedgenerate,
 	int * const dl,
 	double *dp , int * ip)
 {
@@ -252,7 +255,7 @@ while(I < *MaxIter)/*  */{
 			return;
 		}
 		if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("W Step\n");fflush(stdout);}
-		int    kr = (I<burninlength)?burningenerate:weightedgenerate;
+		int    kr = (I<*burninlength)?*burningenerate:*weightedgenerate;
 		double weight = (I<burninlength)?1:(10.0/(10.0+(double)I));
 		pfda_bin_single_approximate_moments( w, ww, y, nobs, M, N, B, p, k, tm, tf, Da, &weight, &kr, dl, dp, ip);
 	}

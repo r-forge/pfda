@@ -1,3 +1,7 @@
+Version 0.6.4
+-------------
+Completed transitioning to the input values for the binary version.
+
 Version 0.6.3
 -------------
 added nknots to pfda control, and added support to the related functions

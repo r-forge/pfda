@@ -641,15 +641,15 @@ loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset){
 	eval(.X.subset)
 	eval(.X.single.penalties)
+	eval(.X.single.knots)
 	if(is.null(k)||any(is.na(k))){
 		stop('number of principal components optimization not finished yet')
 	} else 
 	if(any(is.na(penalties))) {
 		funcall <- match.call()
-		eval(.X.optimize.penalties)  
+		eval(.X.optimize.penalties)
 	}
 	else {
-		eval(.X.single.knots)
 		eval(.X.binary.y)
 		rtn<-if(control$useC){
 			{ # setup for passing to Compiled code
@@ -657,6 +657,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 				N   = nlevels(subject)
 				nobs= table(subject)
 				M   = length(y)
+				kr = with(control,max(binary.k0,binary.kr))
 				p  = ncol(Bt)
 				{ #Compute Memory Requirements
 					ni = max(nobs)
@@ -670,7 +671,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					ipl <- 8*p
 				}
 			}			
-			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
+			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, burninlength=control$binary.burnin, burningenerate=control$binary.k0, weightedgenerate=control$binary.kr, dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
 				,class=c('list','pfda.single.b.rawC'))
 		} else {
 			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)

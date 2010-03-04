@@ -4,7 +4,7 @@
 \description{Functional data analysis using functional principle components.  The principal components are formed using orthogonalized spline basis.
 }
 \usage{
-pfda(model, data = NULL, ..., driver)
+pfda(model, data = environment(model), ..., driver)
 }
 \arguments{
   \item{model}{a formula describing the model.}
