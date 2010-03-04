@@ -256,7 +256,7 @@ while(I < *MaxIter)/*  */{
 		}
 		if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("W Step\n");fflush(stdout);}
 		int    kr = (I<*burninlength)?*burningenerate:*weightedgenerate;
-		double weight = (I<burninlength)?1:(10.0/(10.0+(double)I));
+		double weight = (I<*burninlength)?1:(10.0/(10.0+(double)I));
 		pfda_bin_single_approximate_moments( w, ww, y, nobs, M, N, B, p, k, tm, tf, Da, &weight, &kr, dl, dp, ip);
 	}
 	{/* step 1/E - alpha / Sigma_aa / aa_hats*/

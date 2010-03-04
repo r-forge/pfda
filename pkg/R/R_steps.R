@@ -506,7 +506,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		alpha[i,]<-r$alpha
 		aa[[i]]<-r$aa
 	}
-	list(alpha=alpha,aa=aa,Sa=Sa)
+	list(alpha=alpha,aa=structure(unlist(aa),dim=c(1,1,10)),Sa=Sa)
 }
 .single.b.2<-function(B,subject,w,tf,alpha,lm,K){
 	list(tm=.gen.tm(w,B,subject,tf,alpha,1,lm,K))
@@ -538,7 +538,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 .single.b.w.1<-function(yi,Bi,wi,tm,tf,Da,kr){
 	# R version of pfda_bin_single_approximate_moments_forobs
 	n<-NROW(Bi)
-	w_sim<-sapply(seq_len(n),.single.b.w.genw,kr=kr,yi=yi,Bi=Bi,wi=wi,tm=tm,tf=tf,Da=Da)
+	w_sim<-matrix(sapply(seq_len(n),.single.b.w.genw,kr=kr,yi=yi,Bi=Bi,wi=wi,tm=tm,tf=tf,Da=Da),nrow=kr)
 	wi<-apply(w_sim,2,mean)
 	# wwa<-array(apply(w_sim,2,tcrossprod),dim=c(n,n,kr))
 	# wws<-matrix(0,n,n)
@@ -640,8 +640,8 @@ loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 } 
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset){
 	eval(.X.subset)
-	eval(.X.single.penalties)
 	eval(.X.single.knots)
+	eval(.X.single.penalties)
 	if(is.null(k)||any(is.na(k))){
 		stop('number of principal components optimization not finished yet')
 	} else 
@@ -667,14 +667,14 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					.step.2                 	= p^2+ M+ M*k
 					.step.3                 	= M + p^2 + p + k^2 
 					.step.4                  	= k + 2*k^2 + 2*p^2 + p + p*max(k,8)
-					dpl <- M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + n + max(.inits, .step.W, .step.1.E, .step.2, .step.3, .step.4)
+					dpl <- M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + N + max(.inits, .step.W, .step.1.E, .step.2, .step.3, .step.4)
 					ipl <- 8*p
 				}
 			}			
 			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, burninlength=control$binary.burnin, burningenerate=control$binary.k0, weightedgenerate=control$binary.kr, dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
 				,class=c('list','pfda.single.b.rawC'))
 		} else {
-			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K,control$minimum.variance, control$maximum.iterations,control$convergence.tolerance)
+			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K=Kt,control$minimum.variance, control$max.iterations,control$convergence.tolerance)
 				,class=c('list','pfda.single.b.R'))
 		}
 		rtn$tbase<-tbase

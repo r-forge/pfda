@@ -1,5 +1,7 @@
 #!/usr/bin/env  ruby
 
+system "taskkill /F /IM rgui.exe /T"
+
 Dfile =  File.join("pkg","DESCRIPTION")
 description = IO.read(Dfile)
 if description =~ /Package:\s+(\w+)/
