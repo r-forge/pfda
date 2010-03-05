@@ -22,6 +22,9 @@ pfdaControl(..., penalty.method = c("AIC", "CV"), minimum.variance = 1e-04, conv
   \item{binary.burnin}{The length of the burn in period for stochasitc approximation.}
   \item{nknots}{the number of internal knots for the splines. Ignored if knots are specified.}
 }
+\details{
+	This is a convenience function for specifying a list of control parameters that control the fit of the EM aglorithm.  With the \dots argument there are several arguments that can be additionally specified. \code{optim.method} controls the method used in \link{optim} to optimize the penalties.  The \code{optimstart} can be specified to give a starting value for the optimization of the penalties.
+}
 \value{
 a list with the class set to pfdaControl.  Named elements are the same as the named arguments.
 }

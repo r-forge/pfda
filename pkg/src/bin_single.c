@@ -171,9 +171,9 @@ void pfda_bin_single(
 	double const * const minimum_variance, 
 	double       * const convergencetol,
 	int * const MaxIter,
-	int * const burninlength,
-	int * const burningenerate,
-	int * const weightedgenerate,
+	int const * const burninlength,
+	int const * const burningenerate,
+	int const * const weightedgenerate,
 	int * const dl,
 	double *dp , int * ip)
 {
@@ -190,6 +190,9 @@ if(*dl){
 		pfda_debug_msg("minimum_variance:\n%g\n",*minimum_variance);
 		pfda_debug_msg("Convergence Tolerance:\t%g\n",  *convergencetol);
 		pfda_debug_msg("Maximun Iterations:\t%d\n",  *MaxIter);
+		pfda_debug_msg("burninlength:\t%d\n",*burninlength);
+		pfda_debug_msg("burningenerate:\t%d\n",*burningenerate);
+		pfda_debug_msg("weightedgenerate:\t%d\n",*weightedgenerate);
 		fflush(stdout);
 
 		pfda_debug_msg("Vector Arguments:\n");
@@ -255,9 +258,9 @@ while(I < *MaxIter)/*  */{
 			return;
 		}
 		if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("W Step\n");fflush(stdout);}
-		int    kr = (I<*burninlength)?*burningenerate:*weightedgenerate;
+		int const *  kr = (I<*burninlength)?burningenerate:weightedgenerate;
 		double weight = (I<*burninlength)?1:(10.0/(10.0+(double)I));
-		pfda_bin_single_approximate_moments( w, ww, y, nobs, M, N, B, p, k, tm, tf, Da, &weight, &kr, dl, dp, ip);
+		pfda_bin_single_approximate_moments( w, ww, y, nobs, M, N, B, p, k, tm, tf, Da, &weight, kr, dl, dp, ip);
 	}
 	{/* step 1/E - alpha / Sigma_aa / aa_hats*/
 		if(checkdebug(dl,debugnum_pfda_bin_single_break_before_e)){pfda_debug_msg("debuging information has indicated to exit prematurly before the e step.\n");fflush(stdout);return;}
@@ -330,5 +333,5 @@ while(I < *MaxIter)/*  */{
 	*convergencetol = convergenceCriteria;
 	*MaxIter = I;
 }
-if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout);}
+if(checkdebug(dl,debugnum_bin_single_steps)){ pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout); }
 }//end pfdaSingle

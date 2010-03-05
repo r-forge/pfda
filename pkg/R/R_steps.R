@@ -444,6 +444,8 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		return(rtn)
 	}
 }
+
+
 }
 { # single binaries
 .roberts1<-function(c){
@@ -642,7 +644,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 	eval(.X.subset)
 	eval(.X.single.knots)
 	eval(.X.single.penalties)
-	if(is.null(k)||any(is.na(k))){
+	structure(if(is.null(k)||any(is.na(k))){
 		stop('number of principal components optimization not finished yet')
 	} else 
 	if(any(is.na(penalties))) {
@@ -671,17 +673,26 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					ipl <- 8*p
 				}
 			}			
-			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, burninlength=control$binary.burnin, burningenerate=control$binary.k0, weightedgenerate=control$binary.kr, dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
-				,class=c('list','pfda.single.b.rawC'))
+			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  maxI=control$max.iterations, burninlength=as.integer(control$binary.burnin), burningenerate=as.integer(control$binary.k0), weightedgenerate=as.integer(control$binary.kr), dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
+				,class=c('pfda.single.b.rawC','pfda.single.b','list'))
 		} else {
 			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K=Kt,control$minimum.variance, control$max.iterations,control$convergence.tolerance)
-				,class=c('list','pfda.single.b.R'))
+				,class=c('pfda.single.b.R','pfda.single.b','list'))
 		}
 		rtn$tbase<-tbase
 		rtn$y<-y
 		rtn$subject<-subject
 		return(rtn)
-	}
+	},name.t=name.t)
+}
+print.pfda.single.b<-function(x,...){
+	cat('Univariate Binary Functional Principal Component Model\n')
+	cat('Formula: ', deparse(attr(x,'formula')),'\n')
+	cat(NCOL(x$tf),' principal components\n')
+	cat('penalties are \n');print( penalty.pfda.single.b(x))
+}
+penalty.pfda.single.b<-function(x){
+	with(x,c(mean=lm,pc=lf))
 }
 }
 { # Dual (Continuous/Continuous) case
@@ -1621,7 +1632,7 @@ plot.pfda.additive<-function(x,...){
 }
 print.pfda.additive<-function(x,...){
 	cat('Additive Principal Component Model\n')
-	cat('Formula: ', deparse(attr(x,'formula')))
+	cat('Formula: ', deparse(attr(x,'formula')),'\n')
 	cat(attr(x,'name.t'),' has ', NCOL(x$tf),' principal components\n')
 	cat(attr(x,'name.x'),' has ', NCOL(x$tg),' principal components\n')
 	cat('penalties are \n');print( penalty.pfda.additive(x))

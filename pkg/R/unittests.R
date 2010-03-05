@@ -1495,34 +1495,22 @@ UT_pfda_s_i<-function(){
 			y<-rbinom(M,1,.5)
 			t<-runif(M,0,100)
 			knots<-expand.knots(0:10)*10
-
 			id<-factor(rep(seq_len(N),nobs))
-
-			formula<-y~t|id
-			data=globalenv()
-			model=pfda:::pfdaParseFormula(formula)
-
 			control=pfdaControl()
 			k=1
 			penalties=c(10,100)
-
 			kr=10
 			delta=1e-3
-
-			response	<- model[[1]]
-			domain	<- model[[2]]
-			subject	<- model[[3]]
-
+			response	<- y
+			domain	<- t
+			subject	<- id 
 			obase<-OBasis(knots)
 			B	<-Bmatrix<-evaluate(obase,domain)
 			K	<-Kmatrix <- OuterProdSecondDerivative(obase)
 			p	<- as.integer(dim(obase)[2])
-
 			w<-response[[1]]
-			R <- pfda:::.single.c.i(delta,k,w,B,id)
-				
+			R <- .single.c.i(y=y, B=B, subject=id, k=k, min.v=delta)
 			btb<-tapply(1:M,subject,function(indx)crossprod(B[indx,]))
-				
 			C <- .C('pfda_s_i',
 				tm=double(p),
 				tf=double(p*k),
@@ -2888,69 +2876,3 @@ test.equal(delta)
 UT_dual_ca_variances<-UT_generate(X_dual_ca_variances)
 
 }
-
-
-if(FALSE){
-{ # set up   !!DO NOT COPY INTO EXPRESSION!!
-library(pfda);i=1
-source("unittests.R")
-source("R_steps.R")
-}
-set.seed(123)
-
-eval(X_dual_ca_variances)
-
-}
-
-
-if(FALSE){
-{ # set up   !!DO NOT COPY INTO EXPRESSION!!
-library(pfda);i=1
-source("unittests.R")
-source("R_steps.R")
-}
-
-
-}
-
-if(FALSE){
-{ # set up   !!DO NOT COPY INTO EXPRESSION!!
-rm(list=ls())
-library(pfda);i=1
-source("unittests.R")
-source("R_steps.R")
-}
-# options(error=recover)
-# eval(X_dual_ca_E,envir=new.env())
-
-
-UT_dual_ca_resid()
-UT_u_orthogonalize()
-UT_gen_symblock_solve()
-UT_dual_ca_i()
-UT_dual_ca_E1()
-UT_dual_ca_E()
-UT_dual_ca_unpenalized()
-UT_dual_ca_penalized()
-UT_dual_ca_princcomp()
-UT_dual_ca_variances()
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

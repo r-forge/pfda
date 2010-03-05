@@ -152,13 +152,16 @@ void pfda_roberts_1(
 	
 	double p,v;
 	int I = *maxiterations;
+	GetRNGstate();
 	do {
-		double u = runif(zero,one);
+		double u = unif_rand();//runif(zero,one);
 		*x = *c-log(u)/a;
 		p = exp(-(*x-a)*(*x-a)/2.0) ;
 		v = runif(zero,one);
-		if(!(--I))pfda_error("Excceeded maximum number of attempts to find a suitible random number.");
+		if(checkdebug(dl,debugnum_pfda_rtruncnorm_attempts)){pfda_debug_msg("Attempts remaining = %d, x=%g, p=%g, v=%g\n",I,*x,p,v);}
+		if(!(--I))pfda_error("pfda_robets_1: Excceeded maximum number of attempts to find a suitible random number.");
 	} while(v>p);
+	PutRNGstate();
 }
 void pfda_rejection_1(
 	double * const x,
@@ -167,13 +170,13 @@ void pfda_rejection_1(
 	int const * const dl
 )
 {
-	double const zero=0.0;
-	double const one =1.0;
 	int I=*max;
+	GetRNGstate();
 	do{
-		*x = rnorm(zero,one);
+		*x = norm_rand();
 		if(!(--I))pfda_error("Failed to find acceptable value with alloted number of attempts\n");
 	} while(*x<*c);
+	PutRNGstate();
 }
 
 /*! generates the tuncated normal using either the roberts or the rejection sampler depending on the tuncations value c. 
@@ -191,6 +194,11 @@ void pfda_gen_truncnorm(
 	double const * const c,
 	int const * const dl)
 {
+	if(checkdebug(dl,debugnum_pfda_gen_truncnorm)){
+		pfda_debug_msg("entering pfda_gen_truncnorm\n");
+		pfda_debug_msg("n:%d\n",*n);
+		pfda_debug_msg("c:%g\n",*c);
+	}
 	const int maxI=50;///the maximum number of itterations is build in and specified at 50.
 	if(*c<0){
 		for(int i=0;i<*n;i++)pfda_rejection_1(x+i, c, &maxI,dl);

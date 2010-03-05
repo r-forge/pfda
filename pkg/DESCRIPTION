@@ -2,7 +2,7 @@ Package: pfda
 Type: Package
 Title: Paired Functional Data Analysis
 Version: 0.6.4
-Date: 3/3/2010
+Date: 3/5/2010
 Author: Andrew Redd	
 Depends: orthogonalsplinebasis (>= 0.1.2), methods, utils, graphics, stats, MASS
 Maintainer: Andrew Redd <aredd@stat.tamu.edu>

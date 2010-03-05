@@ -287,6 +287,8 @@ void pfda_bin_single_approximate_moments(
 		pfda_debug_msg("tm:\n");printmat(tm,*p,one);
 		pfda_debug_msg("tf:\n");printmat(tf,*p,*k);
 		pfda_debug_msg("Da:\n");printmat(Da,one,*k);
+		pfda_debug_msg("weight: %g\n\n",*weight);
+		pfda_debug_msg("kr: %d\n\n",*kr);
 		fflush(stdout);
 	}
 	int const * y_i = y;

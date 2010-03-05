@@ -86,6 +86,7 @@ enum pfda_debug_num{
 	debugnum_pfda_rtruncnorm                = 316,
 	debugnum_pfda_rtruncnorm_attempts       = 317,
 	debugnum_pfda_matrix_drop1              = 318,
+	debugnum_pfda_gen_truncnorm              = 319,
 	// binary conditional,
 	debugnum_pfda_bin_cond_aa               = 355,
 	debugnum_test_pdfa_bin_cond_aa 		= 356,
