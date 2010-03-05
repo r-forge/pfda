@@ -26,7 +26,7 @@ pfdaControl(..., penalty.method = c("AIC", "CV"), minimum.variance = 1e-04, conv
 	This is a convenience function for specifying a list of control parameters that control the fit of the EM aglorithm.  With the \dots argument there are several arguments that can be additionally specified. \code{optim.method} controls the method used in \link{optim} to optimize the penalties.  The \code{optimstart} can be specified to give a starting value for the optimization of the penalties.
 }
 \value{
-a list with the class set to pfdaControl.  Named elements are the same as the named arguments.
+a list with the class set to pfdaControl.  Named elements are the same as the named arguments, plus any additional named arguments given in \code{\dots}
 }
 \author{Andrew Redd}
 \seealso{

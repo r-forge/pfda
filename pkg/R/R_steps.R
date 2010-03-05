@@ -179,7 +179,7 @@
 		}
 		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
 		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-		optimpar<-optim(control$optimstart,cvf,method=control$optimMethod)
+		optimpar<-optim(log(control$optimstart),cvf,method=control$optimMethod)
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
@@ -194,10 +194,10 @@
 		}
 		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
 		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-		optimpar<-optim(control$optimstart,aicf,method=control$optimMethod)
+		optimpar<-optim(log(control$optimstart),aicf,method=control$optimMethod)
 		penalties[pix] <- exp(optimpar$par)
 		funcall$penalties=penalties
-		eval(funcall)
+		eval(funcall,env=attr(funcall,'envir'))
 	}
 })
 }
@@ -1574,6 +1574,11 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 	} else
 	if (any(is.na(penalties))) { 
 		funcall <- structure(match.call(),envir=parent.frame())
+		if(is.null(control$optimstart)){
+			lt <- l.from.df(2.1,Bt,Kt)
+			lx <- l.from.df(2.1,Bx,Kx)
+			control$optimstart<-c(lt,lx,lt,lx)
+		}
 		eval(.X.optimize.penalties) }
 	else {
 		rtn<-if(control$useC){
