@@ -1541,7 +1541,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
 	if(is.null(bases))bases=new.env()
 	stopifnot(is.environment(bases))
-	if(!(exists("tbase",envir=bases) && exists("xbase",envir=bases))){ # knot and base identification
+	if(!(exists("tbase",envir=bases,inherits=F) && exists("xbase",envir=bases, inherits=F))){ # knot and base identification
 		if(is.null(knots)){
 			if(length(control$nknots)==2) { nkt <- control$nknots[1]; nkx <- control$nknots[2] } else nkt <- nkx <- control$nknots[1]
 			kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=nkt))))
