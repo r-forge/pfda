@@ -73,7 +73,7 @@
 	list(Ai,Bi,Ci)
 }
 .X.handle.z<-expression({ # handle Z
-	stopifnot(exists('Z'))
+	stopifnot(exists('Z',inherits=FALSE))
 	if(missing(Z)||is.null(Z))
 		matrix(nrow=length(y),ncol=0)
 	else {
@@ -124,7 +124,7 @@
 	if(is.null(colnames(penalties))) colnames(penalties)<-c(name.t,name.x)
 })
 .X.read.parameters <- expression({
-		if(exists('Z')){ kz  = if(is.null(Z))0L else NCOL(Z)}
+		if(exists('Z',inherits=FALSE)){ kz  = if(is.null(Z))0L else NCOL(Z)}
 		k  = as.integer(k)
 		N   = nlevels(subject)
 		nobs= table(subject)
@@ -144,15 +144,15 @@
 })
 .X.funcall.replacevars<-expression({
 	funcall$y=y
-	if(exists("z"))funcall$z=z
-	if(exists("Z"))funcall$Z=Z
+	if(exists("z",inherits = FALSE))funcall$z=z
+	if(exists("Z",inherits = FALSE))funcall$Z=Z
 	funcall$t = t
 	funcall$x = x
 	funcall$subject = subject
 	funcall$k=k
 	funcall$penalties = penalties
 	funcall$df = df
-	if(exists("bases"))funcall$bases=bases
+	if(exists("bases",inherits=FALSE))funcall$bases=bases
 	funcall$knots = knots
 	funcall$control = control
 })
@@ -1541,7 +1541,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
 	if(is.null(bases))bases=new.env()
 	stopifnot(is.environment(bases))
-	if(!(exists("tbase",envir=bases,inherits=F) && exists("xbase",envir=bases, inherits=F))){ # knot and base identification
+	if(!(exists("tbase",envir=bases,inherits=FALSE) && exists("xbase",envir=bases, inherits=FALSE))){ # knot and base identification
 		if(is.null(knots)){
 			if(length(control$nknots)==2) { nkt <- control$nknots[1]; nkx <- control$nknots[2] } else nkt <- nkx <- control$nknots[1]
 			kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=nkt))))
@@ -1573,7 +1573,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 		stop("identification of number of principle components is not done yet.")
 	} else
 	if (any(is.na(penalties))) { 
-		funcall <- structure(match.call(),envir=parent.frame())
+		funcall <- structure(match.call(),envir=parent.frame(),expand.dots = FALSE)
 		if(is.null(control$optimstart)){
 			lt <- l.from.df(2.1,Bt,Kt)
 			lx <- l.from.df(2.1,Bx,Kx)
