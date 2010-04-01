@@ -75,7 +75,7 @@
 .X.handle.z<-expression({ # handle Z
 	stopifnot(exists('Z',inherits=FALSE))
 	if(missing(Z)||is.null(Z))
-		matrix(nrow=length(y),ncol=0)
+		Z = matrix(nrow=length(y),ncol=0)
 	else {
 		if(is(Z,"formula"))
 			Z = model.matrix(Z)
@@ -147,7 +147,7 @@
 	if(exists("z",inherits = FALSE))funcall$z=z
 	if(exists("Z",inherits = FALSE))funcall$Z=Z
 	funcall$t = t
-	funcall$x = x
+	if(exists("x",inherits = FALSE))funcall$x = x
 	funcall$subject = subject
 	funcall$k=k
 	funcall$penalties = penalties
@@ -339,7 +339,7 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 			}
 		}
 	}
-	list(y=y,B=B,subject=subject,tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,lm=lm,lf=lf,K=K,I=I,cc=cc)
+	list(y=y,Bt=B,subject=subject,tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,lm=lm,lf=lf,K=K,I=I,cc=cc)
 }
 .single.c.n2L<-function(y, subject, B, tm, tf, Da, sigma){
 	phi<-B%*%tf
@@ -357,18 +357,11 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 .single.c.AIC.core<-function(n2L,B,k,lm,lf,K){
  as.vector(n2L)+2*(.pfda.df(B,lm,K)+k*.pfda.df(B,lf,K))
 }
-.single.c.AIC.rawC<-function(Cmodel, y,B, subject, lm, lf, K){
-	.single.c.AIC.core(
-		.single.c.n2L(y, subject, B, Cmodel$tm, Cmodel$tf, Cmodel$Da, Cmodel$sigma), 
-		B,length(Cmodel$Da),lm,lf,K)
-}
-AIC.pfda.single.c.rawC<-function(object,...){
-	with(object,.single.c.AIC.rawC(object,y,Bt,subject,lm,lf,K))
-}
-AIC.pfda.single.c.R<-function(object,...){
- 	wih(object,.single.c.AIC.core(
-		.single.c.n2L(y, subject, B, tm, tf, Da, sigma), 
-		B,length(Da),lm,lf,K))
+AIC.pfda.single.c<-function(object,...){
+	with(object,{ .single.c.AIC.core(
+		.single.c.n2L(y, subject, Bt, tm, tf, Da, sigma), 
+		Bt,length(Da),lm,lf,K)
+	})
 }
 logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=NULL, n2L=TRUE){
 	r<-with(object,with(newdata,.single.c.n2L(y,subject,B,tm,tf,Da,sigma)))
@@ -390,7 +383,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		eval(.X.single.knots)
 		rtn<-if(control$useC){
 			{ # setup for passing to Compiled code
-
+				eval(.X.read.parameters)
 				{ #Compute Memory Requirements
 					pfda_computeResid =           M*k 
 					pfda_s_i =                    p*p + M + N*p + p*p + max(
@@ -432,11 +425,11 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 					dpl<- single_c_core
 				}
 			}
-			structure(.C('single_c_core', residuals=y, Z=Z, B=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
-				,class=c('list','pfda.single.c.rawC'))
+			structure(.C('single_c_core', residuals=y, Z=Z, Bt=Bt, tz=double(kz), tm=double(p), tf=matrix(0,p,k), alpha=matrix(0,N,k), Da=double(k), sigma=0, aa=array(0,dim=c(k,k,N)), Saa=array(0,dim=c(k,k,N)), nobs=nobs, N=N, M=M, kz=kz, k=k, p=p, lm=penalties[1], lf=penalties[2], K=Kt, minV=control$minimum.variance, maxI=control$max.iterations, tol=control$convergence.tolerance, dl=control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
+				,class=c('pfda.single.c.rawC','pfda.single.c','list'))
 		} else {
 			structure(single.c.core(y,Bt,subject,k,lm=penalties[1],lf=penalties[2],Kt,control$minimum.variance,control$max.iterations,control$convergence.tolerance)
-				,class=c('list','pfda.single.c.R'))
+				,class=c('pfda.single.c.R','pfda.single.c','list'))
 		}
 		rtn$tbase<-tbase
 		rtn$y<-y
@@ -444,8 +437,22 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		return(rtn)
 	}
 }
-
-
+print.pfda.single.b<-function(x,...){
+	cat('Univariate Functional Principal Component Model\n')
+	cat('Formula: ', deparse(attr(x,'formula')),'\n')
+	cat(NCOL(x$tf),' principal components\n')
+	cat('penalties are \n');print( penalty.pfda.single.c(x))
+}
+penalty.pfda.single.c<-function(x){
+	with(x,c(mean=lm,pc=lf))
+}
+plot.pfda.single.c<-function(x,...){
+	with(x,{
+		layout(matrix(1:2,nrow=2,ncol=1,byrow=T))
+		plot(tbase,tt, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab=attr(x,'name.y'))
+		plot(tbase,tf, main=paste("Principle components for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab='')
+	})
+}	
 }
 { # single binaries
 .roberts1<-function(c){
@@ -1629,10 +1636,10 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 plot.pfda.additive<-function(x,...){
 	with(x,{
 		layout(matrix(1:4,nrow=2,ncol=2,byrow=T))
-		plot(tbase,tt, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab='time',ylab='cd4')
-		plot(tbase,tf, main=paste("Principle components for",attr(x,'name.t')),xlab='time',ylab='cd4')
-		plot(xbase,c(0,tx), main=paste("Plot of mean curve for ",attr(x,'name.x')),xlab="RNA",ylab='cd4')
-		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(x,'name.x')),xlab='RNA',ylab='cd4')
+		plot(tbase,tt, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab=attr(x,'name.y'))
+		plot(tbase,tf, main=paste("Principle components for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab='')
+		plot(xbase,c(0,tx), main=paste("Plot of mean curve for ",attr(x,'name.x')),xlab=attr(x,'name.x'),ylab=attr(x,'name.y'))
+		plot(xbase,rbind(0,tg), main=paste("Principle components for ",attr(x,'name.x')),xlab=attr(x,'name.x'),ylab='')
 	})
 }
 print.pfda.additive<-function(x,...){
@@ -1649,11 +1656,11 @@ penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,l
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
 		structure(with(mf,switch(driver,
-			single.continuous = single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),
-			single.binary = single.b(response,splinegroup[[1]],splinegroup[[2]],...),
-			dual.continuous =  dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
-			dual.mixed = dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),
-			additive = dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...)
+			single.continuous = structure(single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.t=attr(splinegroup[[1]],'name')),
+			single.binary = structure(single.b(response,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.t=attr(splinegroup[[1]],'name')),
+			dual.continuous =  structure(dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
+			dual.mixed = structure(dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
+			additive = structure(dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[2]],'name'))
 		)), formula = model)
 	}
 }

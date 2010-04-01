@@ -11,13 +11,15 @@ pfdaParseFormula<-function(formula, data, envir=environment(formula)){
 			else if(attr(rhs,'pfda.role')=='splinegroup')
 				pfda.model.frame.new(response = lhs, splinegroup = rhs)
 			else stop("invalid model")
-		} else if(op=='%&%') {
+		} else 
+		if(op=='%&%') {
 			first  <- Recall(formula[[2]],data)
 			second <- Recall(formula[[3]],data)
 			bound<-data.frame(first,second)
 			attr(bound,'pfda.role')<-'bound'
 			bound
-		} else if(op=='%|%') {
+		} else 
+		if(op=='%|%') {
 			variable  <- Recall(formula[[2]], data)
 			attr(variable,'pfda.role')<-'splinevariable'
 			subjectID <- Recall(formula[[3]], data)
@@ -27,7 +29,8 @@ pfdaParseFormula<-function(formula, data, envir=environment(formula)){
 			vardata<-data.frame(variable,subjectID)
 			attr(vardata,"pfda.role")<-"splinegroup"
 			vardata
-		} else if(op=='+') {
+		} else 
+		if(op=='+') {
 			var1<-Recall(formula[[2]],data)
 			var2<-Recall(formula[[3]],data) 
 			if((is.null(attr(var1,'pfda.role')) || attr(var1,'pfda.role')!='splinegroup') && (is.null(attr(var2,'pfda.role')) || attr(var2,'pfda.role')!='splinegroup')) {
@@ -46,8 +49,7 @@ pfdaParseFormula<-function(formula, data, envir=environment(formula)){
 			stop(paste("I don't know what to do with this operator ",op))
 		} 
 	} else { #individual variables
-		# x = substitute(~m, list(m = formula))
-		eval(formula,data,envir)
+		structure(eval(formula,data,envir),name=expr2char(formula))
 	}
 }
 traverseFormula<-function(x,level=0){

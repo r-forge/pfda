@@ -10,9 +10,11 @@ export(
 			"pfdaControl"
 			)
 S3method(AIC,pfda.additive)
-S3method(plot,pfda.additive)
+S3method(AIC,pfda.dual.cc)
+S3method(AIC,pfda.single.c)
 S3method(logLik,pfda.additive)
+S3method(plot,pfda.additive)
+S3method(plot,pfda.single.c)
 S3method(print,pfda.additive)
 S3method(print,pfda.single.b)
-S3method(AIC,pfda.dual.cc)
 S3method(logLik,pfda.dual.cc)
