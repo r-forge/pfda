@@ -999,7 +999,14 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 	}
 }
-
+print.dual.cc<-function(x,...){
+	cat('Bivariate Principal Component Model (Continuous/Continuous)\n')
+	cat('Formula: ', deparse(attr(x,'formula')),'\n')
+	cat(attr(x,'name.y'),' has ', NCOL(x$tf),' principal components\n')
+	cat(attr(x,'name.z'),' has ', NCOL(x$tg),' principal components\n')
+	cat('penalties are \n');print( penalty.pfda.dual.cc(x))
+}
+penalty.pfda.dual.cc<-function(object,..)with(object,structure(matrix(c(lm,ln,lf,lg),2,2),dimnames=list(c(attr(object,'name.y'),attr(object,'name.z')),c('mean','pc'))))
 }
 { # Dual(Binary/Continuous) case
 .dual.bc.i<-function(y,z,B,subject,ka,kb,min.v){
@@ -1279,6 +1286,14 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 	}
 }
+print.dual.bc<-function(x,...){
+	cat('Bivariate Principal Component Model (Binary/Continuous)\n')
+	cat('Formula: ', deparse(attr(x,'formula')),'\n')
+	cat(attr(x,'name.y'),' has ', NCOL(x$tf),' principal components\n')
+	cat(attr(x,'name.z'),' has ', NCOL(x$tg),' principal components\n')
+	cat('penalties are \n');print( penalty.pfda.dual.bc(x))
+}
+penalty.pfda.dual.bc<-function(object,..)with(object,structure(matrix(c(lm,ln,lf,lg),2,2),dimnames=list(c(attr(object,'name.y'),attr(object,'name.z')),c('mean','pc'))))
 }
 { # Additive aka Calcium Model
 .dual.ca.i<-function(y,Z,Bt,Bx,subject,kg,kd,min.v){

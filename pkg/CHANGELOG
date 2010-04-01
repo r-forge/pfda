@@ -1,7 +1,9 @@
 Version 0.6.4
 -------------
 Completed transitioning to the input values for the binary version.
-added print.pfda.single.b
+added print functions for all classes
+updated pfdaParseFormula to retain names.
+fixed names for vaiables, now handled in pfda function rather than induvidual functions.
 
 Version 0.6.3
 -------------
