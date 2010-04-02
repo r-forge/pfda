@@ -43,9 +43,12 @@ echo $contents; } ?>
 
 <!-- end of project description -->
 
-<p> No content added. </p>
-
 <p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 
+<p>Help can be obtained in the forumns:
+<ul>
+	<li><a href="http://<?php echo $domain; ?>/forum/forum.php?forum_id=2141">Open Discussion</a></li>
+	<li><a href="http://<?php echo $domain; ?>/forum/forum.php?forum_id=2142">Help</a></li>
+</ul>	
 </body>
 </html>
