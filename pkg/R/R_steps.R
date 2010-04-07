@@ -106,6 +106,17 @@
 		penalties<- if(is.null(df)) rep(NA,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bt,Kt))
 	}
 })
+.X.single.optimize.npc<-expression({
+	funcall$k=1
+	model.k0<-eval(funcall,env=attr(funcall,'envir'))
+	while(TRUE){
+		funcall$k<-funcall$k+1
+		model.k1<-try(eval(funcall,env=attr(funcall,'envir')),silent=TRUE)
+		if(class(model.k1)="try-error")return(model.k0)
+		else if(AIC(model.k0)<AIC(model.k1))return(model.k0)
+		else model.k0<-model.k1
+	}
+})
 .X.dual.k<-expression({ # resloves k input for dual pc (cc/bc/add)
 	if(is.null(k)) k<-rep(NA,2)
 	else if(length(k)!=1) rep(as.vector(k),length.out=2)
@@ -183,7 +194,8 @@
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
-	} else if(control$penalty.method=='AIC') {
+	} else 
+	if(control$penalty.method=='AIC') {
 		aicf<-function(pen){
 			fc<-funcall
 			p<-penalties
@@ -373,6 +385,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 	eval(.X.subset)
 	eval(.X.single.penalties)
 	if(any(is.na(k))||is.null(k)){
+		funcall <- match.call()
 		stop("identification of number of principle components is not done yet.")
 	} else
 	if (any(is.na(penalties))) {
@@ -437,7 +450,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 		return(rtn)
 	}
 }
-print.pfda.single.b<-function(x,...){
+print.pfda.single.c<-function(x,...){
 	cat('Univariate Functional Principal Component Model\n')
 	cat('Formula: ', deparse(attr(x,'formula')),'\n')
 	cat(NCOL(x$tf),' principal components\n')
@@ -449,10 +462,10 @@ penalty.pfda.single.c<-function(x){
 plot.pfda.single.c<-function(x,...){
 	with(x,{
 		layout(matrix(1:2,nrow=2,ncol=1,byrow=T))
-		plot(tbase,tt, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab=attr(x,'name.y'))
+		plot(tbase,tm, main=paste("Plot of mean curve for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab=attr(x,'name.y'))
 		plot(tbase,tf, main=paste("Principle components for",attr(x,'name.t')),xlab=attr(x,'name.t'),ylab='')
 	})
-}	
+}
 }
 { # single binaries
 .roberts1<-function(c){
@@ -999,7 +1012,7 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 	}
 }
-print.dual.cc<-function(x,...){
+print.pfda.dual.cc<-function(x,...){
 	cat('Bivariate Principal Component Model (Continuous/Continuous)\n')
 	cat('Formula: ', deparse(attr(x,'formula')),'\n')
 	cat(attr(x,'name.y'),' has ', NCOL(x$tf),' principal components\n')
@@ -1286,7 +1299,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 	}
 }
-print.dual.bc<-function(x,...){
+print.pfda.dual.bc<-function(x,...){
 	cat('Bivariate Principal Component Model (Binary/Continuous)\n')
 	cat('Formula: ', deparse(attr(x,'formula')),'\n')
 	cat(attr(x,'name.y'),' has ', NCOL(x$tf),' principal components\n')
@@ -1671,8 +1684,8 @@ penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,l
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
 		structure(with(mf,switch(driver,
-			single.continuous = structure(single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.t=attr(splinegroup[[1]],'name')),
-			single.binary = structure(single.b(response,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.t=attr(splinegroup[[1]],'name')),
+			single.continuous = structure(single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name')),
+			single.binary = structure(single.b(response,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name')),
 			dual.continuous =  structure(dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
 			dual.mixed = structure(dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
 			additive = structure(dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[2]],'name'))
