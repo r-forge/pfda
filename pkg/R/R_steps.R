@@ -112,7 +112,7 @@
 	while(TRUE){
 		funcall$k<-funcall$k+1
 		model.k1<-try(eval(funcall,env=attr(funcall,'envir')),silent=TRUE)
-		if(class(model.k1)="try-error")return(model.k0)
+		if(class(model.k1)=="try-error")return(model.k0)
 		else if(AIC(model.k0)<AIC(model.k1))return(model.k0)
 		else model.k0<-model.k1
 	}
