@@ -188,9 +188,9 @@
 			if(class(cvl)=="try-error")return(NA)
 			(sum(unlist(cvl)))
 		}
-		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-		optimpar<-optim(log(control$optimstart),cvf,method=control$optimMethod)
+		if(is.null(control$optim.method))control$optim.method<-"Nelder-Mead"
+		if(is.null(control$optim.start))control$optim.start<-rep(1,length(pix))
+		optimpar<-optim(log(control$optim.start),cvf,method=control$optim.method)
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
@@ -204,9 +204,9 @@
 			fc$penalties<-p
 			AIC(eval(fc,env=attr(fc,'envir')))
 		}
-		if(is.null(control$optimMethod))control$optimMethod<-"Nelder-Mead"
-		if(is.null(control$optimstart))control$optimstart<-rep(1,length(pix))
-		optimpar<-optim(log(control$optimstart),aicf,method=control$optimMethod)
+		if(is.null(control$optim.method))control$optim.method<-"Nelder-Mead"
+		if(is.null(control$optim.start))control$optim.start<-rep(1,length(pix))
+		optimpar<-optim(log(control$optim.start),aicf,method=control$optim.method)
 		penalties[pix] <- exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
@@ -1609,10 +1609,10 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 	} else
 	if (any(is.na(penalties))) { 
 		funcall <- structure(match.call(),envir=parent.frame(),expand.dots = FALSE)
-		if(is.null(control$optimstart)){
+		if(is.null(control$optim.start)){
 			lt <- l.from.df(2.1,Bt,Kt)
 			lx <- l.from.df(2.1,Bx,Kx)
-			control$optimstart<-c(lt,lx,lt,lx)
+			control$optim.start<-c(lt,lx,lt,lx)
 		}
 		eval(.X.optimize.penalties) }
 	else {

@@ -22,6 +22,7 @@ pfdaControl<-function(...,penalty.method=c('AIC','CV'),minimum.variance = 1e-4, 
 		nfolds =nfolds,
 		useC=TRUE,
 		binary.k0=binary.k0, binary.kr=binary.kr, binary.burnin=binary.burnin,
-		nknots=nknots
+		nknots=nknots,
+		optim.method = "Nelder-Mead"
 	),list(...)),class=c('pfdaControl','list'))
 }

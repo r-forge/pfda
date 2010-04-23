@@ -35,5 +35,3 @@ plotMeanWithPC.pfda.additive<-function(m,ask=TRUE,show=TRUE){
 	})
 }
 plotMeanWithPC<-function(m,...)UseMethod("plotMeanWithPC")
-
-mtrace(plotMeanWithPC.pfda.additive)
