@@ -7,8 +7,7 @@ importFrom("orthogonalsplinebasis","SplineBasis","evaluate","plot")
 
 export(		
 			"pfda",
-			"pfdaControl",
-			"plotMeanWithPC"
+			"pfdaControl"
 			)
 S3method(AIC,pfda.additive)
 S3method(AIC,pfda.dual.cc)
@@ -22,4 +21,3 @@ S3method(print,pfda.dual.bc)
 S3method(print,pfda.dual.cc)
 S3method(print,pfda.single.b)
 S3method(print,pfda.single.c)
-S3method(plotMeanWithPC,pfda.additive)
