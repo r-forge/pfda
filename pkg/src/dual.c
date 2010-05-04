@@ -211,7 +211,7 @@ void pfdaDual(
 	const double * const penalties,
 	const double * const ISD,
 	const double * const minimum_variance,
-	int * const MaxIter,
+	int * const maxI,
 	double * const tol,
 	const int * const dl,
 	double * dp,	int * ip
@@ -249,7 +249,7 @@ void pfdaDual(
 		Sigma_bb		kaxkaxN 3 dimentional array of variance components (Sigma_beta_beta)
 	CONTROL VALUES:
 		tol		Tolerance for determining convergence
-		MaxIter	on Input: the Maximum number of iterations.
+		maxI	on Input: the Maximum number of iterations.
 				on output: THe numer of itterations used.
 		dl	controls printing of debug information
 		incInits	Boolean: does the passing in information include initial values? if true findInits is not called
@@ -311,7 +311,7 @@ void pfdaDual(
 			pfda_debug_msg("sxi:\n%g\n\n", *sxi);
 			pfda_debug_msg("alpha:\n"); printmat(alpha, *N, *ka);
 			pfda_debug_msg("beta:\n"); printmat(beta, *N, *kb);
-			pfda_debug_msg("Criteria:\t%g\nTolerance:\t%g\nMaximun Iterations:\t%d\nI:\t%d\n", convergenceCriteria, *tol, *MaxIter, I);
+			pfda_debug_msg("Criteria:\t%g\nTolerance:\t%g\nMaximun Iterations:\t%d\nI:\t%d\n", convergenceCriteria, *tol, *maxI, I);
 		}
 		if(checkdebug(dl,debugnum_dual_inputs_large)){
 			pfda_debug_msg("Sigma_aa:\n"); printmat(Sigma_aa, *N, ka2);
@@ -336,7 +336,7 @@ void pfdaDual(
 	pfda_computebtb(btb,N,B,M,p,nobs,dl);
 	
 	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Entering Convergence Loop\n");fflush(stdout);}
-	while(I<*MaxIter)/*Limited loop with exit condition at end*/{
+	while(I<*maxI)/*Limited loop with exit condition at end*/{
 		if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("entering loop:%d\n", I);fflush(stdout);}
 
 		{ /// * setup convergence */
@@ -502,11 +502,12 @@ void pfdaDual(
 	///* Allow Program to exit normally and leave ensuring convergence to R. */
 	{ ///*  Finishing */
 		if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Finishing off.\n");fflush(stdout);}
+		if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 		pfda_computeResid(y, y,nobs,M, N, ka, B, p,tm, tf, alpha, dl, dp);
 		pfda_computeResid(z, z,nobs,M, N, kb, B, p,tn, tg, beta , dl, dp);
 		if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 		*tol = convergenceCriteria;
-		*MaxIter = I;
+		*maxI = I;
 	}
 	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Leaving pfdaDual\n");fflush(stdout);}
 }

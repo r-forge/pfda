@@ -761,7 +761,7 @@ OUTPUTS:	name|Description(name in R)
 	Saa		kaxkaxN 3 dimentional array of variance components (Sigma_alpha_alpha)
 CONTROL VALUES:
 	tol		Tolerance for determining convergence
-	MaxIter	on Input: the Maximum number of iterations.
+	maxI	on Input: the Maximum number of iterations.
 			on output: THe numer of itterations used.
 	dl	controls printing of debug information
 	incInits	Boolean: does the passing in information include initial values? if true findInits is not called
@@ -800,7 +800,7 @@ void pfdaSingle(
 	double * const Saa,
 	/* Control Values */
 	double * const tol,
-	int * const MaxIter,
+	int * const maxI,
 	int * const dl,
 	double *dp , int * ip)
 {
@@ -816,7 +816,7 @@ if(checkdebug(dl,debugnum_single_inputs)){
 	pfda_debug_msg("lf:\t%g\n",*lf);
 	pfda_debug_msg("sigma:\n%g\n", *sigma);
 	pfda_debug_msg("minV:\n%g\n",*minV);
-	pfda_debug_msg("Tolerance:\t%g\nMaximun Iterations:\t%d\n",  *tol, *MaxIter);
+	pfda_debug_msg("Tolerance:\t%g\nMaximun Iterations:\t%d\n",  *tol, *maxI);
 	fflush(stdout);
 
 	pfda_debug_msg("Vector Arguments:\n");
@@ -852,7 +852,7 @@ double   convergenceCriteria=0;
 double * tmOld  = pfdaAlloc_d(*p    , &dp);
 double * tf_old = pfdaAlloc_d(*p**ka, &dp);
 double * Da_old = pfdaAlloc_d(*ka   , &dp);
-while(I < *MaxIter)/*  */{
+while(I < *maxI)/*  */{
 {///* setup for convergence */
 	if(checkdebug(dl,debugnum_singe_steps)){
 		pfda_debug_msg("Entering loop: %d\n",I);
@@ -935,7 +935,7 @@ if(convergenceCriteria < *tol)break;
 if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Finishing\n");fflush(stdout);}
 pfda_computeResid(y, y, nobs, M, N, ka, B, p, tm, tf, alpha, dl, dp);
 *tol = convergenceCriteria;
-*MaxIter = I;
+*maxI = I;
 }
 if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout);}
 }//end pfdaSingle
@@ -1230,6 +1230,7 @@ while(I < *maxI){
 }//end while loop
 {	///* Finishing */
 	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Finishing\n");fflush(stdout);}
+	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	single_c_resid( y, y, Z, nobs, M, N, kz, k, B, p, tz, tm, tf, alpha, dl, dp);
 	*tol = convergenceCriteria;
 	*maxI = I;

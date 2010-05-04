@@ -773,8 +773,8 @@ void dual_bc_core(
 			if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
 			break;
 		}
-	
 	}
+	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	*tol=cc;
 	*maxI = I;	
 }

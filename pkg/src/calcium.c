@@ -829,6 +829,7 @@ void dual_ca_core(
 			}	
 		}
 	}
+	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	dual_ca_resid(y, y, Z, Bt, Bx, tz, tt, tx, tf, tg, gamma, delta, nobs, N, M, kz, kd, kg, pt, px, dl, dp);
 	*tol=cc;
 	*maxI = I;	

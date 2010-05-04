@@ -130,7 +130,7 @@ void pfda_bin_m5(
 	@param	Sigma_aa	[output] kaxkaxN 3 dimentional array of variance components (Sigma_alpha_alpha)
 	CONTROL VALUES:
 	@param	convergencetol		Tolerance for determining convergence of overall algorithm
-	@param	MaxIter	on Input: the Maximum number of iterations.
+	@param	maxI	on Input: the Maximum number of iterations.
 				          on output: THe numer of itterations used.
 	@param	dl	controls printing of debug information
 	@param	dp	pool of preallocated double memory.
@@ -170,7 +170,7 @@ void pfda_bin_single(
 	/* Control Values */
 	double const * const minimum_variance, 
 	double       * const convergencetol,
-	int * const MaxIter,
+	int * const maxI,
 	int const * const burninlength,
 	int const * const burningenerate,
 	int const * const weightedgenerate,
@@ -189,7 +189,7 @@ if(*dl){
 		pfda_debug_msg("lf:\t%g\n",*lf);
 		pfda_debug_msg("minimum_variance:\n%g\n",*minimum_variance);
 		pfda_debug_msg("Convergence Tolerance:\t%g\n",  *convergencetol);
-		pfda_debug_msg("Maximun Iterations:\t%d\n",  *MaxIter);
+		pfda_debug_msg("Maximun Iterations:\t%d\n",  *maxI);
 		pfda_debug_msg("burninlength:\t%d\n",*burninlength);
 		pfda_debug_msg("burningenerate:\t%d\n",*burningenerate);
 		pfda_debug_msg("weightedgenerate:\t%d\n",*weightedgenerate);
@@ -234,7 +234,7 @@ double   convergenceCriteria=0;
 double * tmOld  = pfdaAlloc_d(*p    , &dp);
 double * tf_old = pfdaAlloc_d(*p**k, &dp);
 double * Da_old = pfdaAlloc_d(*k   , &dp);
-while(I < *MaxIter)/*  */{
+while(I < *maxI)/*  */{
 	{/* setup for convergence */
 		if(checkdebug(dl,debugnum_bin_single_steps)){
 			pfda_debug_msg("Entering loop: %d\n",I);
@@ -329,9 +329,10 @@ while(I < *MaxIter)/*  */{
 }//end while loop
 {/* Finishing */
 	if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("Finishing\n");fflush(stdout);}
+	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	//pfda_computeResid(y, y, nobs, M, N, k, B, p, tm, tf, alpha, dl, dp);
 	*convergencetol = convergenceCriteria;
-	*MaxIter = I;
+	*maxI = I;
 }
 if(checkdebug(dl,debugnum_bin_single_steps)){ pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout); }
 }//end pfdaSingle
