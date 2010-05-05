@@ -284,9 +284,11 @@
 		if(is.null(control$optim.start))control$optim.start<-rep(l.from.df(2.1,Bt,Kt),length(pix))
 		optimpar<-optim(log(control$optim.start),aicf,method=control$optim.method)
 		penalties[pix] <- exp(optimpar$par)
-		funcall$penalties=penalties
-		eval(funcall,env=attr(funcall,'envir'))
-	}}
+		# funcall$penalties=penalties
+		# eval(funcall,env=attr(funcall,'envir'))
+		RecallWith(penalties=penalties,fname=fname)
+	}
+}
 }
 { # utilities and convenience functions
 .u.single.resid<-function(y,B,subject,tm,tf,alpha){
@@ -308,16 +310,16 @@ positive.first.row<-function(X){
 	stopifnot(is.matrix(X))
 	X*rep(sign(X[1,]),each=nrow(X))
 }
-.pfda.df<-Vectorize(function(B,l,K){
+.pfda.df<-Vectorize(function(B,l,K,sigma=1){
 	tr<-function(x)sum(diag(x))
 	while(TRUE){
-		L <- crossprod(B)+l*K
+		L <- crossprod(B)+sigma*l*K
 		if(kappa(L)<1e14)break
 		else if(l>1) l <- l*.90 else NA #l <- l*1.1
 	}
 	tr(solve(L,crossprod(B)))
 },'l')
-l.from.df<-function(df,B,K)if(is.na(df)) NA else uniroot(function(l).pfda.df(B,l,K)-df,c(1e-4,1e10))$root
+l.from.df<-function(df,B,K,sigma=1)if(is.na(df)) NA else uniroot(function(l).pfda.df(B,l,K,sigma)-df,c(1e-4,1e10))$root
 RecallWith<-function(...,fname){
 	calls <- unlist(lapply(sys.calls(),function(x)deparse(x[[1]])[1]))
 	if(missing(fname)){
@@ -460,13 +462,10 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 	}
 	L
 }
-.single.c.AIC.core<-function(n2L,B,k,lm,lf,K){
- as.vector(n2L)+2*(.pfda.df(B,lm,K)+k*.pfda.df(B,lf,K))
-}
 AIC.pfda.single.c<-function(object,...){
-	with(object,{ .single.c.AIC.core(
-		.single.c.n2L(y, subject, Bt, tm, tf, Da, sigma), 
-		Bt,length(Da),lm,lf,K)
+	with(object,{ 
+		as.vector(.single.c.n2L(y, subject, Bt, tm, tf, Da, sigma))+
+		2*(.pfda.df(Bt,lm,K,sigma)+k*.pfda.df(Bt,lf,K,sigma))
 	})
 }
 logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=NULL, n2L=TRUE){
@@ -474,6 +473,7 @@ logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=N
 	if(n2L) r else exp(-r/2)			
 }
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset=NULL){
+	{ # setup
 	fname = deparse(match.call()[[1L]])
 	localfuncs('.F.single.optimize.npc')
 	name.t = deparse(substitute(t))
@@ -481,6 +481,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 	eval(.X.subset)
 	eval(.X.single.knots)
 	eval(.X.single.penalties)
+	}
 	if(is.null(k)||any(is.na(k))){
 		# funcall <- match.call()
 		#stop("identification of number of principle components is not done yet.")
@@ -921,9 +922,9 @@ penalty.pfda.single.b<-function(x){
 	list(tf = a$tf, tg = b$tf, Da=a$D, Db=b$D, alpha = a$d, beta = b$d,
 		lambda = b$transformation%*%lambda%*%solve(a$transformation))
 }
-.dual.cc.AIC.core<-function(n2L, B, ka, kb, lm, ln, lf, lg, K){
-	.dual.ca.AIC.core(n2L, B, B, ka, kb, lm, ln, lf, lg, K, K)
-}
+# .dual.cc.AIC.core<-function(n2L, B, ka, kb, lm, ln, lf, lg, K){
+	# .dual.ca.AIC.core(n2L, B, B, ka, kb, lm, ln, lf, lg, K, K)
+# }
 .dual.cc.n2L<-function(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi){
 	ka<-length(Da)
 	kb<-length(Db)
@@ -955,12 +956,22 @@ penalty.pfda.single.b<-function(x){
 	}
 	ll
 }
-.dual.cc.AIC.rawC<-function(Cmodel, t, y, z, B, subject, lm, ln, lf, lg, K){
-	.dual.cc.AIC.core(
-		.dual.cc.n2L(t, y, z, B, subject, Cmodel$tm, Cmodel$tn, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Da, Cmodel$Db, Cmodel$seps, Cmodel$sxi)
-		, B, Cmodel$ka, Cmodel$kb, Cmodel$lm, Cmodel$ln, Cmodel$lf, Cmodel$lg, K)
+# .dual.cc.AIC.rawC<-function(Cmodel, t, y, z, B, subject, lm, ln, lf, lg, K){
+	# .dual.cc.AIC.core(
+		# .dual.cc.n2L(t, y, z, B, subject, Cmodel$tm, Cmodel$tn, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Da, Cmodel$Db, Cmodel$seps, Cmodel$sxi)
+		# , B, Cmodel$ka, Cmodel$kb, Cmodel$lm, Cmodel$ln, Cmodel$lf, Cmodel$lg, K)
+# }
+AIC.pfda.dual.cc<-function(object,...){
+	with(object,.dual.ge.AIC(
+		.dual.cc.n2L(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi),0,  
+		B   , B   , B  , B , 
+		1   , ka  , 1  , kb, 
+		penalties[1]  , penalties[2]  , penalties[3] , penalties[4], 
+		K   , K   , K  , K , 
+		seps, seps, sxi, sxi)
+	)
+	# .dual.cc.AIC.rawC(object, t, y, z, B, subject, lm, ln, lf, lg, K))
 }
-AIC.pfda.dual.cc<-function(object,...)with(object,.dual.cc.AIC.rawC(object, t, y, z, B, subject, lm, ln, lf, lg, K))
 logLik.pfda.dual.cc<-function(object,...,newdata=NULL,n2L=TRUE){
 	with(object,with(newdata,.dual.cc.n2L(t,y,z,B,subject,tm,tn,tf,tg,lambda,Da,Db,seps,sxi)))
 }
@@ -1092,17 +1103,17 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 					residuals.y=as.double(y), residuals.z=as.double(z),
 					B=(Bt), 
 					tm=double(p),			tn=double(p),
-					tf=double(p*ka),			tg=double(p*kb),
-					alpha =double(N*ka),
-					beta =double(N*kb),
-					lambda =double(ka*kb),
+					tf=matrix(0,p,ka),			tg=matrix(0,p,kb),
+					alpha =matrix(0,N,ka),
+					beta =matrix(0,N,kb),
+					lambda =matrix(0,kb,ka),
 					Da =double(ka),
 					Db =double(kb),
 					seps =	double(1),
 					sxi =double(1),
-					Saa =double((ka**2)*N),
-					Sab =double(ka*kb*N),
-					Sbb =double((kb**2)*N),
+					Saa =array(0,c(ka,ka,N)),
+					Sab =array(0,c(ka,kb,N)),
+					Sbb =array(0,c(kb,kb,N)),
 					nobs=as.integer(nobs),
 					M=as.integer(M), 
 					N=N, 
@@ -1669,26 +1680,23 @@ penalty.pfda.dual.bc<-function(object,..)with(object,structure(matrix(c(lm,ln,lf
 	attr(ll,"log")<-TRUE
 	ll
 }
-.dual.ca.AIC.core<-function(n2L, Bt, Bx, kz, kg, kd, lt, lx, lf, lg, Kt, Kx){
-	as.vector(n2L)+2*(kz +
-		.pfda.df(Bt,lt,Kt) + kg*.pfda.df(Bt,lf,Kt) + 
-		.pfda.df(Bx,lx,Kx) + kd*.pfda.df(Bx,lg,Kx)
-	)
-}
-.dual.ca.AIC.rawC<-function(Cmodel, y, Z, Bt, Bx, subject, Kt, Kx){
-	.dual.ca.AIC.core(
-		.dual.ca.n2L(y,Z,Bt,Bx,subject, Cmodel$tz, Cmodel$tt, Cmodel$tx, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Dg, Cmodel$Dd, Cmodel$sigma), 
-		Bt=Bt, Bx=Bx, kz=length(Cmodel$tz), kg=length(Cmodel$Dg), kd=length(Cmodel$Dd), lt=Cmodel$lt, lx=Cmodel$lx, lf=Cmodel$lf, lg=Cmodel$lg, Kt=Kt, Kx=Kx)
-}
 AIC.pfda.additive<-function(object,...){
- with(object,.dual.ca.AIC.rawC(object, y, Z, Bt, Bx, subject, Kt, Kx))
+	with(object,.dual.ge.AIC(.dual.ca.n2L(y,Z,Bt,Bx,subject, tz, tt, tx, tf, tg, lambda, Dg, Dd, sigma),
+		kz,  
+		Bt, Bt, Bx, Bx, 
+		1 , kg, 1 , kd, 
+		lt, lf, lx, lg, 
+		Kt, Kt, Kx, Kx, 
+		sigma, sigma, sigma, sigma))
+ # with(object,.dual.ca.AIC.rawC(object, y, Z, Bt, Bx, subject, Kt, Kx))
 }
 logLik.pfda.additive<-function(object,...,newdata=NULL,n2L=TRUE){
 	with(object,with(newdata,.dual.ca.n2L(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma,...)))
 }
 dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases=NULL,control=pfdaControl()){
-	name.t = deparse(substitute(t))
-	name.x = deparse(substitute(x))
+	# name.t = deparse(substitute(t))
+	# name.x = deparse(substitute(x))
+	{ #setup material
 	Z = if(is.null(Z))matrix(nrow=length(y),ncol=0) else as.matrix(Z)
 	if(is.null(bases))bases=new.env()
 	stopifnot(is.environment(bases))
@@ -1708,7 +1716,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 		assign('tbase',OBasis(kt),envir=bases)
 		assign('xbase',OBasis(kx),envir=bases)
 		knots<-list(kt,kx)
-		names(knots)<-c(name.t,name.x)
+		# names(knots)<-c(name.t,name.x)
 	}
 	{ # evaluate Bases
 		Bt = evaluate(bases$tbase,t)
@@ -1720,16 +1728,17 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 	}
 	eval(.X.dual.k)
 	eval(.X.dual.penalties)
-	structure(if(any(is.na(k))){
+	}
+	if(any(is.na(k))){
 		# stop("identification of number of principle components is not done yet.")
 		k<-c(1,1)
 		model0<-RecallWith(k=k)
 		AIC0<-AIC(model0)
 		while(TRUE){
-			modelA<-try(RecallWith(k=model0$k+c(1,0)),silent=TRUE)
-			modelB<-try(RecallWith(k=model0$k+c(0,1)),silent=TRUE)
-			AIC.A<- if(is(modelA,'pfda.additive')) AIC(modelA) else Inf
-			AIC.B<- if(is(modelB,'pfda.additive')) AIC(modelB) else Inf
+			modelA<-try(RecallWith(k=c(model0$kg+1,model0$kd)),silent=TRUE)
+			modelB<-try(RecallWith(k=c(model0$kg,model0$kd+1)),silent=TRUE)
+			AICA<- if(is(modelA,'pfda.additive')) AIC(modelA) else Inf
+			AICB<- if(is(modelB,'pfda.additive')) AIC(modelB) else Inf
 			if(AIC0<AICA && AIC0<AICB) break
 			else if(AICA<AICB){
 				model0<-modelA
@@ -1793,7 +1802,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 		rtn$y<-y
 		rtn$subject<-subject
 		rtn
-	},name.t=name.t,name.x=name.x)
+	}
 }
 plot.pfda.additive<-function(x,...){
 	with(x,{
@@ -1814,6 +1823,19 @@ print.pfda.additive<-function(x,...){
 penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,lf,lg),2,2),dimnames=list(c(attr(object,'name.t'),attr(object,'name.x')),c('mean','pc'))))
 }
 { # general
+	.dual.ge.AIC<-function(n2L,kz,  
+		B1, B2, B3, B4, 
+		k1, k2, k3, k4, 
+		l1, l2, l3, l4, 
+		K1, K2, K3, K4, 
+		s1, s2, s3, s4){
+		as.vector(n2L)+2*(kz +
+			k1*.pfda.df(B1,l1,K1,s1) + 
+			k2*.pfda.df(B2,l2,K2,s2) + 
+			k3*.pfda.df(B3,l3,K3,s3) + 
+			k4*.pfda.df(B4,l4,K4,s4) 
+		)
+	}
 	pfda<-function(model, data=environment(model), ..., driver){
 		mf <- pfdaParseFormula(model,data)
 		if(missing(driver))driver = infer.driver(mf)
