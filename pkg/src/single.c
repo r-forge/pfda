@@ -31,7 +31,7 @@ void pfda_computeResid(
 	double const * const tf,
 	double const * const alpha,
 	int const * const dl, double*dp)
-{
+{pfda_debug_step
 	if(Ry!=y)dcopy_(M,y,&one,Ry,&one);
 	if(tm)dgemv_(&NoTrans, M, p, &mOne, B, M, tm, &one, &dOne, Ry, &one); //y = (y-B*tm)
 	if(tf && alpha && nobs && N){
@@ -64,7 +64,7 @@ void single_c_resid(
 	double const * const tf,
 	double const * const alpha,
 	int const * const dl, double*dp)
-{
+{pfda_debug_step
 	if(Ry!=y)dcopy_(M,y,&one,Ry,&one);
 	if(Z && kz && tz && *kz)dgemv_(&NoTrans, M, kz, &mOne, Z, M, tz, &one, &dOne, Ry, &one); //y = (y-Z*tz)
 	pfda_computeResid( Ry, Ry, nobs, M, N, k, B, p, tm, tf, alpha, dl, dp);
@@ -80,7 +80,7 @@ void pfda_computebtb(
 	int const * const p,
 	int const * const nobs,
 	int const * const dl)
-{
+{pfda_debug_step
 	int subjectnum=0;double const * Bi=B;
 	for(subjectnum=0;subjectnum<*N;subjectnum++){
 		dsyrk_(&Upper, &Trans, p, nobs+subjectnum, &dOne, Bi, M, &dzero, btb+subjectnum**p**p, p);//btb[subjectnum]=B_i'B_i
@@ -110,7 +110,7 @@ void pfda_m1(
 	/* Auxilliary */
 	int const * const dl, double * dp
 	)
-{
+{pfda_debug_step
 	// double *BTfi2=NULL, *BTfi3=NULL;
 	if(checkdebug(dl, debugnum_m1)){
 		pfda_debug_msg("pfda_m1 - \n");
@@ -203,7 +203,7 @@ void pfda_m2(
 	double const * const sigma,
 	double const * const alpha,
 	int const * const dl, double * dp)
-{
+{pfda_debug_step
 	if(checkdebug(dl,debugnum_m2)){
 		pfda_debug_msg("pfda_m2 - \n");
 		fflush(stdout);
@@ -300,7 +300,7 @@ void pfda_m3_for_subjectnum(
 	int const * const dl,
 	double * dp
 	)
-{
+{pfda_debug_step
 	int const subjectnum = *subject_num;
 	int const estcolnum = *estcol_num;
 	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("subjectnum=%d\n",subjectnum);fflush(stdout);}
@@ -358,7 +358,7 @@ void pfda_m3_for_estcol(
 	double const * const btb,
 	int const * const estcol_num,
 	int const * const dl, double * dp, int * ip)
-{
+{pfda_debug_step
 	int const estcolnum=*estcol_num;
 	if(checkdebug(dl, debugnum_m3_level1)){pfda_debug_msg("estimating column =%d\n",estcolnum);fflush(stdout);}
 	//double * right=tf+estcolnum**p;
@@ -418,7 +418,7 @@ void pfda_m3_core(
 	double const * const alpha,
 	double const * const btb,
 	int const * const dl, double * dp, int * ip)
-{/* 3.  Update tf, tg */
+{pfda_debug_step
 	if(checkdebug(dl, debugnum_m3)){
 		pfda_debug_msg("entering pfda_m3_core\n");
 		pfda_debug_msg("lf: %# 9.8g\n",*lf);
@@ -470,7 +470,7 @@ void pfda_m3(
 	double const * const Saa,
 	double const * const btb,
 	int const * const dl, double * dp, int * ip)
-{
+{pfda_debug_step
 	int const k2 = *k**k;
 	double * aa_hats = pfdaAlloc_d(k2**N, &dp);
 	for(int subject=0;subject<*N;subject++){
@@ -522,7 +522,7 @@ void pfda_m5_0(
 	double       * const Transformation,
 	double const * const minV,
 	int const * const dl, double * dp, int * ip	)
-{ //Code
+{pfda_debug_step
 	if(checkdebug(dl,debugnum_m5_0)){
 		pfda_debug_msg("pfda_m5_1 - \n");
 		pfda_debug_msg("N:\n%d\n\n",*N );
@@ -598,7 +598,7 @@ void pfda_m5_1(
 	double * const Transformation,
 	double const * const minV,
 	int const * const dl, double * dp, int * ip	)
-{
+{pfda_debug_step
 	double * const sum_dd_hat = pfdaAlloc_d(*k**k,&dp);
 	pfda_sum_cond_dd(sum_dd_hat, N, delta, Sigma_dd, k, dl);
 	pfda_m5_0( delta, sum_dd_hat, N, k, Sigma_dd, Theta, D, p, Transformation, minV, dl, dp, ip);
@@ -620,7 +620,7 @@ void pfdaSingle_m5(
 	double const * const minV,
 	int const * const dl, double * dp,int * ip
 	)
-{///* Steps 4 & 5 */
+{pfda_debug_step
 	if(checkdebug(dl,debugnum_m5)){pfda_debug_msg("pfdaSingle_m5\n");fflush(stdout);}
 	double * transformation = pfdaAlloc_d(*k**k,&dp);
 	pfda_m5_1(N, delta, k, Sigma_dd, Theta, D, p, transformation, minV, dl, dp, ip);
@@ -648,7 +648,7 @@ void pfdaSingle_e(
 	double const * const Da,
 	double const * const sigma,
 	const int * const dl, double *dp , int * ip)
-{///* E-Step */
+{pfda_debug_step
 	if(checkdebug(dl, debugnum_single_e)){pfda_debug_msg("pfdaSingle_e - \n");fflush(stdout);}
 
 	///* memory allocation */
@@ -714,7 +714,7 @@ void pfdaSingle_e_1(
 	double const * const Da,
 	double const * const inv_epsilon,
 	int const * const dl, double *dp , int * ip)
-{
+{pfda_debug_step
 	double * alphaTmp = pfdaAlloc_d(*ka,&dp);
 	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii:\n");printmat2(*nobs_i,*ka,phii,M);fflush(stdout);}
 
@@ -803,7 +803,7 @@ void pfdaSingle(
 	int * const maxI,
 	int * const dl,
 	double *dp , int * ip)
-{
+{pfda_debug_step
 if(*dl){
 if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
 if(checkdebug(dl,debugnum_single_inputs)){

@@ -12,6 +12,10 @@
 #define pfda_error Rf_error /// For error messages.  Raises an R generic error.  Works like printf
 #define pfda_warning Rf_warning /// For warning messages.  Raises an R generic Warning.  works like printf.
 #define pfda_debug_msg Rprintf /// for debugging messages.  works like cat.  Requires an fflush(stdout); to print imediatly.
+#define pfda_debug_dualstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
+#define pfda_debug_singlestep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
+#define pfda_debug_step pfda_debug_dualstep pfda_debug_singlestep
+#define pfda_debug_line if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("At %s(%s:%d)\n",__FUNCTION__, __FILE__, __LINE__);fflush(stdout);}
 
 
 /*!  	@enum pfda_debug_num

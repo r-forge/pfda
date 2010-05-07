@@ -922,9 +922,6 @@ penalty.pfda.single.b<-function(x){
 	list(tf = a$tf, tg = b$tf, Da=a$D, Db=b$D, alpha = a$d, beta = b$d,
 		lambda = b$transformation%*%lambda%*%solve(a$transformation))
 }
-# .dual.cc.AIC.core<-function(n2L, B, ka, kb, lm, ln, lf, lg, K){
-	# .dual.ca.AIC.core(n2L, B, B, ka, kb, lm, ln, lf, lg, K, K)
-# }
 .dual.cc.n2L<-function(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi){
 	ka<-length(Da)
 	kb<-length(Db)
@@ -956,11 +953,6 @@ penalty.pfda.single.b<-function(x){
 	}
 	ll
 }
-# .dual.cc.AIC.rawC<-function(Cmodel, t, y, z, B, subject, lm, ln, lf, lg, K){
-	# .dual.cc.AIC.core(
-		# .dual.cc.n2L(t, y, z, B, subject, Cmodel$tm, Cmodel$tn, Cmodel$tf, Cmodel$tg, Cmodel$lambda, Cmodel$Da, Cmodel$Db, Cmodel$seps, Cmodel$sxi)
-		# , B, Cmodel$ka, Cmodel$kb, Cmodel$lm, Cmodel$ln, Cmodel$lf, Cmodel$lg, K)
-# }
 AIC.pfda.dual.cc<-function(object,...){
 	with(object,.dual.ge.AIC(
 		.dual.cc.n2L(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi),0,  
@@ -1356,9 +1348,10 @@ dual.bc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 	}
 	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.xi=s.xi)
 }
-dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),subset){
+dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),tbase=NULL,subset=NULL){
 	eval(.X.subset)
 	eval(.X.dual.k)
+	eval(.X.single.knots)
 	eval(.X.dual.penalties)
 	if(any(is.na(k))){
 		# stop("not finished with number of principal component optimization.")
@@ -1370,7 +1363,6 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		funcall <- match.call()
 		eval(.X.optimize.penalties) } 
 	else { # Pass to core function
-		eval(.X.single.knots)
 		eval(.X.binary.y)
 		rtn<-if(control$useC){	
 			eval(.X.read.parameters)
@@ -1393,7 +1385,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				tm=double(p),			tn=double(p),
 				tf=double(p*ka),			tg=double(p*kb),
 				alpha =double(N*ka),
-				beta =double(NN*kb),
+				beta =double(N*kb),
 				lambda =double(ka*kb),
 				Da =double(ka),
 				Db =double(kb),
@@ -1425,6 +1417,29 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				,class=c('pfda.dual.bc.R','pfda.dual.bc','list'))
 		}
 	}
+}
+.dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
+	C = rbind(cbind(diag(Da,ka), diag(Da,ka)%*%t(lambda)),cbind(t(lambda%*%diag(Da,ka)), diag(Db,kb)))
+	N*determinant(C,log=T)$modulus+M*log(sxi) + 
+	sum(sapply(seq_len(N),function(i){
+		ix = subject==i
+		mu_alpha=pnorm( pi[ix]+phi[ix,]%*%alpha[i,])
+		mu_beta =pnorm(rho[ix]+psi[ix,]%*% beta[i,])
+		W_alpha.i = mu_alpha*(1-mu_alpha)*(1/dnorm(qnorm(mu_alpha)))^2
+		gamma<-c(alpha[i,],beta[i,])
+		determinant(diag(1,ka)+ crossprod(phi[ix,],W_alpha.i*phi[ix,])%*%C,log=T)$modulus+
+		sum(-2*(Y_i*log(mu_alpha) + (1-Y_i)*log(1-mu_alpha)) + (Z[ix]-mu_beta)^2) + crossprod(gamma,solve(C,gamma))
+		}))
+}
+AIC.pfda.dual.bc<-function(object,...){
+	with(object,.dual.ge.AIC(
+		.dual.bc.n2L(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi),0,  
+		B   , B   , B  , B , 
+		1   , ka  , 1  , kb, 
+		penalties[1]  , penalties[2]  , penalties[3] , penalties[4], 
+		K   , K   , K  , K , 
+		1, 1, sxi, sxi)
+	)
 }
 print.pfda.dual.bc<-function(x,...){
 	cat('Paired Functional Principal Component Model (Binary/Continuous)\n')
@@ -1843,7 +1858,7 @@ penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,l
 			single.continuous = structure(single.c(response,additive,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name')),
 			single.binary = structure(single.b(response,splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name')),
 			dual.continuous =  structure(dual.cc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name')),
-			dual.mixed = structure(dual.bc(responsee[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
+			dual.mixed = structure(dual.bc(response[[1]],response[[2]],splinegroup[[1]],splinegroup[[2]],...),name.y=attr(response[[1]],'name'),name.z=attr(response[[2]],'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[1]],'name')),
 			additive = structure(dual.ca(response,additive,splinegroup[[1]],splinegroup[[2]],splinegroup[[3]],...),name.y=attr(response,'name'),name.t=attr(splinegroup[[1]],'name'),name.x=attr(splinegroup[[2]],'name'))
 		)), formula = model)
 	}

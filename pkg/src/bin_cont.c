@@ -42,6 +42,7 @@ void dual_bc_i(
 	const int * const dl,
 	double * dp, int*ip)
 {
+	pfda_debug_dualstep
 	double * w = pfdaAlloc_d(*M,&dp);
 	for(int i=0;i<*M;i++)w[i]=(double)y[i];
 	double s_eps=0;
@@ -81,7 +82,7 @@ void dual_bc_1a(
 	const int    * const kb,
 	const int * const dl,
 	double*dp
-){
+){pfda_debug_dualstep
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
 	dgemv_(&Trans, ni,ka,&dOne, phi, M, Ry, &one, &dzero, tmpa, &one);
@@ -113,7 +114,7 @@ void dual_bc_1b(
 	const int    * const kb,
 	const int * const dl,
 	double*dp
-){
+){pfda_debug_dualstep
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
 	dgemv_(&Trans, ni,ka,&dOne, phi, M, Ry, &one, &dzero, tmpa, &one);
@@ -154,7 +155,7 @@ void dual_bc_1cde(
 	const int    * const kb,
 	const int * const dl,
 	double*dp)
-{
+{pfda_debug_dualstep
 	double * S1 = pfdaAlloc_d(*ka, &dp);
 	dual_bc_1a(S1,rho,Rz,phi,psi,sxi,Saa,Sab,M,ni,ka,kb,dl,dp);
 
@@ -231,7 +232,7 @@ void dual_bc_1(
 	const int    * const p,
 	const int * const dl,
 	double*dp, int * ip)
-{
+{pfda_debug_dualstep
 	double * phi = pfdaAlloc_d(*M**ka,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
 	
@@ -283,7 +284,7 @@ void dual_bc_2(
 	const int * const p,
 	const int * const dl,
 	double * dp)
-{
+{pfda_debug_dualstep
 	pfda_debug_msg("z[1]=%g\n",*z);
 	pfda_debug_msg("B[1]=%g\n",*B);
 	pfda_debug_msg("tn[1]=%g\n",*tn);
@@ -327,7 +328,7 @@ void dual_bc_3(
 	const double * const K,
 	const int * const dl,
 	double * dp)
-{
+{pfda_debug_dualstep
 	pfda_m2(tm, w, nobs,M, N, ka, B, p, lm, K, tf, &dOne, alpha, dl, dp);
 	pfda_m2(tn, z, nobs,M, N, kb, B, p, ln, K, tg, sxi  , beta , dl, dp);
 }
@@ -363,7 +364,7 @@ void dual_bc_4(
 	const int * const dl,
 	double * dp, int* ip
 )
-{
+{pfda_debug_dualstep
 	pfda_m3_core(tf, aa, w, nobs, M, N, ka, B, p, lf, K, tm, &dOne, alpha, btb, dl, dp, ip);
 	pfda_m3_core(tg, bb, z, nobs, M, N, kb, B, p, lg, K, tn, sxi  , beta , btb, dl, dp, ip);
 }
@@ -382,7 +383,7 @@ void dual_bc_5(
 	const int * const ka,
 	const int * const kb,
 	const int * const dl,double * dp, int * ip)
-{
+{pfda_debug_dualstep
 	int ka2=*ka**ka, kab = *ka**kb;
 	double * sumaa = pfdaAlloc_d(ka2,&dp);
 	double * sumab = lambda; //ALIASING
@@ -419,7 +420,7 @@ void dual_bc_6(
 	const int * const p,
 	const int * const dl,
 	double * dp, int* ip)
-{
+{pfda_debug_dualstep
 	int ka2=*ka**ka, kb2 = *kb**kb;
 	double Ninv = 1/(double)*N;
 	double * sumaa = pfdaAlloc_d(ka2,&dp);
@@ -464,7 +465,7 @@ void dual_bc_genw(
 	int    const * const j,
 	int const * const dl,
 	double * dp, int * ip)
-{
+{pfda_debug_dualstep
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
 	dcopy_(ka, phi+*j, M, old_phi_row, &one);
 	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero;
@@ -531,7 +532,7 @@ void dual_bc_w_1(
 	int    const * const kr,
 	int    const * const p,
 	int const * const dl, double * dp, int * ip)
-{
+{pfda_debug_dualstep
 /* 
 	double * Rw = pfdaAlloc_d(*ni,&dp);
 	pfda_computeResid(Rw,w,ni, M, NULL, ka, B, p, tm, NULL, NULL, dl, dp);
@@ -591,7 +592,7 @@ void dual_bc_w(
 	int    const * const kr,
 	int    const * const p,
 	int const * const dl, double * dp, int * ip)
-{
+{pfda_debug_dualstep
 	double * Rw = pfdaAlloc_d(*M,&dp);
 	pfda_computeResid(Rw,w,nobs, M, N, ka, B, p, tm, NULL, NULL, dl, dp);
 	
@@ -670,10 +671,13 @@ void dual_bc_core(
 	      double * const tol,
 	const int * const dl, double * dp, int * ip)
 {
+	pfda_debug_dualstep
 	double * w = pfdaAlloc_d(*M,&dp);
+	pfda_debug_line
 	int size_ww = 0;for(int i=0;i<*N;i++)size_ww+=nobs[i]*nobs[i];
 	double * ww = pfdaAlloc_d(size_ww, &dp);
 	double * btb = pfdaAlloc_d(*p**p**N,&dp);
+	pfda_debug_line
 	pfda_computebtb(btb,N,B,M,p,nobs,dl);
 	dual_bc_i(tm, tn, tf, tg, alpha, beta, lambda, Da, Db, sxi, aa, bb, y, z, B, nobs, btb, N, M, ka, kb, p, minV, dl, dp, ip);
 	int I=0, pka = *p**ka, pkb = *p**kb, kab = *ka**kb;
