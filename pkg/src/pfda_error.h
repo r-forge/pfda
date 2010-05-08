@@ -4,19 +4,41 @@
 #ifndef PFDA_ERROR_H_
 #define PFDA_ERROR_H_
 #include <R.h>
+#define NO_DEBUG
+#define pfda_error Rf_error /// For error messages.  Raises an R generic error.  Works like printf
+#define pfda_warning Rf_warning /// For warning messages.  Raises an R generic Warning.  works like printf.
+
 
 /*! \defgroup error Error and Debugging functions*/
 /*\@{*/
-
-
-#define pfda_error Rf_error /// For error messages.  Raises an R generic error.  Works like printf
-#define pfda_warning Rf_warning /// For warning messages.  Raises an R generic Warning.  works like printf.
-#define pfda_debug_msg Rprintf /// for debugging messages.  works like cat.  Requires an fflush(stdout); to print imediatly.
-#define pfda_debug_dualstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
-#define pfda_debug_singlestep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
-#define pfda_debug_step pfda_debug_dualstep pfda_debug_singlestep
-#define pfda_debug_line if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("At %s(%s:%d)\n",__FUNCTION__, __FILE__, __LINE__);fflush(stdout);}
-
+#ifndef NO_DEBUG
+	#include <assert.h>
+	#define pfda_debug_cdl(num) if(checkdebug(dl,num))
+	#define pfda_debug_msg(s, args...) Rprintf(s,args) /// for debugging messages.  works like cat.  Requires an fflush(stdout); to print imediatly.
+	#define pfda_debug_dualstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
+	#define pfda_debug_singlestep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
+	#define pfda_debug_step pfda_debug_dualstep pfda_debug_singlestep
+	#define pfda_debug_line if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("At %s(%s:%d)\n",__FUNCTION__, __FILE__, __LINE__);fflush(stdout);}
+	#define pfda_debug_arg(e) pfda_debug_msg("%s:%# 9.8g\n",#e,e)
+	#define pfda_debug_argi(e) pfda_debug_msg("%s:%d\n",#e,e)
+	#define pfda_debug_argvec(e,n) pfda_debug_msg("%s:\t",#e);printvec(e,n)
+	#define pfda_debug_argveci(e,n) pfda_debug_msg("%s:\t",#e);printveci(e,n)
+	#define pfda_debug_argmat(e,r,c) pfda_debug_msg("%s:\n",#e);printmat(e,r,c)
+	#define pfda_debug_argmati(e,r,c) pfda_debug_msg("%s:\n",#e);printmati(e,r,c)
+#else
+	#define pfda_debug_cdl(num) if(nil)
+	#define pfda_debug_msg(s,args...)
+	#define pfda_debug_dualstep
+	#define pfda_debug_singlestep
+	#define pfda_debug_step 
+	#define pfda_debug_line 
+	#define pfda_debug_arg(e) 
+	#define pfda_debug_argi(e) 
+	#define pfda_debug_argvec(e,n) 
+	#define pfda_debug_argveci(e,n) 
+	#define pfda_debug_argmat(e,r,c) 
+	#define pfda_debug_argmati(e,r,c) 
+#endif  //NO_DEBUG
 
 /*!  	@enum pfda_debug_num
 	@brief the enumerated debugging numbers
@@ -135,6 +157,8 @@ enum pfda_debug_num{
 	debugnum_dual_ca_inputs = 450
 };
 extern int  checkdebug(int const * const dl, const int level);
+extern void printvec(double const * const y, int const * const n);
+extern void printveci(int const * const y, int const * const n);
 extern void printyvec(double const * const y, int const * const nobs, int const * const N);
 extern void printyveci(int const * const y, int const * const nobs, int const * const N);
 extern void printmat(const double* M,const int nrow, const int ncol);
@@ -142,5 +166,7 @@ extern void printmati(const int const *M,const int nrow, const int ncol);
 extern void printmat2(const int nrow,const int ncol, const double* A, const int* lda);
 extern void printspmat(double* M, int p);
 /*\@}*/
+
+
 #endif /* PFDA_ERROR_H_ */
 

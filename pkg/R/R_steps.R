@@ -148,7 +148,7 @@
 	kb = as.integer(k[2])
 	# if(names(k)==NULL) names(k)<-c(name.t,name.x)
 })
-.X.dual.penalties <-expression({ #  resolve penalties input 
+.X.dual.penalties <-expression({ #  resolve penalties input
 	if(is.null(penalties)){
 		penalties<- if(exists('Bx',inherits=FALSE))
 			if(is.null(df)) matrix(NA,2,2) else c(l.from.df(df[1],Bt,Kt),l.from.df(df[2],Bx,Kx),l.from.df(df[3],Bt,Kt),l.from.df(df[4],Bx,Kx))
@@ -219,7 +219,7 @@
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
-	} else 
+	} else
 	if(control$penalty.method=='AIC') {
 		message("optimizing penalties using AIC")
 		aicf<-function(pen){
@@ -267,7 +267,7 @@
 		penalties[pix]<-exp(optimpar$par)
 		funcall$penalties=penalties
 		eval(funcall,env=attr(funcall,'envir'))
-	} else 
+	} else
 	if(control$penalty.method=='AIC') {
 		message("optimizing penalties using AIC")
 		aicf<-function(pen){
@@ -463,14 +463,14 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 	L
 }
 AIC.pfda.single.c<-function(object,...){
-	with(object,{ 
+	with(object,{
 		as.vector(.single.c.n2L(y, subject, Bt, tm, tf, Da, sigma))+
 		2*(.pfda.df(Bt,lm,K,sigma)+k*.pfda.df(Bt,lf,K,sigma))
 	})
 }
 logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=NULL, n2L=TRUE){
 	r<-with(object,with(newdata,.single.c.n2L(y,subject,B,tm,tf,Da,sigma)))
-	if(n2L) r else exp(-r/2)			
+	if(n2L) r else exp(-r/2)
 }
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset=NULL){
 	{ # setup
@@ -497,41 +497,41 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 			{ # setup for passing to Compiled code
 				eval(.X.read.parameters)
 				{ #Compute Memory Requirements
-					pfda_computeResid =           M*k 
+					pfda_computeResid =           M*k
 					pfda_s_i =                    p*p + M + N*p + p*p + max(
 					                                pfda_eigens =8*p,
 					                                pfda_computeResid )
-					single_c_resid =              pfda_computeResid 
-					pfda_m1 =                     M + M*k + 2*k^2 
+					single_c_resid =              pfda_computeResid
+					pfda_m1 =                     M + M*k + 2*k^2
 					pfda_m2 =                     M + M*k + p^2
-					pfda_m3_for_subjectnum =      p 
+					pfda_m3_for_subjectnum =      p
 					pfda_m3_for_estcol =          p^2 + pfda_m3_for_subjectnum
 					pfda_m3_core =                M + pfda_m3_for_estcol
 					pfda_m3 =                     k^2 + pfda_m3_core
 					pfda_m5_0 =                   p^2 + p^2 + p + k + max(
-																					pfda_eigens = 8*p, 
+																					pfda_eigens = 8*p,
 																					pfda_matrix_outer_quadratic_form =k*p)
-					pfda_m5_1 =                   k^2 + pfda_m5_0 
-					pfdaSingle_m5 =               k^2 + pfda_m5_1 
-					pfdaSingle_e_1 =              k + 2*k^2 
+					pfda_m5_1 =                   k^2 + pfda_m5_0
+					pfdaSingle_m5 =               k^2 + pfda_m5_1
+					pfdaSingle_e_1 =              k + 2*k^2
 					pfdaSingle_e =                M + M*k + k*N + max(
-																					pfda_computeResid , 
-																					pfdaSingle_e_1 ) 
+																					pfda_computeResid ,
+																					pfdaSingle_e_1 )
 					single_c_E =                  M + pfdaSingle_e
 					single_c_unpenalized =        M + kz*kz + max(
-																					single_c_resid , 
-																					dsysv_=10*kz) 
+																					single_c_resid ,
+																					dsysv_=10*kz)
 					single_c_penalized =          M + pfda_m2
 					single_c_princcomp =          M + p*p*N + pfda_m3_core
 					single_c_variances =          M + max(
-																					pfda_m1 , 
-																					pfdaSingle_m5 ) 
+																					pfda_m1 ,
+																					pfdaSingle_m5 )
 					single_c_core =               p*p*N + pfda_s_i + p + p*k + k + max(
-																					single_c_E , 
-																					single_c_unpenalized , 
-																					single_c_penalized , 
-																					single_c_princcomp , 
-																					single_c_variances , 
+																					single_c_E ,
+																					single_c_unpenalized ,
+																					single_c_penalized ,
+																					single_c_princcomp ,
+																					single_c_variances ,
 																					single_c_resid )
 					ipl<-8*p
 					dpl<- single_c_core
@@ -681,7 +681,7 @@ plot.pfda.single.c<-function(x,...){
 		M<-NROW(y)
 		N<-nlevels(subject)
 		nobs<-table(subject)
-		w <- y 
+		w <- y
 		ww<-vector('list',N)
 			for(i in seq_len(N)) ww[[i]]<-matrix(0,nobs[i],nobs[i])
 		Saa<-array(0,dim=c(k,k,N))
@@ -696,7 +696,7 @@ plot.pfda.single.c<-function(x,...){
 		.cc<-numeric(0)
 	}
 	while(I<-I+1){
-		{ #step w                                                                         
+		{ #step w
 			r0=k0=100
 			kr=10
 			if(I<r0){
@@ -749,16 +749,16 @@ plot.pfda.single.c<-function(x,...){
 	ll<-0
 	for(subnum in seq_len(nlevels(subject))){
 		ll = ll + .single.b.n2L.1(B[subnum==as.integer(subject),],object@parameters@theta_mu, object@parameters@Theta_f, object@parameters@Alpha[subnum,],object@parameters@Da)
-	} 
+	}
 }
 loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 	y<-object@FittingData[[1]][[1]]
 	t<-object@FittingData[[2]]
 	subject<-object@FittingData[[3]]
 	B<-evaluate(object@Basis,t)
-	
 
-} 
+
+}
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset=NULL){
 	fname = deparse(match.call()[[1L]])
 	localfuncs('.F.single.optimize.npc')
@@ -768,7 +768,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 	structure(if(is.null(k)||any(is.na(k))){
 		# stop('number of principal components optimization not finished yet')
 		.F.single.optimize.npc()
-	} else 
+	} else
 	if(any(is.na(penalties))) {
 		funcall <- match.call()
 		eval(.X.optimize.penalties)
@@ -789,12 +789,12 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					.step.W                	    = ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k)
 					.step.1.E              	    = M + M*k + N*k + 2* k^2 + 2 * k + k *ni
 					.step.2                 	= p^2+ M+ M*k
-					.step.3                 	= M + p^2 + p + k^2 
+					.step.3                 	= M + p^2 + p + k^2
 					.step.4                  	= k + 2*k^2 + 2*p^2 + p + p*max(k,8)
 					dpl <- M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + N + max(.inits, .step.W, .step.1.E, .step.2, .step.3, .step.4)
 					ipl <- 8*p
 				}
-			}			
+			}
 			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  Iterations=control$max.iterations, burninlength=as.integer(control$binary.burnin), burningenerate=as.integer(control$binary.k0), weightedgenerate=as.integer(control$binary.kr), dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
 				,class=c('pfda.single.b.rawC','pfda.single.b','list'))
 		} else {
@@ -936,13 +936,13 @@ penalty.pfda.single.b<-function(x){
 		Syz<-phi[ind,,drop=FALSE]%*%diag(Da,ka,ka)%*%t(lambda)%*%t(psi[ind,,drop=FALSE])
 		Ry<-y[ind]-B[ind,]%*%tm
 		Rz<-z[ind]-B[ind,]%*%tn
-		
+
 		Cmat<-rbind(cbind(Sy,Syz),cbind(t(Syz),Sz))
 		Cimat<-solve(Cmat)
 		Sy.inv <-Cimat[seq_len(ni),seq_len(ni)]			#solve(Sy-crossprod(Syz, solve(Sz,t(Syz))))
 		Sz.inv <- Cimat[seq_len(ni)+ni,seq_len(ni)+ni]			#Szi+Szi%*%t(Syz)%*%Sy.inv%*%Syx%*%Szi		#solve(Sz-tcrossprod(Syz,solve(Sy,t(Syz))))
-		Syz.inv<- Cimat[seq_len(ni),seq_len(ni)+ni]			#-solve(Sy, Syz)%*%Sz.inv		
-		
+		Syz.inv<- Cimat[seq_len(ni),seq_len(ni)+ni]			#-solve(Sy, Syz)%*%Sz.inv
+
 		Dety<-determinant(Sy,logarithm=TRUE)
 		Detzinv<-determinant(Sz.inv,logarithm=TRUE)
 		if((Dety$sign<0)|(Detzinv$sign<0))stop("Negative determinant encountered for variance matrix.")
@@ -955,11 +955,11 @@ penalty.pfda.single.b<-function(x){
 }
 AIC.pfda.dual.cc<-function(object,...){
 	with(object,.dual.ge.AIC(
-		.dual.cc.n2L(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi),0,  
-		B   , B   , B  , B , 
-		1   , ka  , 1  , kb, 
-		penalties[1]  , penalties[2]  , penalties[3] , penalties[4], 
-		K   , K   , K  , K , 
+		.dual.cc.n2L(t, y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, seps, sxi),0,
+		B   , B   , B  , B ,
+		1   , ka  , 1  , kb,
+		penalties[1]  , penalties[2]  , penalties[3] , penalties[4],
+		K   , K   , K  , K ,
 		seps, seps, sxi, sxi)
 	)
 	# .dual.cc.AIC.rawC(object, t, y, z, B, subject, lm, ln, lf, lg, K))
@@ -1056,44 +1056,44 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		}
 		Recall(y,z,t,subject, knots=knots,penalties=penalties,k=c(ka,kb), control=control)
 	}
-	else if(any(is.na(penalties))){ 
+	else if(any(is.na(penalties))){
 		# funcall <- match.call()
-		# eval(.X.optimize.penalties)} 
+		# eval(.X.optimize.penalties)}
 		localfuncs('.F.optimize.penalties')
 		.F.optimize.penalties()}
 	else { # Pass to core function
 		rtn<-{ modifyList(
-			if(control$useC){	
+			if(control$useC){
 				eval(.X.read.parameters)
-				{ #Compute Memory Requirements        
+				{ #Compute Memory Requirements
 					k<-max(ka,kb)
-					dpl_1     <- M + M*ka + 2*k^2 
+					dpl_1     <- M + M*ka + 2*k^2
 					dpl_2     <- p^2 + M + M*k
 					dpl_3     <- M + p^2 + p + k^2
 					dpl_4     <- k^2 + ka*kb
-					dpl_5_1   <- k + 2*p^2 + p +  
+					dpl_5_1   <- k + 2*p^2 + p +
 						max(  outer_qf = k*p , eigens = 8*p)
 					dpl_5_2   <- ka^2 + kb*ka
-					dpl_5     <- ka^2 + kb^2 + 
+					dpl_5     <- ka^2 + kb^2 +
 						max(dpl_5_1  ,dpl_5_2 )
-					dpl_E_1   <- kb^2 + ka^2 + 
-						max( outer_qf = ka*kb, 
-								 sym_inv = 2* kb^2, 
+					dpl_E_1   <- kb^2 + ka^2 +
+						max( outer_qf = ka*kb,
+								 sym_inv = 2* kb^2,
 								 inner_qf = ka*kb )
 					dpl_E_2_1 <- 2*k^2
 					dpl_E_2_2 <- 3*k^2
 					dpl_E_2   <- kb^2 + max(dpl_E_2_1,dpl_E_2_2,ka*kb)
 					dpl_E_3_1 <- 2*k*max(nobs)
 					dpl_E_3   <- dpl_E_3_1
-					dpl_E     <- 2*M + M*ka + M*kb + ka^2 + kb^2 + ka*kb + 
+					dpl_E     <- 2*M + M*ka + M*kb + ka^2 + kb^2 + ka*kb +
 						max(dpl_E_1, dpl_E_2, dpl_E_3)
-					dpl<- N*(p**2) + p*2 + p*ka+p*kb + ka*kb + ka + kb + 
+					dpl<- N*(p**2) + p*2 + p*ka+p*kb + ka*kb + ka + kb +
 						max(dpl_1, dpl_2, dpl_3, dpl_4, dpl_5, dpl_E )
 					ipl<-8*p
 				}
 				{ structure(.C("pfdaDual",
 					residuals.y=as.double(y), residuals.z=as.double(z),
-					B=(Bt), 
+					B=(Bt),
 					tm=double(p),			tn=double(p),
 					tf=matrix(0,p,ka),			tg=matrix(0,p,kb),
 					alpha =matrix(0,N,ka),
@@ -1107,8 +1107,8 @@ dual.cc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 					Sab =array(0,c(ka,kb,N)),
 					Sbb =array(0,c(kb,kb,N)),
 					nobs=as.integer(nobs),
-					M=as.integer(M), 
-					N=N, 
+					M=as.integer(M),
+					N=N,
 					ka=as.integer(ka),
 					kb=as.integer(kb),
 					p=as.integer(p),
@@ -1349,22 +1349,24 @@ dual.bc.core<-function(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol){
 	list(tm=tm,tn=tn,tf=tf,tg=tg,alpha=alpha,beta=beta,lambda=lambda,Da=Da,Db=Db,s.xi=s.xi)
 }
 dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, control=pfdaControl(),tbase=NULL,subset=NULL){
+	{ #Startup
 	eval(.X.subset)
 	eval(.X.dual.k)
 	eval(.X.single.knots)
 	eval(.X.dual.penalties)
+	}
 	if(any(is.na(k))){
 		# stop("not finished with number of principal component optimization.")
 		model.y.single <- single.c(y,NULL,t,subject, knots=knots, penalties=penalties[,1],k=NULL, control=control,subset=subset)
 		model.z.single <- single.c(z,NULL,t,subject, knots=knots, penalties=penalties[,2],k=NULL, control=control,subset=subset)
 		Recall(y,z,t,subject, knots=knots,penalties=penalties,k=c(model.y.single$k,single.z.single$k), control=control)
-	} 
-	else if(any(is.na(penalties))){ 
+	}
+	else if(any(is.na(penalties))){
 		funcall <- match.call()
-		eval(.X.optimize.penalties) } 
+		eval(.X.optimize.penalties) }
 	else { # Pass to core function
 		eval(.X.binary.y)
-		rtn<-if(control$useC){	
+		rtn<-if(control$useC){
 			eval(.X.read.parameters)
 			{ #compute memory requirements
 				k=max(ka,kb)
@@ -1373,44 +1375,51 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				dpl = M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + max(
 					ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k),# step W
 					M + M*k + N*k + 2* k^2 + 2 * k + k *ni                    ,# step 1/E
-					p^2+ M+ M*k                                               ,# step 2  
-					M + p^2 + p + k^2                                         ,# step 3  
-					k + 2*k^2 + 2*p^2 + p + p*max(k,8)                        ,# step 4  
+					p^2+ M+ M*k                                               ,# step 2
+					M + p^2 + p + k^2                                         ,# step 3
+					k + 2*k^2 + 2*p^2 + p + p*max(k,8)                        ,# step 4
 					2*p^2 + M + p*N + 8*p)                                     # inits
 				ipl = 8*p
 			}
-			{ structure(.C("dual_bc_core", 
-				y=y, z=as.double(z),
-				B=as.double(Bt), 
-				tm=double(p),			tn=double(p),
-				tf=double(p*ka),			tg=double(p*kb),
-				alpha =double(N*ka),
-				beta =double(N*kb),
-				lambda =double(ka*kb),
-				Da =double(ka),
-				Db =double(kb),
-				sxi =double(1),
-				Saa =double((ka**2)*N),
-				Sab =double(ka*kb*N),
-				Sbb =double((kb**2)*N),
-				Saa =double((ka**2)*N),
-				Sab =double(ka*kb*N),
-				Sbb =double((kb**2)*N),
-				nobs=as.integer(nobs),
-				M=as.integer(M), 
-				N=N, 
-				ka=as.integer(ka),
-				kb=as.integer(kb),
-				p=as.integer(p),
-				lm=penalties[1], ln=penalties[2], lf=penalties[3], lg=penalties[4], 
-				K = Kt,
-				minV=control$minimum.variance,
-				k0 = control$binary.k0, kr=control$binary.kr,	
+			{ structure(.C("dual_bc_core",
+				y         =as.integer(y), 
+				z         =as.double(z),
+				B         =Bt,
+				tm        =double(p),
+				n         =double(p),
+				tf        =matrix(0.0,p,ka),
+				tg        =matrix(0.0,p,kb),
+				alpha     =matrix(0.0,N,ka),
+				beta      =matrix(0.0,N,kb),
+				lambda    =matrix(0.0,kb,ka),
+				Da        =double(ka),
+				Db        =double(kb),
+				sxi       =double(1),
+				aa        =array(0.0,dim=c(ka,ka,N)),
+				ab        =array(0.0,dim=c(ka,kb,N)),
+				bb        =array(0.0,dim=c(kb,kb,N)),
+				Saa        =array(0.0,dim=c(ka,ka,N)),
+				Sab        =array(0.0,dim=c(ka,kb,N)),
+				Sbb        =array(0.0,dim=c(kb,kb,N)),
+				nobs      =as.integer(nobs),
+				N         =N,
+				M         =as.integer(M),
+				ka        =as.integer(ka),
+				kb        =as.integer(kb),
+				p         =as.integer(p),
+				lm        =penalties[1], 
+				ln        =penalties[2], 
+				lf        =penalties[3], 
+				lg        =penalties[4],
+				K         = Kt,
+				minV      =control$minimum.variance,
+				k0        = control$binary.k0, 
+				kr=control$binary.kr,
 				Iterations=control$max.iterations,
-				tol=control$convergence.tolerance,
-				dl=control$C.debug,
-				dp=double(dpl),
-				ip=integer(ipl)
+				tol       =control$convergence.tolerance,
+				dl        =control$C.debug,
+				dp        =double(dpl),
+				ip        =integer(ipl)
 			),class=c('pfda.dual.bc.rawC','pfda.dual.bc','list'))}
 		} else {
 			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
@@ -1420,7 +1429,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 }
 .dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
 	C = rbind(cbind(diag(Da,ka), diag(Da,ka)%*%t(lambda)),cbind(t(lambda%*%diag(Da,ka)), diag(Db,kb)))
-	N*determinant(C,log=T)$modulus+M*log(sxi) + 
+	N*determinant(C,log=T)$modulus+M*log(sxi) +
 	sum(sapply(seq_len(N),function(i){
 		ix = subject==i
 		mu_alpha=pnorm( pi[ix]+phi[ix,]%*%alpha[i,])
@@ -1433,11 +1442,11 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 }
 AIC.pfda.dual.bc<-function(object,...){
 	with(object,.dual.ge.AIC(
-		.dual.bc.n2L(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi),0,  
-		B   , B   , B  , B , 
-		1   , ka  , 1  , kb, 
-		penalties[1]  , penalties[2]  , penalties[3] , penalties[4], 
-		K   , K   , K  , K , 
+		.dual.bc.n2L(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi),0,
+		B   , B   , B  , B ,
+		1   , ka  , 1  , kb,
+		penalties[1]  , penalties[2]  , penalties[3] , penalties[4],
+		K   , K   , K  , K ,
 		1, 1, sxi, sxi)
 	)
 }
@@ -1697,11 +1706,11 @@ penalty.pfda.dual.bc<-function(object,..)with(object,structure(matrix(c(lm,ln,lf
 }
 AIC.pfda.additive<-function(object,...){
 	with(object,.dual.ge.AIC(.dual.ca.n2L(y,Z,Bt,Bx,subject, tz, tt, tx, tf, tg, lambda, Dg, Dd, sigma),
-		kz,  
-		Bt, Bt, Bx, Bx, 
-		1 , kg, 1 , kd, 
-		lt, lf, lx, lg, 
-		Kt, Kt, Kx, Kx, 
+		kz,
+		Bt, Bt, Bx, Bx,
+		1 , kg, 1 , kd,
+		lt, lf, lx, lg,
+		Kt, Kt, Kx, Kx,
 		sigma, sigma, sigma, sigma))
  # with(object,.dual.ca.AIC.rawC(object, y, Z, Bt, Bx, subject, Kt, Kx))
 }
@@ -1765,7 +1774,7 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 		}
 		return(model0)
 	} else
-	if (any(is.na(penalties))) { 
+	if (any(is.na(penalties))) {
 		funcall <- structure(match.call(),envir=parent.frame(),expand.dots = FALSE)
 		if(is.null(control$optim.start)){
 			lt <- l.from.df(2.1,Bt,Kt)
@@ -1803,9 +1812,9 @@ dual.ca<-function(y,Z,t,x,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,bases
 				sigma=0.0,
 				gg=array(0,c(kg,kg,N)),   gd=array(0,c(kg,kd,N)),  dd=array(0,c(kd,kd,N)),
 				Sgg=array(0,c(kg,kg,N)), Sgd=array(0,c(kg,kd,N)), Sdd=array(0,c(kd,kd,N)),
-				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px, 
+				nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=pt, px=px,
 				lt=penalties[1], lx=penalties[2], lf=penalties[3], lg=penalties[4], Kt=Kt, Kx=Kx,
-				minV=control$minimum.variance, Iterations=control$max.iterations, tol=control$convergence.tolerance, 
+				minV=control$minimum.variance, Iterations=control$max.iterations, tol=control$convergence.tolerance,
 				dl=control$C.debug, dp=double(dpl), ip=integer(max(6*p,kz)))
 			,class=c('pfda.additive.rawC','pfda.additive','list'))
 		} else {
@@ -1838,17 +1847,17 @@ print.pfda.additive<-function(x,...){
 penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,lf,lg),2,2),dimnames=list(c(attr(object,'name.t'),attr(object,'name.x')),c('mean','pc'))))
 }
 { # general
-	.dual.ge.AIC<-function(n2L,kz,  
-		B1, B2, B3, B4, 
-		k1, k2, k3, k4, 
-		l1, l2, l3, l4, 
-		K1, K2, K3, K4, 
+	.dual.ge.AIC<-function(n2L,kz,
+		B1, B2, B3, B4,
+		k1, k2, k3, k4,
+		l1, l2, l3, l4,
+		K1, K2, K3, K4,
 		s1, s2, s3, s4){
 		as.vector(n2L)+2*(kz +
-			k1*.pfda.df(B1,l1,K1,s1) + 
-			k2*.pfda.df(B2,l2,K2,s2) + 
-			k3*.pfda.df(B3,l3,K3,s3) + 
-			k4*.pfda.df(B4,l4,K4,s4) 
+			k1*.pfda.df(B1,l1,K1,s1) +
+			k2*.pfda.df(B2,l2,K2,s2) +
+			k3*.pfda.df(B3,l3,K3,s3) +
+			k4*.pfda.df(B4,l4,K4,s4)
 		)
 	}
 	pfda<-function(model, data=environment(model), ..., driver){

@@ -672,12 +672,17 @@ void dual_bc_core(
 	const int * const dl, double * dp, int * ip)
 {
 	pfda_debug_dualstep
+	pfda_debug_arg(*z);
+	pfda_debug_argi(*dl);
+	pfda_debug_argi(*N);
+	pfda_debug_argi(*M);
+	pfda_debug_argveci(nobs,N);
+	
 	double * w = pfdaAlloc_d(*M,&dp);
-	pfda_debug_line
 	int size_ww = 0;for(int i=0;i<*N;i++)size_ww+=nobs[i]*nobs[i];
+	pfda_debug_argi(size_ww);
 	double * ww = pfdaAlloc_d(size_ww, &dp);
 	double * btb = pfdaAlloc_d(*p**p**N,&dp);
-	pfda_debug_line
 	pfda_computebtb(btb,N,B,M,p,nobs,dl);
 	dual_bc_i(tm, tn, tf, tg, alpha, beta, lambda, Da, Db, sxi, aa, bb, y, z, B, nobs, btb, N, M, ka, kb, p, minV, dl, dp, ip);
 	int I=0, pka = *p**ka, pkb = *p**kb, kab = *ka**kb;
@@ -759,6 +764,7 @@ void dual_bc_core(
 
 			cc/=9;
 			///* Debug */
+			#ifndef NO_DEBUG
 			if(checkdebug(dl,debugnum_dual_criteria_components)){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("sxi:  \t%5.5g\n", fabs(sigma_xi_old-*sxi));
@@ -771,7 +777,8 @@ void dual_bc_core(
 				pfda_debug_msg("Db:   \t%5.5g\n", ccDb);
 				fflush(stdout);
 			}
-			if(checkdebug(dl,debugnum_dual_criteria)){pfda_debug_msg("Criteria:%g\n", cc);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria)pfda_debug_msg("Criteria:%g\n", cc)
+			#endif
 		}
 		if(cc < *tol){
 			if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
