@@ -765,7 +765,7 @@ void dual_bc_core(
 			cc/=9;
 			///* Debug */
 			#ifndef NO_DEBUG
-			if(checkdebug(dl,debugnum_dual_criteria_components)){
+			pfda_debug_cdl(debugnum_dual_criteria_components){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("sxi:  \t%5.5g\n", fabs(sigma_xi_old-*sxi));
 				pfda_debug_msg("tm:   \t%5.5g\n", cctm);
@@ -777,7 +777,7 @@ void dual_bc_core(
 				pfda_debug_msg("Db:   \t%5.5g\n", ccDb);
 				fflush(stdout);
 			}
-			pfda_debug_cdl(debugnum_dual_criteria)pfda_debug_msg("Criteria:%g\n", cc)
+			pfda_debug_cdl(debugnum_dual_criteria)pfda_debug_msg("Criteria:%g\n", cc);
 			#endif
 		}
 		if(cc < *tol){

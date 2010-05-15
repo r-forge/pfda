@@ -22,14 +22,14 @@ void pfda_matrix_drop1(
 	int    const * const ncol,
 	int    const * const droprow,
 	int const * const dl)
-{
-	if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("Entering pfda_matrix_drop1\n");
+{pfda_debug_step
+	// if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("Entering pfda_matrix_drop1\n");
 	for(int col=0;col<*ncol;col++){
-		if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("ping col\n");
+		pfda_debug_line;
 		int newrow=0, oldrow=0;
 		while(oldrow<*nrow)if(oldrow!=*droprow)new[col**ldnew + newrow++]=old[col**ldold + oldrow++]; else oldrow++;
 	}
-	if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("exiting pfda_matrix_drop1\n");
+	// if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("exiting pfda_matrix_drop1\n");
 }
 
 /*!  computes the parameters for generating W|Y
@@ -48,11 +48,11 @@ void pfda_bin_single_generate_w_parms1(
 	int    const * const ni_trimmed,
 	int const * const dl,
 	double * dp, int * ip)
-{
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Entering debugnum_pfda_bin_single_generate_w_parms1\n");
+{pfda_debug_step
+	// if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Entering debugnum_pfda_bin_single_generate_w_parms1\n");
 	// /* compute \mu^* and \sigma^* */
 	pfdaSingle_e_1( mu, &one, sigma, RW_trimmed, ni_trimmed, ni_trimmed, k, phi_trimmed, Da, &dOne, dl, dp, ip);
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Exiting debugnum_pfda_bin_single_generate_w_parms1\n");
+	// if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Exiting debugnum_pfda_bin_single_generate_w_parms1\n");
 }
 
 /*! 	Computes parameters for generating W|Y
@@ -74,8 +74,8 @@ void pfda_bin_single_generate_w_parms2(
 	int    const * const k,
 	int const * const dl,
 	double * dp)
-{
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms2)){
+{pfda_debug_step
+	pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms2){
 		pfda_debug_msg("Entering pfda_bin_single_generate_w_parms2\n");
 		pfda_debug_msg("tf:\n");printmat(tf,*p,*k);
 		pfda_debug_msg("mu:\n");printmat(tf,*k,one);

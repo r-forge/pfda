@@ -447,7 +447,7 @@ single.c.core<-function(y,B,subject,k,lm,lf,K,min.v,max.I,tol){
 			}
 		}
 	}
-	list(y=y,Bt=B,subject=subject,tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,lm=lm,lf=lf,K=K,I=I,cc=cc)
+	list(y=y,Bt=B,subject=subject,tm=tm,tf=tf,alpha=alpha, Da=Da,sigma=sigma,aa=aa,Saa=Saa,lm=lm,lf=lf,K=K,k=k,I=I,cc=cc)
 }
 .single.c.n2L<-function(y, subject, B, tm, tf, Da, sigma){
 	phi<-B%*%tf
@@ -468,6 +468,7 @@ AIC.pfda.single.c<-function(object,...){
 		2*(.pfda.df(Bt,lm,K,sigma)+k*.pfda.df(Bt,lf,K,sigma))
 	})
 }
+# AIC.pfda.single.c.R<-function(object,...)
 logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=NULL, n2L=TRUE){
 	r<-with(object,with(newdata,.single.c.n2L(y,subject,B,tm,tf,Da,sigma)))
 	if(n2L) r else exp(-r/2)
@@ -475,7 +476,7 @@ logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=N
 single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset=NULL){
 	{ # setup
 	fname = deparse(match.call()[[1L]])
-	localfuncs('.F.single.optimize.npc')
+	localfuncs(c('.F.single.optimize.npc','.F.optimize.penalties'))
 	name.t = deparse(substitute(t))
 	eval(.X.handle.z)
 	eval(.X.subset)
@@ -490,7 +491,7 @@ single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,contro
 	} else
 	if (any(is.na(penalties))) {
 		funcall <- match.call()
-		eval(.X.optimize.penalties)
+		.F.optimize.penalties()
 	}
 	else {
 		rtn<-if(control$useC){

@@ -664,31 +664,31 @@ void pfdaSingle_e(
 				printyvec(Ry, nobs,N);fflush(stdout);}
 
 	dgemm_(&NoTrans, &NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);//compute BTf = B*tf
-	if(checkdebug(dl,debugnum_single_e)){pfda_debug_msg("phi:\n");
+	pfda_debug_cdl(debugnum_single_e){pfda_debug_msg("phi:\n");
 				printmat(phi, *M, *ka);fflush(stdout);}
 	double *phii=phi, *Sigma_i=Saa, *Ryi=Ry;
 	for(int obsnum=0;obsnum<*N;obsnum++){
 		pfdaSingle_e_1( alpha+obsnum, N, Sigma_i, Ryi, nobs+obsnum, M, ka, phii, Da, &inv_epsilon, dl, dp, ip);
-/* 		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("obsnum: %d\n",obsnum);fflush(stdout);}
-		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii:\n");printmat2(nobs[obsnum],*ka,phii,M);fflush(stdout);}
+/* 		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("obsnum: %d\n",obsnum);fflush(stdout);}
+		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii:\n");printmat2(nobs[obsnum],*ka,phii,M);fflush(stdout);}
 
 		dsyrk_(&Upper, &Trans, ka, nobs+obsnum, &inv_epsilon, phii, M, &dzero, Sigma_i, ka);
-		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
 		addInvDiag(ka, Da, Sigma_i, ka);
-		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
 
 		int sr=0;
 		pfda_sym_inverse(Sigma_i,ka, &sr, dl, dp, ip);
 		if(sr>0) pfda_error("PFDA ERR - pfdaSingle_e: pfda_sym_inverse returned %d\n",sr);
-		if(checkdebug(dl,debugnum_single_e_inloop)){
+		pfda_debug_cdl(debugnum_single_e_inloop){
 			pfda_debug_msg("pfda_sym_inverse Sigma_i success\n");
 			pfda_debug_msg("Sigma_i:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);
 		}
 
 		dgemv_(&Trans, nobs+obsnum, ka, &dOne, phii, M, Ryi, &one, &dzero, alphaTmp+obsnum, N); 	// alphaTmp = phii^T * Ry
-		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp+obsnum,N);fflush(stdout);}
+		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp+obsnum,N);fflush(stdout);}
 		dsymv_(&Upper, ka, &inv_epsilon, Sigma_i, ka, alphaTmp+obsnum, N, &dzero, alpha+obsnum, N);		// alpha = 1/sigma * Sigma_i * alphaTmp
-		if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha+obsnum,N);fflush(stdout);} */
+		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha+obsnum,N);fflush(stdout);} */
 
 		phii+=nobs[obsnum];
 		Ryi +=nobs[obsnum];
@@ -716,25 +716,25 @@ void pfdaSingle_e_1(
 	int const * const dl, double *dp , int * ip)
 {pfda_debug_step
 	double * alphaTmp = pfdaAlloc_d(*ka,&dp);
-	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii:\n");printmat2(*nobs_i,*ka,phii,M);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii:\n");printmat2(*nobs_i,*ka,phii,M);fflush(stdout);}
 
 	dsyrk_(&Upper, &Trans, ka, nobs_i, inv_epsilon, phii, M, &dzero, Sigma_i, ka);
-	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
 	addInvDiag(ka, Da, Sigma_i, ka);
-	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
 
 	int sr=0;
 	pfda_sym_inverse(Sigma_i,ka, &sr, dl, dp, ip);
 	if(sr>0) pfda_error("PFDA ERR - pfdaSingle_e: pfda_sym_inverse returned %d\n",sr);
-	if(checkdebug(dl,debugnum_single_e_inloop)){
+	pfda_debug_cdl(debugnum_single_e_inloop){
 		pfda_debug_msg("pfda_sym_inverse Sigma_i success\n");
 		pfda_debug_msg("Sigma_i:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);
 	}
 
 	dgemv_(&Trans, nobs_i, ka, &dOne, phii, M, Ryi, &one, &dzero, alphaTmp, &one); 	// alphaTmp = phii^T * Ry
-	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp,&one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp,&one);fflush(stdout);}
 	dsymv_(&Upper, ka, inv_epsilon, Sigma_i, ka, alphaTmp, &one, &dzero, alpha_i, ldalpha);		// alpha = 1/sigma * Sigma_i * alphaTmp
-	if(checkdebug(dl,debugnum_single_e_inloop)){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha_i,ldalpha);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha_i,ldalpha);fflush(stdout);}
 }
 
 /*! performs the univariate fit for original model of functional data analysis using functional principle components
@@ -805,8 +805,8 @@ void pfdaSingle(
 	double *dp , int * ip)
 {pfda_debug_step
 if(*dl){
-if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
-if(checkdebug(dl,debugnum_single_inputs)){
+pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
+pfda_debug_cdl(debugnum_single_inputs){
 	pfda_debug_msg("INPUTS\n----------------------------------------\n");
 	pfda_debug_msg("M:\t%d\n",*M);
 	pfda_debug_msg("N:\t%d\n",*N );
@@ -832,7 +832,7 @@ if(checkdebug(dl,debugnum_single_inputs)){
 	pfda_debug_msg("alpha:\n"); printmat(alpha, *N, *ka);
 	fflush(stdout);
 }
-if(checkdebug(dl,debugnum_single_inputs_large)){
+pfda_debug_cdl(debugnum_single_inputs_large){
 	pfda_debug_msg("K:\n"); printmat(K, *p, *p);
 	pfda_debug_msg("B:\n"); printmat(B, *M, *p);
 	pfda_debug_msg("Saa:\n"); printmat(Saa, *N, *ka**ka);
@@ -854,7 +854,7 @@ double * tf_old = pfdaAlloc_d(*p**ka, &dp);
 double * Da_old = pfdaAlloc_d(*ka   , &dp);
 while(I < *maxI)/*  */{
 {///* setup for convergence */
-	if(checkdebug(dl,debugnum_singe_steps)){
+	pfda_debug_cdl(debugnum_singe_steps){
 		pfda_debug_msg("Entering loop: %d\n",I);
 		pfda_debug_msg("Setup for convergence\n");
 		fflush(stdout);
@@ -865,22 +865,22 @@ while(I < *maxI)/*  */{
 	dcopy_(ka, Da, &one, Da_old, &one);
 }
 {///* step 1 */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Step 1\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 1\n");fflush(stdout);}
 	pfda_m1(sigma,y,nobs,M,N,ka,B,p,minV,tm,tf,alpha,Saa,dl, dp);
 	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("sigma: %# .8g\n\n", *sigma);fflush(stdout);}
 }
 {///* step 2 */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Step 2\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 2\n");fflush(stdout);}
 	pfda_m2(tm,y,nobs,M,N,ka,B,p,lm,K,tf,sigma,alpha,dl, dp);
 	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("tm: \n");printmat(tm,*p,one);fflush(stdout);}
 }
 {///* step 3 */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Step 3\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 3\n");fflush(stdout);}
 	pfda_m3(tf, y, nobs, M, N, ka, B, p, lf, K, tm, sigma, alpha, Saa, btb, dl, dp, ip);
 	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("tf: \n");printmat(tf,*p,*ka);fflush(stdout);}
 }
 {///* Steps 4 & 5 */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Step 4&5\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 4&5\n");fflush(stdout);}
 	pfdaSingle_m5(N, alpha, ka, Saa, tf, Da, p, minV, dl, dp, ip);
 	if(checkdebug(dl, debugnum_single_estimates)){
 		pfda_debug_msg("tf: \n");printmat(tf,*p,*ka);
@@ -889,7 +889,7 @@ while(I < *maxI)/*  */{
 		fflush(stdout);}
 }
 {///* E-Step */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Step E\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step E\n");fflush(stdout);}
 	pfdaSingle_e(alpha, Saa, y, nobs, M, N, ka, B, p, tm, tf, Da, sigma, dl, dp, ip);
 	if(checkdebug(dl, debugnum_single_estimates)){
 		pfda_debug_msg("alpha: \n");printmat(alpha,*p,*ka);
@@ -897,7 +897,7 @@ while(I < *maxI)/*  */{
 		fflush(stdout);}
 }
 {///* Compute Convergence Criteria */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Computing convergence Criteria\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Computing convergence Criteria\n");fflush(stdout);}
 	convergenceCriteria = fabs((sigma_old-*sigma)/(*sigma));
 
 	daxpy_(p, &mOne, tm, &one, tmOld, &one);
@@ -918,7 +918,7 @@ while(I < *maxI)/*  */{
 	convergenceCriteria+=ccDa;
 
 	///* Debug */
-	if(checkdebug(dl,debugnum_single_convergence_components)){
+	pfda_debug_cdl(debugnum_single_convergence_components){
 			pfda_debug_msg("Convergence criteria components:\n");
 			pfda_debug_msg("sigma: \t%5.5g\n", fabs(sigma_old-*sigma));
 			pfda_debug_msg("tm:   \t%5.5g\n", cctm);
@@ -926,18 +926,18 @@ while(I < *maxI)/*  */{
 			pfda_debug_msg("Da:   \t%5.5g\n", ccDa);
 			fflush(stdout);
 	}
-	if(checkdebug(dl,debugnum_single_convergence)){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_convergence){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
 }
 I++;
 if(convergenceCriteria < *tol)break;
 }//end while loop
 {	///* Finishing */
-if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Finishing\n");fflush(stdout);}
+pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Finishing\n");fflush(stdout);}
 pfda_computeResid(y, y, nobs, M, N, ka, B, p, tm, tf, alpha, dl, dp);
 *tol = convergenceCriteria;
 *maxI = I;
 }
-if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout);}
+pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout);}
 }//end pfdaSingle
 
 
@@ -1135,8 +1135,8 @@ void single_c_core(
 	const int * const dl, double * dp, int * ip)
 {
 if(*dl){
-if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
-if(checkdebug(dl,debugnum_single_inputs)){
+pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
+pfda_debug_cdl(debugnum_single_inputs){
 	pfda_debug_msg("INPUTS\n----------------------------------------\n");
 	pfda_debug_msg("M:\t%d\n",*M);
 	pfda_debug_msg("N:\t%d\n",*N );
@@ -1161,7 +1161,7 @@ if(checkdebug(dl,debugnum_single_inputs)){
 	pfda_debug_msg("alpha:\n"); printmat(alpha, *N, *k);
 	fflush(stdout);
 }
-if(checkdebug(dl,debugnum_single_inputs_large)){
+pfda_debug_cdl(debugnum_single_inputs_large){
 	pfda_debug_msg("K:\n"); printmat(K, *p, *p);
 	pfda_debug_msg("B:\n"); printmat(B, *M, *p);
 	pfda_debug_msg("Saa:\n"); printmat(Saa, *N, *k**k);
@@ -1179,7 +1179,7 @@ double * tf_old = pfdaAlloc_d(*p**k, &dp);
 double * Da_old = pfdaAlloc_d(*k   , &dp);
 while(I < *maxI){
 	{///* setup for convergence */
-		if(checkdebug(dl,debugnum_singe_steps)){
+		pfda_debug_cdl(debugnum_singe_steps){
 			pfda_debug_msg("Entering loop: %d\n",I);
 			pfda_debug_msg("Setup for convergence\n");
 			fflush(stdout);
@@ -1195,7 +1195,7 @@ while(I < *maxI){
 	single_c_princcomp( tf, y, Z, B, tz, tm, alpha, sigma, aa, nobs, N, M, kz, k, p, lf, K, btb, dl, dp, ip);
 	single_c_variances( tf, alpha, Da, sigma, y, Z, B, tz, tm, Saa, nobs, N, M, kz, k, p, dl, dp, ip);
 	{// Compute Convergence Criteria
-		if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Computing convergence Criteria\n");fflush(stdout);}
+		pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Computing convergence Criteria\n");fflush(stdout);}
 		convergenceCriteria = fabs((sigma_old-*sigma)/(*sigma));
 
 		daxpy_(p, &mOne, tm, &one, tmOld, &one);
@@ -1215,7 +1215,7 @@ while(I < *maxI){
 		for(int i=0;i<*k;i++)ccDa+=convergenceCriteria+=fabs(Da_old[i]/Da[i]);
 		convergenceCriteria+=ccDa;
 
-		if(checkdebug(dl,debugnum_single_convergence_components)){
+		pfda_debug_cdl(debugnum_single_convergence_components){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("sigma: \t%5.5g\n", fabs(sigma_old-*sigma));
 				pfda_debug_msg("tm:   \t%5.5g\n", cctm);
@@ -1223,19 +1223,19 @@ while(I < *maxI){
 				pfda_debug_msg("Da:   \t%5.5g\n", ccDa);
 				fflush(stdout);
 		}
-		if(checkdebug(dl,debugnum_single_convergence)){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
+		pfda_debug_cdl(debugnum_single_convergence){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
 	}
 	I++;
 	if(convergenceCriteria < *tol)break;
 }//end while loop
 {	///* Finishing */
-	if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Finishing\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Finishing\n");fflush(stdout);}
 	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	single_c_resid( y, y, Z, nobs, M, N, kz, k, B, p, tz, tm, tf, alpha, dl, dp);
 	*tol = convergenceCriteria;
 	*maxI = I;
 }
-if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Leaving single_c_core\n");fflush(stdout);}
+pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Leaving single_c_core\n");fflush(stdout);}
 }//end pfdaSingle
 
 
