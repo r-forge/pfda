@@ -1854,7 +1854,7 @@ persp.pfda.additive<-function(x,col.fun=NULL,nt=11,nx=11,...){
 		x=seq(xbase@knots[4],xbase@knots[length(xbase@knots)-3],length=nx))
 	Btg<-evaluate(tbase,tx.grid$t)
 	Bxg<-evaluate(xbase,tx.grid$x)[,-1]
-	yg<-matrix(Btg%*%(tt+tf%*%apply(gamma,2,mean)) + Bxg%*%(tx+tg%*%apply(delta,2,mean)),nx,nt,byrow=F)
+	yg<-matrix(Btg%*%(tt+tf%*%apply(gamma,2,mean)) + Bxg%*%(tx+tg%*%apply(delta,2,mean)),nx,nt,byrow=T)
 	{
 		# this code was copied and modified from the persp example page
 		z <- yg
@@ -1866,7 +1866,7 @@ persp.pfda.additive<-function(x,col.fun=NULL,nt=11,nx=11,...){
 		zfacet <- yg[-1, -1] + yg[-1, -ncz] + yg[-nrz, -1] + yg[-nrz, -ncz]
 		facetcol <- cut(zfacet, nbcol)
 	}
-	persp(yg,zlab=attr(x,"name.y"),ylab=attr(x,"name.x"),xlab=attr(x,"name.t"), 
+	persp(yg,zlab=attr(x,"name.y"),xlab=attr(x,"name.x"),ylab=attr(x,"name.t"), 
 		col=color[facetcol], ...)
 	})
 }
