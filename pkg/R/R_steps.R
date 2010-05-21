@@ -1846,6 +1846,30 @@ print.pfda.additive<-function(x,...){
 	cat('penalties are \n');print( penalty.pfda.additive(x))
 }
 penalty.pfda.additive<-function(object,..)with(object,structure(matrix(c(lt,lx,lf,lg),2,2),dimnames=list(c(attr(object,'name.t'),attr(object,'name.x')),c('mean','pc'))))
+persp.pfda.additive<-function(x,col.fun=NULL,nt=11,nx=11,...){
+	if(is.null(col.fun))col.fun<-heat.colors
+	with(x,{
+	tx.grid<-expand.grid(
+		t=seq(tbase@knots[4],tbase@knots[length(tbase@knots)-3],length=nt),
+		x=seq(xbase@knots[4],xbase@knots[length(xbase@knots)-3],length=nx))
+	Btg<-evaluate(tbase,tx.grid$t)
+	Bxg<-evaluate(xbase,tx.grid$x)[,-1]
+	yg<-matrix(Btg%*%(tt+tf%*%apply(gamma,2,mean)) + Bxg%*%(tx+tg%*%apply(delta,2,mean)),nx,nt,byrow=F)
+	{
+		# this code was copied and modified from the persp example page
+		z <- yg
+		nrz <- nrow(yg)
+		ncz <- ncol(yg)
+		# Create a function interpolating colors in the range of specified colors
+		nbcol <- 200
+		color <- col.fun(nbcol)
+		zfacet <- yg[-1, -1] + yg[-1, -ncz] + yg[-nrz, -1] + yg[-nrz, -ncz]
+		facetcol <- cut(zfacet, nbcol)
+	}
+	persp(yg,zlab=attr(x,"name.y"),ylab=attr(x,"name.x"),xlab=attr(x,"name.t"), 
+		col=color[facetcol], ...)
+	})
+}
 }
 { # general
 	.dual.ge.AIC<-function(n2L,kz,

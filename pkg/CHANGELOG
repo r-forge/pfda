@@ -1,5 +1,6 @@
 Version 0.6.4
 -------------
+Added persp plot for 3d ploting of additive models
 Completed transitioning to the input values for the binary version.
 added print functions for all classes
 updated pfdaParseFormula to retain names.
