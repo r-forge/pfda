@@ -5,6 +5,7 @@ importFrom("graphics","plot")
 importFrom("stats", "logLik", "residuals","predict")
 importFrom("orthogonalsplinebasis","SplineBasis","evaluate","plot")
 importFrom("mvbutils","localfuncs")
+importFrom("graphics","persp")
 
 export(		
 			"pfda",
