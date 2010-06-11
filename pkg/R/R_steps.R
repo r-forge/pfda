@@ -739,16 +739,16 @@ plot.pfda.single.c<-function(x,...){
 	list(tm=tm,tf=tf,Da=Da,aa=aa,Saa=Saa,I=I,cc=cc)
 }
 .single.b.updatePCS<-function(Yi, Da, phii, Y.rhoi, alpha){
-ni = length(Yi)
+	ni = length(Yi)
 
-muy = Y.rhoi+phii%*%alpha.old
-mua = pnorm(muy)
-Y.tilda = muy + (Yi-mua)/dnorm(mua)
+	muy = Y.rhoi+phii%*%alpha
+	mua = pnorm(muy)
+	Y.tilda = muy + (Yi-mua)/dnorm(mua)
 
-A = Da %*% phii
-Q = solve(diag(1, ni) + crossprod(phii, Da %*% phii))
+	A = tcrossprod(Da, phii)
+	Q = solve(diag(1, ni) + phii%*%A)
 
-list(alpha= (A %*% Q) %*% Y.tilda)
+	list(alpha= as.vector((A %*% Q) %*% Y.tilda))
 }
 .single.b.estimatePCS<-function(Y, B, subject, tm, tf, Da){
 	Y.rho = B%*%tm
@@ -758,32 +758,31 @@ list(alpha= (A %*% Q) %*% Y.tilda)
 		alpha = rep(0,NCOL(tf))
 		dif = 1
 		while(dif>1e-3){
-			ab<-.single.b.updatePCS(Yi, Da, phii, Y.rhoi, alpha)
-			dif<-mean(alpha-ab$alpha)
+			ab<-.single.b.updatePCS(Y[ix], Da, phi[ix,,drop=F], Y.rho[ix,,drop=F], alpha)
+			dif<-mean(abs(alpha-ab$alpha))
 			alpha = ab$alpha
 		}
 		alpha
 	}
-	alpha<-t(lapply(seq_len(nlevels(subject)), ofun))
+	alpha<-matrix(unlist(lapply(seq_len(nlevels(subject)), ofun)),nlevels(subject),NCOL(tf),byrow=T)
 	alpha
 }
 .single.b.n2L.1<-function(yi,Bi,tm,tf,alpha,Da){
-	mui = pnorm(Bi%*%(tm+tf%*%alpha))
 	phi = Bi%*%tf
-	# Ui=diag(vi/)
-	log(sum(Da))+determinant(diag(NROW(Da)) + crossprod(phi,Ui%*%phi%*%diag(Da,NROW(Da))))$modulus +
-		crossprod(alpha,solve(Da)%*%alpha)/2 +
-		sum(yi*log(mui)+ (1-yi)*log(1-mui))
+	mui = pnorm(Bi%*%tm+phi%*%alpha)
+	nui = mui*(1-mui)
+	Wi = diag(as.vector(dnorm(mui)^2/nui))
+	sum(log(Da))+
+	determinant(diag(NROW(Da))+crossprod(phi,Wi%*%phi%*%Da))$modulus + 
+		crossprod(alpha,solve(Da)%*%alpha) -
+		2*sum(yi*log(mui)+ (1-yi)*log(1-mui)-diag(Wi)-mui)
 }
-.single.b.n2L<-function(y, t, subject, B, tm, tf, Da){
-	alpha<-.single.b.estimatePCS(Y, B, subject, tm, tf, Da)
-	ll<-0
-	sapply(nlevels(subject),function(si){
+.single.b.n2L<-function(y, subject, B, tm, tf, Da){
+	alpha<-.single.b.estimatePCS(y, B, subject, tm, tf, Da)
+	ll<-sum(sapply(seq_len(nlevels(subject)),function(si){
 		ix=as.integer(subject)==si
 		.single.b.n2L.1(y[ix], B[ix,], tm, tf, alpha[si,], Da)
-	})
-	for(subnum in seq_len(nlevels(subject))){
-	}
+	}))
 }
 loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 	y<-object@FittingData[[1]][[1]]
@@ -793,13 +792,19 @@ loglik.pfda.single.b<-function(object,...,newdata=NULL,n2L=TRUE){
 
 
 }
+AIC.pfda.single.b<-function(object,...){
+	n2L<-with(object,.single.b.n2L(y, subject, Bt, tm, tf, Da))
+	n2L + with(object,2*(.pfda.df(Bt,lm,K)+k*.pfda.df(Bt,lf,K)))
+}
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset=NULL){
+	{ # setup
 	fname = deparse(match.call()[[1L]])
 	localfuncs('.F.single.optimize.npc')
 	eval(.X.subset)
 	eval(.X.single.knots)
 	eval(.X.single.penalties)
-	structure(if(is.null(k)||any(is.na(k))){
+	}
+	if(is.null(k)||any(is.na(k))){
 		# stop('number of principal components optimization not finished yet')
 		.F.single.optimize.npc()
 	} else
@@ -829,7 +834,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 					ipl <- 8*p
 				}
 			}
-			structure(.C('pfda_bin_single', y, nobs, M, N, k, Bt, p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  Iterations=control$max.iterations, burninlength=as.integer(control$binary.burnin), burningenerate=as.integer(control$binary.k0), weightedgenerate=as.integer(control$binary.kr), dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
+			structure(.C('pfda_bin_single', y=y, nobs=nobs, M=M, N=N, k=k, Bt=Bt, p=p, lm=penalties[1], lf=penalties[2], K=Kt, tm=double(p), tf=matrix(0,p,k), Da=double(k), alpha=matrix(0,N,k), Saa=array(0,dim=c(k,k,N)),  minV=control$minimum.variance,  tol=control$convergence.tolerance,  Iterations=control$max.iterations, burninlength=as.integer(control$binary.burnin), burningenerate=as.integer(control$binary.k0), weightedgenerate=as.integer(control$binary.kr), dl=control$C.debug, dp=double(dpl) , p=integer(ipl))
 				,class=c('pfda.single.b.rawC','pfda.single.b','list'))
 		} else {
 			structure(.single.b.core(y,Bt,subject,k,penalties[1],penalties[2],K=Kt,control$minimum.variance, control$max.iterations,control$convergence.tolerance)
@@ -839,7 +844,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 		rtn$y<-y
 		rtn$subject<-subject
 		return(rtn)
-	},name.t=name.t)
+	}
 }
 print.pfda.single.b<-function(x,...){
 	cat('Univariate Binary Functional Principal Component Model\n')
@@ -1469,12 +1474,12 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	Y.tilda = muy + (Yi-mua)/dnorm(mua)
 	Z.tilda = Zi
   # blocks for means
-	A = Da %*% phii
+	A = tcrossprod(Da,phii)
 	B = Da %*% t(lambda) %*% t(psii)
 	C = lambda %*% Da %*% t(psii)
 	D = Db %*% t(psii)
 	#blocks associated with variances
-	E = diag(1, ni) + crossprod(phii, Da %*% phii)
+	E = diag(1, ni) + crossprod(phii, A)
 	F = crossprod(phii, tcrossprod(Da,lambda) %*% psii)
 	G = crossprod(psii, lambda%*% Da%*%phii)
 	H = diag(1, ni) + crossprod(psii, Db%*%psii)
