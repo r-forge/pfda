@@ -768,14 +768,24 @@ plot.pfda.single.c<-function(x,...){
 	alpha
 }
 .single.b.n2L.1<-function(yi,Bi,tm,tf,alpha,Da){
+	sum(.single.b.n2L.parts(yi,Bi,tm,tf,alpha,Da))
+	}
+.single.b.n2L.parts<-function(yi,Bi,tm,tf,alpha,Da){
 	phi = Bi%*%tf
 	mui = pnorm(Bi%*%tm+phi%*%alpha)
 	nui = mui*(1-mui)
 	Wi = diag(as.vector(dnorm(mui)^2/nui))
-	sum(log(Da))+
-	determinant(diag(NROW(Da))+crossprod(phi,Wi%*%phi%*%Da))$modulus + 
-		crossprod(alpha,solve(Da)%*%alpha) -
-		2*sum(yi*log(mui)+ (1-yi)*log(1-mui)-diag(Wi)-mui)
+	c(sum(log(Da)),
+		determinant(diag(NROW(Da))+crossprod(phi,Wi%*%phi%*%Da))$modulus, 
+		crossprod(alpha,solve(Da)%*%alpha), 
+		-2*sum(yi*log(mui)+ (1-yi)*log(1-mui)-diag(Wi)-mui)
+	)
+}
+.single.b.n2L.bySubject<-function(y, subject, B, tm, tf, Da, alpha){
+	sapply(seq_len(nlevels(subject)),function(si){
+			ix=as.integer(subject)==si
+			.single.b.n2L.1(y[ix], B[ix,], tm, tf, alpha[si,], Da)
+		})
 }
 .single.b.n2L<-function(y, subject, B, tm, tf, Da){
 	alpha<-.single.b.estimatePCS(y, B, subject, tm, tf, Da)
