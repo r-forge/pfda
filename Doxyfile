@@ -15,14 +15,14 @@
 #---------------------------------------------------------------------------
 
 PROJECT_NAME           = pfda
-PROJECT_NUMBER         = 0.6.0
+PROJECT_NUMBER         = 0.6.6
 
 OUTPUT_DIRECTORY       = "Cdocs"
 OUTPUT_LANGUAGE        = English
 
 FULL_PATH_NAMES        = NO
 
-TAB_SIZE               = 5
+TAB_SIZE               = 2
 
 # This tag can be used to specify a number of aliases that acts 
 # as commands in the documentation. An alias has the form "name=value". 

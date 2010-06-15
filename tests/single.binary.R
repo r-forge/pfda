@@ -33,8 +33,7 @@ qmatplot<-function(x,y,...){
 	{ # Is AIC smooth?
 		dfm<-seq(2.1,5,length=50)
 		results<-lapply(dfm,function(dfm){(pfda(y~x%|%id,driver='single.binary', k=1, df=c(dfm,3)))})
-		aics<-sapply(results,AIC)
-		alarm()
+		aics<-sapply(results,function(object){AIC(updatelist(m,object['Da']))})
 		qplot(dfm, aics, geom='line', xlab=expression('df'[mu]),ylab="AIC")
 		matplot(dfm,t(sapply(results,'[[','tm')),type='l', ylab='tm')
 		matplot(dfm,t(sapply(results,'[[','tf')),type='l',ylab='tf')
@@ -65,6 +64,18 @@ qmatplot<-function(x,y,...){
 			parts<-t(n2L.parts(i))
 			qmatplot(dfm, cbind(parts,apply(parts,1,sum)),geom='line')
 		})
+		
+		#this finally shows smoothness in the AIC.
+		# the non smoothness above shows the variation in the estimation.
+		infl<-seq(.1, 2.5, length=100)
+		aic.Da<-sapply(infl, function(infl){AIC(updatelist(m,list(Da=m$Da*infl)))})
+		qplot(infl,aic.Da,geom=c('point','line'))
+		
+		aic.tm<-sapply(infl, function(infl){AIC(updatelist(m,list(tm=m$tm*infl)))})
+		qplot(infl,aic.tm,geom=c('point','line'))
+		
+		aic.tf<-sapply(infl, function(infl){AIC(updatelist(m,list(tf=m$tf*infl)))})
+		qplot(infl,aic.tf,geom=c('point','line'))
 	}
 }
 

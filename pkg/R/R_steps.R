@@ -1504,7 +1504,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	alpha= (A %*% Q + B %*% S) %*% Y.tilda + (A %*% R + B %*% T) %*% Z.tilda,
 	beta = (C %*% Q + D %*% S) %*% Y.tilda + (C %*% R + D %*% T) %*% Z.tilda)
 }
-.dual.bc.estimatePCS<-function(Y, Z, B, subject, tm, tn, tf, tg, Da, Db, lambda){
+.dual.bc.estimatePCS<-function(Y, Z, B, subject, tm, tn, tf, tg, Da, Db, lambda, sxi){
 	Y.rho = B%*%tm
 	Z.rho = B%*%tn
 	phi = B%*%tf
@@ -1531,6 +1531,16 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	}
 	list(alpha=alpha,beta=beta)
 }
+.dual.bc.n2L.1.parts<-function(Yi, Zi, Bi, tm, tn, tf, tg, alpha, beta, Da, Db, lambda){
+	stop("Not finished")
+	ni=length(Yi)
+	c(
+		determinant(Da)$modulus+determinant(Da-Da%*%t(lambda)%*%solve(Db,lambda%*%Da))$modulus ,
+		ni*s.xi,
+		#not finished
+	)
+}
+
 .dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
 	C = rbind(cbind(diag(Da,ka), diag(Da,ka)%*%t(lambda)),cbind(t(lambda%*%diag(Da,ka)), diag(Db,kb)))
 	N*determinant(C,log=T)$modulus+M*log(sxi) +

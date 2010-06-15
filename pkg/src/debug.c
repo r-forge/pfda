@@ -19,9 +19,11 @@ int checkdebug(int const * const dl, const int level){
 void test_checkdebug(int const * const dl, int const * const level, int * rtn){*rtn = checkdebug(dl, *level);}
 void printvec(double const * const y, int const * const n){
 	for(int i=0; i<*n; i++)pfda_debug_msg("%# 9.8g\t", *y);
+	pfda_debug_msg("\n");
 }
 void printveci(int const * const y, int const * const n){
 	for(int i=0; i<*n; i++)pfda_debug_msg("%d\t", *y);
+	pfda_debug_msg("\n");
 }
 void printyvec(double const * const y, int const * const nobs, int const * const N){
 	int i,j;

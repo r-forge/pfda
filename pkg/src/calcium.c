@@ -53,10 +53,10 @@ void dual_ca_resid(
 
 */
 void u_orthogonalize(
-	double * const v, 
-	const double * const U, /// U is assumed orthogonal, NULL pointer is allowed.
-	const int * const nrow,
-	const int * const ncol /// ncol refers to the number of columns of U, NULL pointers and zero values are allowed
+	double * const v,        /// \param v the vector to be orthogonalized
+	const double * const U,  /// \param U is assumed orthogonal, NULL pointer is allowed.
+	const int * const nrow,  /// \param nrow is the number of rows of U and the length of v.
+	const int * const ncol   /// \param ncol refers to the number of columns of U, NULL pointers and zero values are allowed
 	)
 {
 	if(U && ncol && *ncol)for(int i=0; i<*ncol;i++){

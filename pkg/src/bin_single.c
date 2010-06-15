@@ -132,6 +132,10 @@ void pfda_bin_m5(
 	@param	convergencetol		Tolerance for determining convergence of overall algorithm
 	@param	maxI	on Input: the Maximum number of iterations.
 				          on output: THe numer of itterations used.
+	@param 	burninlength	The length of the burnin period 
+	@param burningenerate	The number of replicates to generate during the burnin period
+	@param weightedgenerate  The number of replicates to generate after the burnin period
+
 	@param	dl	controls printing of debug information
 	@param	dp	pool of preallocated double memory.
 	@param	ip	pool of preallocated integer memory.

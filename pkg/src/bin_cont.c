@@ -10,7 +10,7 @@
 
 /*! Find the initial values for the half binary half continuous case
 
-\group dual binary/continuous
+\ingroup dual binary/continuous
 @MEMORY
 	- dp = 2*p^2 + 2*M + M*k+ p*N + 8*p
 	- ip = 6*p 
@@ -62,10 +62,10 @@ void dual_bc_i(
 	pfda_transpose(lambda,*ka, *kb,dl,dp);
 }
 
-/*!  computes the  following \f$ \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi\f$
+/*!  computes the  following \f[ \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi \f]
 
 @MEMORY
--dp = ka +kb
+	-dp = ka +kb
 */
 void dual_bc_1a(
 	      double * const mu,
@@ -85,13 +85,23 @@ void dual_bc_1a(
 ){pfda_debug_dualstep
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
-	dgemv_(&Trans, ni,ka,&dOne, phi, M, Ry, &one, &dzero, tmpa, &one);
-	dgemv_(&Trans, ni,kb,&dOne, psi, M, Rz, &one, &dzero, tmpb, &one);
+	pfda_debug_line
+	dgemv_(&Trans  , ni,ka , &dOne   , phi, M , Ry  , &one, &dzero, tmpa, &one);
+	pfda_debug_line
+	dgemv_(&Trans  , ni,kb , &dOne   , psi, M , Rz  , &one, &dzero, tmpb, &one);
 	
+	pfda_debug_line
 	dsymv_(&Upper, ka, &dOne, Sa, ka, tmpa, &one, &dzero, mu,&one);  
 	
 	double sxi_inv = 1/(*sxi);
-	dgemv_(&NoTrans, ka, kb, &sxi_inv, Sab, ka, tmpb, &one, &dOne, mu,&one);
+	pfda_debug_line
+	pfda_debug_argi(*ka);
+	pfda_debug_argi(*kb);
+	pfda_debug_argi(sxi_inv);
+	pfda_debug_argmat(Sab, *ka, *kb);
+	pfda_debug_argvec(tmpb, kb);
+	pfda_debug_argvec(mu, kb);
+	dgemv_(&NoTrans, ka, kb, &sxi_inv, Sab, ka, tmpb, &one, &dOne , mu  ,&one);
 }
 
 /*!  computes the  following \f$ \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f$
@@ -266,7 +276,7 @@ void dual_bc_1(
 }
 
 /*! computes the estimate of 
-@Memory
+Memory
 -dp = M + M*kb + 2*kb^2
 */
 void dual_bc_2(
@@ -623,14 +633,14 @@ computes the estimates and itterates until convergence
 
 @MEMORY
 	- dp = 2*p+p(ka+kb)+ka*kb+ka+kb + M + sum(nobs^2) + p^2*N + max(
-	#i 	2*p^2 + M*(k+2)+ p*N + 8*p
-	#1	M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3ka +3kb + (ka + kb+ max(ka,kb))*ni)
-	#2	M + M*kb + 2*kb^2
-	#3	p^2+ M+ M*max(ka,kb)
-	#4	M + max(ka,kb)^2 * N + p^2 + p 
-	#5	ka^2 + ka*kb + 10*max(ka,kb)
-	#6	4*p^2 + 2*p +  max(  ka, kb, 8 ) * p + ka*kb
-	#W	M*(3+ka+kb) +   (ni*kr + kr + 2 + 5*ka + kb + 10 * k^2))
+		-# init:	2*p^2 + M*(k+2)+ p*N + 8*p
+		-# 1:	M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3ka +3kb + (ka + kb+ max(ka,kb))*ni)
+		-# 2:	M + M*kb + 2*kb^2
+		-# 3:	p^2+ M+ M*max(ka,kb)
+		-# 4:	M + max(ka,kb)^2 * N + p^2 + p 
+		-# 5:	ka^2 + ka*kb + 10*max(ka,kb)
+		-# 6:	4*p^2 + 2*p +  max(  ka, kb, 8 ) * p + ka*kb
+		-# W:	M*(3+ka+kb) +   (ni*kr + kr + 2 + 5*ka + kb + 10 * k^2))
 	- ip = 6*p
 */
 void dual_bc_core(

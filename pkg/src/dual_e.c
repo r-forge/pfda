@@ -5,7 +5,7 @@
 #include "pfda.h"
 
 
-/*!  computes Sigma_eta = Db - \Lambda Da \Lambda\Trans
+/*!  computes \f$ Sigma_eta = Db - \Lambda Da \Lambda\Trans \f$
 MEMORY:
 	dp length = ka^2 + ka *kb
 */
