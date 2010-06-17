@@ -41,7 +41,7 @@ sim.single.parameters<-expression({
 	alpha = matrix(rnorm(ka*N, sd = rep(sqrt(Da),each=N)),N,ka)
 })
 sim.single.c<-expression({
-	eval(sim.single.parameters)
+		eval(get('sim.single.parameters',envir=parent.env(environment())))
 	subject = factor(rep(seq(N),nobs) )
 	y = numeric(M)
 	for(i in seq(N)){
@@ -84,7 +84,7 @@ sim.dual.parameters<-expression({
 	beta  = ab[,-(1:ka),drop=FALSE]
 })
 sim.dual.cc<-expression({
-	eval(sim.dual.parameters,envir=parent.frame() )
+	eval(get('sim.dual.parameters',envir=parent.env(environment())))
 	subject = factor(rep(seq(N),nobs))
 	w = numeric(M)
 	z = numeric(M)
@@ -97,7 +97,7 @@ sim.dual.cc<-expression({
 	z<-z+rnorm(M,0,s.xi)
 })
 sim.dual.bc<-expression({ 
-	eval(sim.dual.cc,envir=parent.frame)
+	eval(get('sim.dual.cc',envir=parent.env(environment())))
 	y<-w<mean(w)
 	
 	ww = vector('list',N)
@@ -170,12 +170,15 @@ def.defaults<-expression({
 	max.I=1e5
 	lt<-lx<-lf<-lg<-1
 })
-UT_generate<-function(X)function(n=100){
-if(class(try(replicate(n,eval(X))))=="try-error"){
+UT_generate<-function(X){
+envir = environment()
+function(n=100){
+if(class(try(replicate(n,eval(X,envir=envir))))=="try-error"){
 	cat("FAILED\n")
 	return(invisible(FALSE))
 }
 invisible(TRUE)
+}
 }
 test.equal<-function(name,envir=parent.frame()){ eval(substitute(
 stopifnot(all.equal(as.vector(C$name),as.vector(R$name)))
@@ -1555,10 +1558,10 @@ UT_pfda_s_i<-function(){
 { # dual_gen_sigmas
 X_dual_gen_sigmas<-expression({
 { # setup
-library(pfda);i=1
-set.seed(123)
-source("unittests.R")
-source("R_steps.R")
+# library(pfda);i=1
+# set.seed(123)
+# source("unittests.R")
+# source("R_steps.R")
 eval(sim.dual.cc)
 s.eps  = rexp(1,1)
 s.xi   = rexp(1,1)
@@ -2254,8 +2257,7 @@ UT_pfda_bin_single_approximate_moments<-function(){
 }
 { # Dual binary/continuous
 X_dual_bc_i<-expression({
-	eval(sim.dual.bc)
-
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 	ldp = 2*p^2 + 2*M + M*max(ka,kb)+ p*N + 8*p
 	lip = 6*p
 	C<- { .C( 'dual_bc_i',
@@ -2302,7 +2304,7 @@ X_dual_bc_i<-expression({
 UT_dual_bc_i<-UT_generate(X_dual_bc_i)
 
 X_dual_bc_1a<-expression({
-	eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 	Saa = crossprod(matrix(rnorm(ka**2),ka,ka))
 	Sab = matrix(rnorm(ka*kb),ka,kb)
 	
@@ -2336,8 +2338,7 @@ X_dual_bc_1a<-expression({
 UT_dual_bc_1a<-UT_generate(X_dual_bc_1a)
 
 X_dual_bc_1b<-expression({
-
-	eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 	Sbb = crossprod(matrix(rnorm(kb**2),kb,kb))
 	Sab = matrix(rnorm(ka*kb),ka,kb)
 	
@@ -2371,7 +2372,7 @@ X_dual_bc_1b<-expression({
 UT_dual_bc_1b<-UT_generate(X_dual_bc_1b)
 
 X_dual_bc_1cde<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 Saa = crossprod(matrix(rnorm(ka**2),ka,ka))
 Sbb = crossprod(matrix(rnorm(kb**2),kb,kb))
 Sab = matrix(rnorm(ka*kb),ka,kb)
@@ -2421,7 +2422,7 @@ if(!isTRUE(all.equal(as.vector(R$ab),C$ab)))return('failed')
 UT_dual_bc_1cde<-UT_generate(X_dual_bc_4)
 
 X_dual_bc_1<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 R<-.dual.bc.1(z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,s.xi)
 C<-{ # C related computations for dual_bc_1
 ldp = M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3*(ka+kb) + (ka + kb+ max(ka,kb))*max(nobs))
@@ -2478,7 +2479,7 @@ TRUE
 UT_dual_bc_1<-UT_generate(X_dual_bc_1)
 
 X_dual_bc_2<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 Sbb<-vector('list',N)
 for(i in seq(N)){ Sbb[[i]]<-crossprod(matrix(rnorm(kb*kb),kb,kb))}
 
@@ -2494,7 +2495,7 @@ if(R$s.xi==C$s.xi)stop('failed')
 UT_dual_bc_2<-UT_generate(X_dual_bc_2)
 
 X_dual_bc_3<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 lm=runif(1,1,100)
 ln=runif(1,1,100)
 
@@ -2511,7 +2512,7 @@ UT_dual_bc_3<-UT_generate(X_dual_bc_3)
 
 X_dual_bc_4<-expression({
 runif(1);.saved.seed<-.Random.seed
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 lf = runif(1,1,100)
 lg = runif(1,1,100)
 
@@ -2537,7 +2538,7 @@ TRUE
 UT_dual_bc_4<-UT_generate(X_dual_bc_4)
 
 X_dual_bc_5<-expression({
-eval(sim.dual.parameters)
+	eval(get('sim.dual.parameters',envir=parent.env(environment())))
 
 
 aa<-vector('list',N)
@@ -2560,8 +2561,8 @@ if(!isTRUE(all.equal(R$lambda,C$lambda)))stop('failed')
 UT_dual_bc_5<-UT_generate(X_dual_bc_5)
 
 X_dual_bc_6<-expression({
-eval(sim.dual.bc)
-eval(sim.dual.aa_ab_bb)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
+	eval(get('sim.dual.aa_ab_bb',envir=parent.env(environment())))
 
 R<-.dual.cc.6(tf,tg,alpha,beta,lambda,aa,bb)
 
@@ -2580,7 +2581,7 @@ if(!isTRUE(all.equal(as.vector(R$Db),as.vector(C$Db))))stop("failed on lambda")
 UT_dual_bc_6<-UT_generate(X_dual_bc_6)
 
 X_dual_bc_genw<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 
 ni=nobs[1]
 j=sample(seq(ni),1)
@@ -2608,7 +2609,7 @@ stopifnot(all.equal(C$wsim,R))
 UT_dual_bc_genw<-UT_generate(X_dual_bc_genw)
 
 X_dual_bc_w_1<-expression({
-eval(sim.dual.bc)
+	eval(get('sim.dual.bc',envir=parent.env(environment())))
 kr = 100L
 i=1
 ix = i ==subject
@@ -2633,14 +2634,12 @@ C <- .C('dual_bc_w_1',
 stopifnot(t.test(C$w,R$wi,paired=TRUE)$p.value>0.05/100)
 stopifnot(t.test(C$ww,as.vector(R$wwi),paired=TRUE)$p.value>0.05/100)
 })
-# MUS BE TESTED BY HAND - involves different random number generation.
-
 
 }
 { # Calcium Model
 
 X_dual_ca_resid<-expression({
-eval(sim.dual.ca)
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
 pt=NCOL(Bt)
 px=NCOL(Bx)
 
@@ -2703,9 +2702,8 @@ all.equal(R,Y[1:3],tolerance = max(a,c)*.Machine$double.eps ^ 0.5, check.attribu
 UT_gen_symblock_solve<-UT_generate(X_gen_symblock_solve)
 
 X_dual_ca_i<-expression({
-eval(sim.dual.ca)
-eval(sim.dual.ca)
-eval(def.defaults)
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
+	eval(get('def.defaults',envir=parent.env(environment())))
 
 R<-.dual.ca.i(y,Z,Bt,Bx,subject,kg,kd,min.v)
 names(R)
@@ -2740,7 +2738,7 @@ test.equal.sa(dd)
 UT_dual_ca_i<-UT_generate(X_dual_ca_i)
 
 X_dual_ca_E1<-expression({
-eval(sim.dual.ca)
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
 i=1
 ix = i==subject
 
@@ -2770,7 +2768,7 @@ stopifnot(isTRUE(all.equal(R$mu.delta,C$delta[1,])))
 UT_dual_ca_E1<-UT_generate(X_dual_ca_E1)
 
 X_dual_ca_E<-expression({
-eval(sim.dual.ca)
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
 R<-.dual.ca.E(y,Z,Bt,Bx,subject,tz,tt,tx,tf,tg,lambda,Dg,Dd,sigma)
 
 C<-.C('dual_ca_E',gamma=gamma, delta=delta, 
@@ -2802,7 +2800,7 @@ test.equal(Sdd)
 UT_dual_ca_E<-UT_generate(X_dual_ca_E)
 
 X_dual_ca_unpenalized<-expression({
-eval(sim.dual.ca)
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
 R<-.dual.ca.unpenalized(y,Z,Bt,Bx,subject,tt,tx,tf,tg,gamma,delta,sigma)
 C<-.C('dual_ca_unpenalized', tz=tz, y=y, Z=Z, Bt=Bt, Bx=Bx, tt=tt, tx=tx, tf=tf, tg=tg, gamma=gamma, delta=delta, sigma=sigma, nobs=nobs, N=N, M=M, kz=kz, kg=kg, kd=kd, pt=ncol(Bt), px=ncol(Bx), dl=0L, 
 dp=double(M + kz^2 + 10*kz + M*max(kg, kd)), ip=integer(kz))
@@ -2813,7 +2811,7 @@ test.equal(tz)
 UT_dual_ca_unpenalized<-UT_generate(X_dual_ca_unpenalized)
 
 X_dual_ca_penalized<-expression({
-eval(sim.dual.ca)
+eval(get('sim.dual.ca',envir=parent.env(environment())))
 pt=ncol(Bt)
 px=ncol(Bx)
 lt = rexp(1,pt)
@@ -2830,7 +2828,7 @@ test.equal(tx)
 UT_dual_ca_penalized<-UT_generate(X_dual_ca_penalized)
 
 X_dual_ca_princcomp<-expression({
-{ eval(sim.dual.ca)
+{ eval(get('sim.dual.ca',envir=parent.env(environment())))
 pt=ncol(Bt)
 px=ncol(Bx)
 lf = rexp(1,pt)
@@ -2850,8 +2848,8 @@ test.equal(tg)
 UT_dual_ca_princcomp<-UT_generate(X_dual_ca_princcomp)
 
 X_dual_ca_variances<-expression({
-{	eval(sim.dual.ca)
-	eval(sim.dual.ca)
+{	eval(get('sim.dual.ca',envir=parent.env(environment())))
+	eval(get('sim.dual.ca',envir=parent.env(environment())))
 	pt=ncol(Bt)
 	px=ncol(Bx)
 	p= max(pt,px)
@@ -2875,4 +2873,18 @@ test.equal(delta)
 })
 UT_dual_ca_variances<-UT_generate(X_dual_ca_variances)
 
+}
+{ # Random Number Generation
+UT_pfda_gen_truncnorm<-function(n=100){
+m=100
+all(
+	sapply(seq(-3,3,length=n),function(lower){
+		seed<-.Random.seed
+		(R<-pfda:::.rtruncnormlower(m,0,1,lower))
+		seed->>.Random.seed
+		(C<-.C("pfda_gen_truncnorm",x=double(m),as.integer(m),lower,0L)$x)
+		all.equal(R,C)
+	})
+)
+}
 }

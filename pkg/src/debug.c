@@ -61,7 +61,7 @@ for(i=0;i<nrow;i++){
 	}
 	pfda_debug_msg("\n");
 }
-pfda_debug_msg("\n");
+// pfda_debug_msg("\n");
 }
 void printmati(const int const *M,const int nrow,const int ncol){//For Debug ONLY
 int i,j;
@@ -71,7 +71,7 @@ for(i=0;i<nrow;i++){
 	}
 	pfda_debug_msg("\n");
 }
-pfda_debug_msg("\n");
+// pfda_debug_msg("\n");
 }
 void printmat2(const int nrow,const int ncol, const double* A, const int* lda){//For Debug ONLY
 int i,j;

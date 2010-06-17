@@ -16,6 +16,7 @@ Heike Trautmann, Detlef Steuer and Olaf Mersmann (2008). truncnorm:
 #include <Rinternals.h>
 #include <R_ext/Applic.h>
 #include <math.h>
+#include <R_ext/Random.h>
 
 void pfda_rtruncnorm(
 	double       * const x,
@@ -180,19 +181,12 @@ void pfda_rejection_1(
 }
 
 /*! generates the tuncated normal using either the roberts or the rejection sampler depending on the tuncations value c. 
-
-\param x [output]  the vector of generated values
-\param n lenth of x to be generated
-\param c the truncation value.  Truncation is from the left
-\param dl the debug level
-
-
 */
 void pfda_gen_truncnorm(
-	double * x,
-	int const * const n,
-	double const * const c,
-	int const * const dl)
+	double * x,            ///< [out]  the vector of generated values
+	int const * const n,   ///< lenth of x to be generated
+	double const * const c,///< the truncation value.  Truncation is from the left
+	int const * const dl)  ///< the debug level
 {
 	if(checkdebug(dl,debugnum_pfda_gen_truncnorm)){
 		pfda_debug_msg("entering pfda_gen_truncnorm\n");
@@ -207,5 +201,15 @@ void pfda_gen_truncnorm(
 	}
 }
 
+void test_pfda_gen_truncnorm(
+	double * x,
+	int const * const n,
+	double const * const c,
+	int const * const dl)
+{
+GetRNGstate();
+	pfda_gen_truncnorm(x,n,c,dl);
+PutRNGstate();
+}
 
 

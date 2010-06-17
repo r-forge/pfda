@@ -1,8 +1,8 @@
 /*! \file dual.c
 
-// by Andrew Redd
-// Part of paired functional data analysis through principle component analysis.
-// This file performs the em algorithm for a bivariate Curves.
+by Andrew Redd
+Part of paired functional data analysis through principle component analysis.
+This file performs the em algorithm for a paired response curves.
 */
 #include "pfda_dual.h"
 #include "pfda_error.h"

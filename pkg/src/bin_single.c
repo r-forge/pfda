@@ -180,7 +180,7 @@ void pfda_bin_single(
 	int const * const weightedgenerate,
 	int * const dl,
 	double *dp , int * ip)
-{
+{ pfda_debug_step;
 if(*dl){
 	if(checkdebug(dl,debugnum_bin_single_steps)){pfda_debug_msg("Entering pfda_bin_single\n");fflush(stdout);}
 	if(checkdebug(dl,debugnum_bin_single_inputs)){
@@ -218,6 +218,7 @@ if(*dl){
 		pfda_debug_msg("Sigma_aa:\n"); printmat(Sigma_aa, *N, *k**k);
 	}
 }
+GetRNGstate();
 double * w = pfdaAlloc_d(*M,&dp);
 int size_ww = 0;for(int i=0;i<*N;i++)size_ww+=nobs[i]*nobs[i];
 double * ww = pfdaAlloc_d(size_ww, &dp);
@@ -339,4 +340,5 @@ while(I < *maxI)/*  */{
 	*maxI = I;
 }
 if(checkdebug(dl,debugnum_bin_single_steps)){ pfda_debug_msg("Leaving pfdaSingle\n");fflush(stdout); }
+PutRNGstate();
 }//end pfdaSingle

@@ -1,3 +1,13 @@
+/*! \file dual.c
+by Andrew Redd
+
+This file is part of the pfda package for R.  
+It contains the steps for relevant to the paired response model where the first is a binary reponse and 
+the second is a continuous response.
+*/
+/*! \defgroup dualbc Mixed Binary Continuous Paired Response
+ */
+
 #include "pfda_single.h"
 #include "pfda_gen.h"
 #include "pfda_dual.h"
@@ -10,10 +20,12 @@
 
 /*! Find the initial values for the half binary half continuous case
 
-\ingroup dual binary/continuous
+\ingroup dualbc
 @MEMORY
 	- dp = 2*p^2 + 2*M + M*k+ p*N + 8*p
 	- ip = 6*p 
+\callgraph
+\callergraph
 */
 void dual_bc_i(
 	      double * const tm,
@@ -62,52 +74,61 @@ void dual_bc_i(
 	pfda_transpose(lambda,*ka, *kb,dl,dp);
 }
 
-/*!  computes the  following \f[ \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi \f]
+/*!  computes the  following \f[ 
+\Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi 
+\f]
 
+\ingroup dualbc
 @MEMORY
 	-dp = ka +kb
+\callgraph
 */
 void dual_bc_1a(
-	      double * const mu,
-	const double * const Ry,
-	const double * const Rz,
-	const double * const phi,
-	const double * const psi,
-	const double * const sxi,
-	const double * const Sa,
-	const double * const Sab,
-	const int    * const M,
-	const int    * const ni,
-	const int    * const ka,
-	const int    * const kb,
-	const int * const dl,
-	double*dp
+				double * const mu, ///< [out] \f$ \mu \f$
+	const double * const Ry, ///< \f$ R_{y_i} \f$
+	const double * const Rz, ///< \f$ R_{z_i} \f$
+	const double * const phi,///< \f$ \phi_i\f$
+	const double * const psi,///< \f$ \psi_i \f$
+	const double * const sxi,///< \f$ \sigma_\xi\f$
+	const double * const Sa, ///< \f$ \Sigma_{\alpha\alpha} \f$
+	const double * const Sab,///< \f$ \Sigma_{\alpha\beta} \f$
+	const int    * const M,  ///< number of rows of full \f$\phi\f$
+	const int    * const ni, ///< number of observations for the current subject
+	const int    * const ka, ///< length of \f$ \alpha_i \f$
+	const int    * const kb, ///< length of \f$ \beta_i \f$
+	const int * const dl,    ///< debugging level
+	double*dp                ///< pool of double memory
 ){pfda_debug_dualstep
+	pfda_debug_argi(*ka);
+	pfda_debug_argi(*kb);
+	pfda_debug_arg(*sxi);
+	pfda_debug_argmat(Sab, *ka, *kb);
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
 	pfda_debug_line
 	dgemv_(&Trans  , ni,ka , &dOne   , phi, M , Ry  , &one, &dzero, tmpa, &one);
+	pfda_debug_argvec(tmpa, ka);
 	pfda_debug_line
 	dgemv_(&Trans  , ni,kb , &dOne   , psi, M , Rz  , &one, &dzero, tmpb, &one);
+	pfda_debug_argvec(tmpb, kb);
 	
 	pfda_debug_line
 	dsymv_(&Upper, ka, &dOne, Sa, ka, tmpa, &one, &dzero, mu,&one);  
+	pfda_debug_argvec(mu, kb);
 	
 	double sxi_inv = 1/(*sxi);
+	pfda_debug_arg(sxi_inv);
 	pfda_debug_line
-	pfda_debug_argi(*ka);
-	pfda_debug_argi(*kb);
-	pfda_debug_argi(sxi_inv);
-	pfda_debug_argmat(Sab, *ka, *kb);
-	pfda_debug_argvec(tmpb, kb);
-	pfda_debug_argvec(mu, kb);
 	dgemv_(&NoTrans, ka, kb, &sxi_inv, Sab, ka, tmpb, &one, &dOne , mu  ,&one);
+	pfda_debug_argvec(mu, kb);
 }
 
 /*!  computes the  following \f$ \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f$
+\ingroup dualbc
 
 @MEMORY
 -dp = ka +kb
+\callgraph
 */
 void dual_bc_1b(
 	      double * const mu,
@@ -138,10 +159,11 @@ void dual_bc_1b(
 
 
 /*!   Computes aa, ab, bb
- 
+\ingroup dualbc
 
 @MEMORY
 -dp = 3ka +3kb + ka*ni + kb*ni + ni*max(ka,kb)
+\callgraph
 */
 void dual_bc_1cde(
 	      double * const aa,
@@ -208,10 +230,12 @@ void dual_bc_1cde(
 
 
 /*!   E step for binary/continuous model
+\ingroup dualbc
 
 @MEMORY
 - dp = M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3ka +3kb + (ka + kb+ max(ka,kb))*ni)
  - ip = max(ka,kb)
+\callgraph
 */
 void dual_bc_1(
 	      double * const alpha,
@@ -276,8 +300,10 @@ void dual_bc_1(
 }
 
 /*! computes the estimate of 
+\ingroup dualbc
 Memory
 -dp = M + M*kb + 2*kb^2
+\callgraph
 */
 void dual_bc_2(
 	      double * const sxi,
@@ -313,8 +339,10 @@ void dual_bc_2(
 }
 
 /*! computing tm, & tn
+\ingroup dualbc
 @MEMORY
 	- dp =  p^2+ M+ M*max(ka,kb)
+\callgraph
 */
 void dual_bc_3(
 	      double * const tm,
@@ -344,9 +372,11 @@ void dual_bc_3(
 }
 
 /*! computes tf and tg
+\ingroup dualbc
 @MEMORY
 	- dp = M + max(ka,kb)^2 * N + p^2 + p 
 	- ip = p
+\callgraph
 */
 void dual_bc_4(
 	      double * const tf,
@@ -380,10 +410,12 @@ void dual_bc_4(
 }
 
 /*! Computes  estimate of lambda
+\ingroup dualbc
 
 @MEMORY
 	- dp =  ka^2 + ka*kb + 10*max(ka,kb)
 	- ip = ka
+\callgraph
 */
 void dual_bc_5(
 	double * lambda,
@@ -409,10 +441,12 @@ void dual_bc_5(
 }
 
 /*! Computes Da,and Db, updates, tf,tg,alpha,beta, & lambda,
+\ingroup dualbc
 
 @MEMORY
 	- dp = 4*p^2 + 2*p +  max(  ka, kb, 8 ) * p + ka*kb
 	- ip = 6*p
+\callgraph
 */
 void dual_bc_6(
 	      double * const tf,
@@ -448,34 +482,42 @@ void dual_bc_6(
 	pfdaDual_m5_2(lambda, transa, ka, transb, kb, dl,dp,ip);
 }
 
-/*! simulates W|Y,Z
+/*! simulates the latest response given the binary and continuous reponses and all parameters
+ * \ingroup dualbc
+ * 
+ * \callgraph
+ * \callergraph
+ */
+ /*
+  *@MEMORY
+ *	- dp = ka + ka^2 + ka*kb +kb^2 + (7 * max(ka,kb)^2) + ka + (ka+kb) + ka + 1 + ka + 1
+ *		  <= 2 + 5*ka + kb + 10 * k^2
+ *	- ip = max(ka,kb)
 
-@MEMORY
-	- dp = ka + ka^2 + ka*kb +kb^2 + (7 * max(ka,kb)^2) + ka + (ka+kb) + ka + 1 + ka + 1
-		  <= 2 + 5*ka + kb + 10 * k^2
-	- ip = max(ka,kb)
-*/
+ */
 void dual_bc_genw(
-	double       * const w_sim,
-	int    const * const y,
-	double const * const Rz,
-	double const * const Rw,
-	double const * const pi,
-	double       * const phi,  // must be editable, but changes are reverted after.
-	double const * const psi,
-	double const * const lambda,
-	double const * const Da,
-	double const * const Db,
-	int    const * const ni,
-	int    const * const M, 
-	int    const * const ka,
-	int    const * const kb,
-	int    const * const kr,
-	int    const * const p, 
-	int    const * const j,
-	int const * const dl,
-	double * dp, int * ip)
-{pfda_debug_dualstep
+	double       * const w_sim, ///< [out] the simulated W
+	int    const * const y,     ///< the binary vector of responses
+	double const * const Rz,    ///< The residuals \f$ R_y \f$
+	double const * const Rw,    ///< The residuals for \f$ R_w \f$
+	double const * const pi,    ///< \f$ \pi = B \theta_\mu \f$
+	double       * const phi,   ///< must be editable, but changes are reverted after.
+	double const * const psi,   ///< \f$ \psi = B \Theta_f \f$
+	double const * const lambda,///< \f$ \Lambda \f$
+	double const * const Da,    ///< \f$ D_\alpha \f$
+	double const * const Db,    ///< \f$ D_\beta \f$
+	int    const * const ni,    ///<  The number of observations for the current subject
+	int    const * const M,     ///<  The total number of observations, also the number of rows of \f$ \pi, \phi, \psi \f$
+	int    const * const ka,    ///< The number of principal components for y
+	int    const * const kb,    ///< The number of principal components for z
+	int    const * const kr,    ///< The number of observations to generate
+	int    const * const p,     ///< not really sure
+	int    const * const j,     ///< this neither
+	int const * const dl,       ///< debug level
+	double * dp,                ///< double pool
+	int * ip                    ///< integer pool
+	)
+{ pfda_debug_dualstep
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
 	dcopy_(ka, phi+*j, M, old_phi_row, &one);
 	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero;
@@ -516,11 +558,12 @@ void dual_bc_genw(
 }
 
 /*!	computes the w and ww for a subject
+\ingroup dualbc
 
-\ingroup binary_single
 @MEMORY:
 	- dp length 	=  ni*kr + kr +   (2 + 5*ka + kb + 10 * k^2)
 	- ip length = k
+\callgraph
 */
 void dual_bc_w_1(
 	double * const w,
@@ -576,9 +619,11 @@ void dual_bc_w_1(
 }
 
 /*! estimates by simulation \f[ E(W|Y,Z) \f] and \f[ E(WW|Y,Z) \f] for all subjects.
+\ingroup dualbc
 @ MEMORY
 	- dp = M*(3+ka+kb) +   (ni*kr + kr + 2 + 5*ka + kb + 10 * k^2)
 	- ip = k
+\callgraph
 */
 void dual_bc_w(
 	double * const w,
@@ -628,6 +673,8 @@ void dual_bc_w(
 
 
 /*! The core of the continuous/continuous model
+\ingroup dualbc 
+\ingroup interfaces
 
 computes the estimates and itterates until convergence
 
@@ -642,6 +689,8 @@ computes the estimates and itterates until convergence
 		-# 6:	4*p^2 + 2*p +  max(  ka, kb, 8 ) * p + ka*kb
 		-# W:	M*(3+ka+kb) +   (ni*kr + kr + 2 + 5*ka + kb + 10 * k^2))
 	- ip = 6*p
+\callgraph
+\callergraph
 */
 void dual_bc_core(
 	int    * const y,
@@ -681,6 +730,7 @@ void dual_bc_core(
 	      double * const tol,
 	const int * const dl, double * dp, int * ip)
 {
+	GetRNGstate();
 	pfda_debug_dualstep
 	pfda_debug_arg(*z);
 	pfda_debug_argi(*dl);
@@ -797,6 +847,7 @@ void dual_bc_core(
 	}
 	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 	*tol=cc;
-	*maxI = I;	
+	*maxI = I;
+	PutRNGstate();
 }
 
