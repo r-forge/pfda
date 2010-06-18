@@ -5,7 +5,7 @@
 #include "pfda.h"
 
 
-/*!  computes \f$ Sigma_eta = Db - \Lambda Da \Lambda\Trans \f$
+/*!  computes \f$ Sigma_eta = Db - \Lambda Da \Lambda^T \f$
 MEMORY:
 	dp length = ka^2 + ka *kb
 */
@@ -31,7 +31,7 @@ void pfda_gen_e_eta(
 	if(checkdebug(dl,debugnum_pfda_gen_e_eta)){pfda_debug_msg("Sigma_eta:\n");printmat(sigma_eta,*kb,*kb);fflush(stdout);}
 }
 
-/*!  computes \f[Sigma_eta = (Db - \Lambda Da \Lambda\Trans)\inv\f]
+/*!  computes \f[Sigma_eta = (Db - \Lambda Da \Lambda^T)^{-1}\f]
 MEMORY:
 	dp length = ka^2 + ka *kb
 */
@@ -526,7 +526,7 @@ void pfda_dual_e3_1(
 	- ip = max(ka, kb)
 */
 void dual_gen_sigmas(
-	      double * const Saa,
+	      double * const Saa,  ///< \f$ \Sigma_{\alpha\alpha} \f$
 	      double * const Sab,
 	      double * const Sbb,
 	const double * const phi,

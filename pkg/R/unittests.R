@@ -2587,7 +2587,7 @@ ni=nobs[1]
 j=sample(seq(ni),1)
 Rw = w-B%*%tm
 Rz = z-B%*%tn
-Nsim=100L
+Nsim=10L
 phi=B%*%tf
 psi=B%*%tg
 i=1
@@ -2599,9 +2599,9 @@ phii = Bij%*%tf
 saved.seed<-.Random.seed
 dpl = 2 + 5*ka + kb + 10 * max(ka,kb)^2
 ipl = max(ka,kb)
-C<-.C('dual_bc_genw', wsim = double(Nsim), y=as.integer(y), Rz=Rz, Rw=Rw, rho = (B%*%tm), phi=phi, psi=psi, lambda=lambda, Da=Da, Db=Db,ni=ni, M=M, ka=ka, kb=kb, Nsim=Nsim,  p=p, j=as.integer(j-1), dl=0L, dp=double(dpl), ip=integer(ipl))
+C<-.C('test_dual_bc_genw', wsim = double(Nsim), y=as.integer(y), Rz=Rz, Rw=Rw, rho = (B%*%tm), phi=phi, psi=psi, lambda=lambda, Da=Da, Db=Db,ni=ni, M=M, ka=ka, kb=kb, Nsim=Nsim,  p=p, j=as.integer(j-1), dl=0L, dp=double(dpl), ip=integer(ipl))
 
-saved.seed->.Random.seed
+saved.seed->>.Random.seed
 R <- .dual.bc.genw(j,Nsim,y[ix],w[ix],z[ix],B[ix,],tm,tn,tf,tg,Da,Db,lambda)
 
 stopifnot(all.equal(C$wsim,R))

@@ -164,7 +164,7 @@ OUTPUT:
 		\Sigma_\delta=\frac{1}{n} \sum\limits_{i=1}{n} \widehat{\delta_i\delta_i\trans}
 		\Theta\Sigma_\delta\Theta\trans = Q S_\delta Q\trans
 		\delta_i = Q\trans\Theta\delta_i
-		Transformation = Q\Trans\Theta
+		Transformation = Q^T\Theta
 	\]
 MEMORY:
 	dp	length = ka^2 + kb^2 + max(
