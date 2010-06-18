@@ -1,6 +1,6 @@
 library(pfda)
 library(debug)
-mtrace(UT_dual_bc_i)
+mtrace(UT_dual_bc_genw)
 
 
 #utilities
@@ -50,7 +50,7 @@ pfda:::UT_pfda_dual_e3()
 pfda:::UT_pfda_gen_e2_1()
 pfda:::UT_pfda_sum_cond_dd()
 
-# dual binary
+# dual mixed bc
 pfda:::UT_dual_bc_i()    # FAIL
 pfda:::UT_dual_bc_1a()
 pfda:::UT_dual_bc_1b()
@@ -63,4 +63,6 @@ pfda:::UT_dual_bc_5()
 pfda:::UT_dual_bc_6()
 pfda:::UT_dual_bc_genw() # FAIL
 
+
+eval(pfda:::X_dual_bc_genw)
 

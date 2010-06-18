@@ -1,8 +1,8 @@
 /*! \file dual.c
 by Andrew Redd
 
-This file is part of the pfda package for R.  
-It contains the steps for relevant to the paired response model where the first is a binary reponse and 
+This file is part of the pfda package for R.
+It contains the steps for relevant to the paired response model where the first is a binary reponse and
 the second is a continuous response.
 */
 /*! \defgroup dualbc Mixed Binary Continuous Paired Response
@@ -23,7 +23,7 @@ the second is a continuous response.
 \ingroup dualbc
 @MEMORY
 	- dp = 2*p^2 + 2*M + M*k+ p*N + 8*p
-	- ip = 6*p 
+	- ip = 6*p
 \callgraph
 \callergraph
 */
@@ -63,10 +63,10 @@ void dual_bc_i(
 	int ka2 = *ka**ka;
 	double * sum_aa = pfdaAlloc_d(ka2,&dp);
 	double * sum_ab  = lambda;
-	
+
 	dsyrk_(&Upper,&Trans,ka, N, &dOne, alpha, N, &dzero, sum_aa, ka);
 	dgemm_(&Trans, &NoTrans, ka, kb, N, &dOne, alpha, N, beta, N, &dzero, sum_ab, ka);
-	
+
 	int svr=0;
 	int * ipiv = pfdaAlloc_i(*N,&ip);
 	int lwork = 8**N;
@@ -74,8 +74,8 @@ void dual_bc_i(
 	pfda_transpose(lambda,*ka, *kb,dl,dp);
 }
 
-/*!  computes the  following \f[ 
-\Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi 
+/*!  computes the  following \f[
+\Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi
 \f]
 
 \ingroup dualbc
@@ -111,11 +111,11 @@ void dual_bc_1a(
 	pfda_debug_line
 	dgemv_(&Trans  , ni,kb , &dOne   , psi, M , Rz  , &one, &dzero, tmpb, &one);
 	pfda_debug_argvec(tmpb, kb);
-	
+
 	pfda_debug_line
-	dsymv_(&Upper, ka, &dOne, Sa, ka, tmpa, &one, &dzero, mu,&one);  
+	dsymv_(&Upper, ka, &dOne, Sa, ka, tmpa, &one, &dzero, mu,&one);
 	pfda_debug_argvec(mu, kb);
-	
+
 	double sxi_inv = 1/(*sxi);
 	pfda_debug_arg(sxi_inv);
 	pfda_debug_line
@@ -150,10 +150,10 @@ void dual_bc_1b(
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
 	dgemv_(&Trans, ni,ka,&dOne, phi, M, Ry, &one, &dzero, tmpa, &one);
 	dgemv_(&Trans, ni,kb,&dOne, psi, M, Rz, &one, &dzero, tmpb, &one);
-	
+
 	double sxi_inv = 1/(*sxi);
-	dsymv_(&Upper, kb, &sxi_inv, Sbb, kb, tmpb, &one, &dzero, mu,&one);  
-	
+	dsymv_(&Upper, kb, &sxi_inv, Sbb, kb, tmpb, &one, &dzero, mu,&one);
+
 	dgemv_(&Trans, ka, kb, &dOne, Sab, ka, tmpa, &one, &dOne, mu,&one);
 }
 
@@ -199,13 +199,13 @@ void dual_bc_1cde(
 
 	double * S4 = pfdaAlloc_d(*ka, &dp);
 	dgemv_(&Trans, ni, ka, &dOne, S3, ni, wi, &one, &dzero, S4, &one);
-	
+
 	double * S5 = pfdaAlloc_d(*ni**kb, &dp);
 	dgemm_(&Trans, &Trans, kb, ni, ka, &dOne, Sab, ka, phi, M, &dzero, S5, kb);
-	
+
 	double * S6 = pfdaAlloc_d(*kb, &dp);
 	dgemv_(&NoTrans, kb, ni, &dOne, S5, kb, wi, &one, &dzero, S6, &one);
-	
+
 	int ka2=*ka**ka;
 	pfda_matrix_inner_quadratic_form( aa,S3,ka,ni,wwi,ni,dl,dp);
 	dsyr2_(&Upper, ka, &dOne, S1, &one, S4, &one, aa, ka);
@@ -217,7 +217,7 @@ void dual_bc_1cde(
 	dsyr2_(&Upper, kb, &dOne, S2, &one, S6, &one, bb, kb);
 	dsyr_(&Upper, kb, &dOne, S2, &one, bb, kb);
 	daxpy_(&kb2,&dOne,Sbb,&one,bb,&one);
-	
+
 	int kab = *ka**kb;
 	double * tmp=pfdaAlloc_d(*ni**ka,&dp);
 	dsymm_(&Left, &Upper, ni,ka, &dOne, wwi, ni, S3, ni,&dzero, tmp, ni);
@@ -269,21 +269,21 @@ void dual_bc_1(
 {pfda_debug_dualstep
 	double * phi = pfdaAlloc_d(*M**ka,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
-	
+
 	double * psi = pfdaAlloc_d(*M**kb,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, kb, p, &dOne, B, M, tg, p, &dzero, psi, M);
-	
+
 	double * rho = pfdaAlloc_d(*M, &dp);
 	dgemv_(&NoTrans, M,p, &mOne, B, M, tm, &one, &dzero, rho, &one);
-	
+
 	double * Rw = pfdaAlloc_d(*M, &dp);
 	dcopy_(M,w,&one,Rw,&one);
 	daxpy_(M,&dOne,rho,&one,Rw,&one);
-	
+
 	double * Rz = pfdaAlloc_d(*M, &dp);
 	dcopy_(M,z,&one,Rz,&one);
 	dgemv_(&NoTrans, M,p, &mOne, B, M, tn, &one, &dOne, Rz, &one);
-	
+
 	double * a = pfdaAlloc_d(*ka,&dp);
 	double * b = pfdaAlloc_d(*kb,&dp);
 	int no = 0, nno=0;
@@ -299,7 +299,7 @@ void dual_bc_1(
 	}
 }
 
-/*! computes the estimate of 
+/*! computes the estimate of
 \ingroup dualbc
 Memory
 -dp = M + M*kb + 2*kb^2
@@ -333,7 +333,7 @@ void dual_bc_2(
 	pfda_debug_msg("kb[1]=%d\n",*kb);
 	pfda_debug_msg("p[1]=%d\n",*p);
 	pfda_debug_msg("dl[1]=%d\n",*dl);
-	
+
 	double minimum_variance = 1e-4;
 	pfda_m1(sxi,z,nobs,M,N,kb,B,p,&minimum_variance,tn,tg,beta,Sbb,dl, dp);
 }
@@ -374,7 +374,7 @@ void dual_bc_3(
 /*! computes tf and tg
 \ingroup dualbc
 @MEMORY
-	- dp = M + max(ka,kb)^2 * N + p^2 + p 
+	- dp = M + max(ka,kb)^2 * N + p^2 + p
 	- ip = p
 \callgraph
 */
@@ -472,19 +472,19 @@ void dual_bc_6(
 	for(int i=0;i<*N;i++){
 		daxpy_(&ka2,&Ninv, aa+i*ka2,&one,sumaa,&one);
 		daxpy_(&kb2,&Ninv, bb+i*kb2,&one,sumbb,&one);
-	}	
-	
+	}
+
 	double * transa = pfdaAlloc_d(ka2,&dp);
 	double * transb = pfdaAlloc_d(kb2,&dp);
 	gen_orthog( tf, alpha, Da, transa, sumaa, N, ka, p, dl, dp, ip);
 	gen_orthog( tg, beta , Db, transb, sumbb, N, kb, p, dl, dp, ip);
-	
+
 	pfdaDual_m5_2(lambda, transa, ka, transb, kb, dl,dp,ip);
 }
 
 /*! simulates the latest response given the binary and continuous reponses and all parameters
  * \ingroup dualbc
- * 
+ *
  * \callgraph
  * \callergraph
  */
@@ -521,23 +521,23 @@ void dual_bc_genw(
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
 	dcopy_(ka, phi+*j, M, old_phi_row, &one);
 	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero;
-	
+
 	double * Saa = pfdaAlloc_d(*ka**ka,&dp);
 	double * Sab = pfdaAlloc_d(*ka**kb,&dp);
 	double * Sbb = pfdaAlloc_d(*kb**kb,&dp);
 	dual_gen_sigmas(Saa, Sab, Sbb, phi, psi, lambda, Da, Db, &dOne, &dOne, M, ni, ka, kb, dl, dp, ip);
-	
+
 	double * mu = pfdaAlloc_d(*ka,&dp);
 	dual_bc_1a(mu, Rw, Rz, phi, psi, &dOne, Saa, Sab, M, ni, ka, kb, dl, dp);
-	
+
 	double * s = pfdaAlloc_d(one, &dp);
 	pfda_matrix_inner_quadratic_form(s, old_phi_row, &one, ka, Saa, ka, dl, dp);
 	*s += dOne;
-	
+
 	double * a = pfdaAlloc_d(one, &dp);
 	*a = ddot_(ka, old_phi_row, &one, mu, &one);
 	*a += pi[*j];
-	
+
 	if(y[*j]){
 		double c = -*a/(*s);
 		pfda_gen_truncnorm( w_sim, kr, &c, dl);
@@ -556,6 +556,32 @@ void dual_bc_genw(
 
 	dcopy_(ka, old_phi_row, &one, phi+*j, M);
 }
+void test_dual_bc_genw(
+	double       * const w_sim,
+	int    const * const y,
+	double const * const Rz,
+	double const * const Rw,
+	double const * const pi,
+	double       * const phi,
+	double const * const psi,
+	double const * const lambda,
+	double const * const Da,
+	double const * const Db,
+	int    const * const ni,
+	int    const * const M,
+	int    const * const ka,
+	int    const * const kb,
+	int    const * const kr,
+	int    const * const p,
+	int    const * const j,
+	int const * const dl,
+	double * dp,
+	int * ip
+	){
+	GetRNGstate();
+	dual_bc_genw(w_sim, y, Rz, Rw, pi, phi, psi, lambda, Da, Db, ni, M, ka, kb, kr, p, j, dl, dp, ip);
+	PutRNGstate();
+	}
 
 /*!	computes the w and ww for a subject
 \ingroup dualbc
@@ -586,30 +612,30 @@ void dual_bc_w_1(
 	int    const * const p,
 	int const * const dl, double * dp, int * ip)
 {pfda_debug_dualstep
-/* 
+/*
 	double * Rw = pfdaAlloc_d(*ni,&dp);
 	pfda_computeResid(Rw,w,ni, M, NULL, ka, B, p, tm, NULL, NULL, dl, dp);
-	
+
 	double * Rz = pfdaAlloc_d(*ni,&dp);
 	pfda_computeResid(Rz,z,ni, M, NULL, kb, B, p, tn, NULL, NULL, dl, dp);
 
 	double * phi = pfdaAlloc_d(*M**ka,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
-	
+
 	double * psi = pfdaAlloc_d(*M**kb,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, kb, p, &dOne, B, M, tg, p, &dzero, psi, M);
-	
+
 	double * pi = pfdaAlloc_d(*M, &dp);
 	dgemv_(&NoTrans, M,p, &dOne, B, M, tm, &one, &dzero, pi, &one);
- */	
+ */
 	double * wsim = pfdaAlloc_d(*ni**kr, &dp);
 	for(int j=0;j<*ni;j++)
 		dual_bc_genw(wsim+j**kr, y, Rz, Rw, pi, phi, psi, lambda, Da, Db, ni, M,  ka, kb, kr, p,  &j, dl, dp, ip);
-	
+
 	double krinv = 1.0/(double)*kr;
 	double * V1 = pfdaAlloc_d(*kr,&dp);
 	for(int i=0;i<*kr;i++)V1[i]=krinv;
-	
+
 	double cweight = (1-*weight);
 	dgemv_(&Trans, kr, ni, weight, wsim, kr, V1, &one, &cweight, w, &one);
 
@@ -650,19 +676,19 @@ void dual_bc_w(
 {pfda_debug_dualstep
 	double * Rw = pfdaAlloc_d(*M,&dp);
 	pfda_computeResid(Rw,w,nobs, M, N, ka, B, p, tm, NULL, NULL, dl, dp);
-	
+
 	double * Rz = pfdaAlloc_d(*M,&dp);
 	pfda_computeResid(Rz,z,nobs, M, N, kb, B, p, tn, NULL, NULL, dl, dp);
 
 	double * phi = pfdaAlloc_d(*M**ka,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
-	
+
 	double * psi = pfdaAlloc_d(*M**kb,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, kb, p, &dOne, B, M, tg, p, &dzero, psi, M);
-	
+
 	double * pi = pfdaAlloc_d(*M, &dp);
 	dgemv_(&NoTrans, M,p, &dOne, B, M, tm, &one, &dzero, pi, &one);
- 	
+
 	int no=0,nno=0;
 	for(int i=0;i<*N;i++){
 		dual_bc_w_1(w+no, ww+nno, y+no, Rw+no, Rz+no, pi+no, phi+no, psi+no, lambda, Da, Db, nobs+i, M, ka, kb, weight, kr, p, dl, dp, ip);
@@ -673,7 +699,7 @@ void dual_bc_w(
 
 
 /*! The core of the continuous/continuous model
-\ingroup dualbc 
+\ingroup dualbc
 \ingroup interfaces
 
 computes the estimates and itterates until convergence
@@ -684,7 +710,7 @@ computes the estimates and itterates until convergence
 		-# 1:	M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3ka +3kb + (ka + kb+ max(ka,kb))*ni)
 		-# 2:	M + M*kb + 2*kb^2
 		-# 3:	p^2+ M+ M*max(ka,kb)
-		-# 4:	M + max(ka,kb)^2 * N + p^2 + p 
+		-# 4:	M + max(ka,kb)^2 * N + p^2 + p
 		-# 5:	ka^2 + ka*kb + 10*max(ka,kb)
 		-# 6:	4*p^2 + 2*p +  max(  ka, kb, 8 ) * p + ka*kb
 		-# W:	M*(3+ka+kb) +   (ni*kr + kr + 2 + 5*ka + kb + 10 * k^2))
@@ -737,7 +763,7 @@ void dual_bc_core(
 	pfda_debug_argi(*N);
 	pfda_debug_argi(*M);
 	pfda_debug_argveci(nobs,N);
-	
+
 	double * w = pfdaAlloc_d(*M,&dp);
 	int size_ww = 0;for(int i=0;i<*N;i++)size_ww+=nobs[i]*nobs[i];
 	pfda_debug_argi(size_ww);
@@ -747,7 +773,7 @@ void dual_bc_core(
 	dual_bc_i(tm, tn, tf, tg, alpha, beta, lambda, Da, Db, sxi, aa, bb, y, z, B, nobs, btb, N, M, ka, kb, p, minV, dl, dp, ip);
 	int I=0, pka = *p**ka, pkb = *p**kb, kab = *ka**kb;
 	double cc=0;
-	double 	sigma_xi_old=0;	
+	double 	sigma_xi_old=0;
 	double * tm_old     =pfdaAlloc_d(*p, &dp);
 	double * tn_old     =pfdaAlloc_d(*p, &dp);
 	double * tf_old     =pfdaAlloc_d(pka, &dp);
@@ -784,7 +810,7 @@ void dual_bc_core(
 		dual_bc_4(tf, tg, z, B, w, tm, tn, alpha, beta, sxi, aa, bb, nobs, N, M, ka, kb, p, lf, lg, K, btb, dl, dp, ip);
 		dual_bc_5(lambda, aa, ab, N, ka, kb, dl, dp, ip);
 		dual_bc_6(tf, tg, alpha, beta, lambda, Da, Db, aa, bb, N, ka, kb, p, dl, dp, ip);
-		{ // Compute Convergence Criteria 
+		{ // Compute Convergence Criteria
 			cc = fabs(sigma_xi_old-*sxi)/MMAX(*sxi,*minV);
 
 			daxpy_(p, &mOne, tm, &one, tm_old, &one);

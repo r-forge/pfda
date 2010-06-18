@@ -2606,7 +2606,7 @@ R <- .dual.bc.genw(j,Nsim,y[ix],w[ix],z[ix],B[ix,],tm,tn,tf,tg,Da,Db,lambda)
 
 stopifnot(all.equal(C$wsim,R))
 })
-UT_dual_bc_genw<-UT_generate(X_dual_bc_genw)
+UT_dual_bc_genw<-function()eval(X_dual_bc_genw)#UT_generate(X_dual_bc_genw)
 
 X_dual_bc_w_1<-expression({
 	eval(get('sim.dual.bc',envir=parent.env(environment())))
