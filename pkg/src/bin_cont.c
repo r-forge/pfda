@@ -485,15 +485,12 @@ void dual_bc_6(
 /*! simulates the latest response given the binary and continuous reponses and all parameters
  * \ingroup dualbc
  *
- * \callgraph
- * \callergraph
- */
- /*
   *@MEMORY
  *	- dp = ka + ka^2 + ka*kb +kb^2 + (7 * max(ka,kb)^2) + ka + (ka+kb) + ka + 1 + ka + 1
  *		  <= 2 + 5*ka + kb + 10 * k^2
  *	- ip = max(ka,kb)
-
+ * \callgraph
+ * \callergraph
  */
 void dual_bc_genw(
 	double       * const w_sim, ///< [out] the simulated W
@@ -518,19 +515,25 @@ void dual_bc_genw(
 	int * ip                    ///< integer pool
 	)
 { pfda_debug_dualstep
+/// \par Code:
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
-	dcopy_(ka, phi+*j, M, old_phi_row, &one);
-	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero;
+	dcopy_(ka, phi+*j, M, old_phi_row, &one); /// \f$ \phi_j^{\mathrm{(old)}} = \phi_{j.} \f$  copy the current row for ability to restore later.
+	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero; /// \f$ \phi_{j.} = 0 \f$
 
 	double * Saa = pfdaAlloc_d(*ka**ka,&dp);
 	double * Sab = pfdaAlloc_d(*ka**kb,&dp);
 	double * Sbb = pfdaAlloc_d(*kb**kb,&dp);
+	/* pfda_gen_sigmas \f[
+	 
+	\f] */
 	dual_gen_sigmas(Saa, Sab, Sbb, phi, psi, lambda, Da, Db, &dOne, &dOne, M, ni, ka, kb, dl, dp, ip);
 
 	double * mu = pfdaAlloc_d(*ka,&dp);
+	/// dual_bc_1a: \f$  \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi \f$
 	dual_bc_1a(mu, Rw, Rz, phi, psi, &dOne, Saa, Sab, M, ni, ka, kb, dl, dp);
 
 	double * s = pfdaAlloc_d(one, &dp);
+	/// 
 	pfda_matrix_inner_quadratic_form(s, old_phi_row, &one, ka, Saa, ka, dl, dp);
 	*s += dOne;
 

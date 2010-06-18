@@ -1281,7 +1281,8 @@ penalty.pfda.dual.cc<-function(object,..)with(object,structure(matrix(penalties,
 
 	#
 	r<-.gen.dual.sigmas(Bij,Bi,tf,tg,lambda,Da,Db,1,1)
-	mu = r$Saa%*%crossprod(Bij%*%tf,wij-Bij%*%tm)+r$Sab%*%crossprod(Bi%*%tg,zi-Bi%*%tn)
+	mu = .dual.bc.1a<-function(zi,Bi,wi,tm,tn,tf,tg,s.xi,r$Saa,r$Sab)
+	#mu = r$Saa%*%crossprod(Bij%*%tf,wij-Bij%*%tm)+r$Sab%*%crossprod(Bi%*%tg,zi-Bi%*%tn)
 
 	# Ss <- solve(crossprod(Bij%*%tf)+solve(diag(Da,length(Da))))
 	# mu <- Ss%*%t(Bij%*%tf)%*%(wij-Bij%*%tm)

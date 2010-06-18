@@ -6,7 +6,7 @@
 
 
 /*!  computes \f$ Sigma_eta = Db - \Lambda Da \Lambda^T \f$
-MEMORY:
+@MEMORY:
 	dp length = ka^2 + ka *kb
 */
 void pfda_gen_e_eta(
@@ -31,9 +31,9 @@ void pfda_gen_e_eta(
 	if(checkdebug(dl,debugnum_pfda_gen_e_eta)){pfda_debug_msg("Sigma_eta:\n");printmat(sigma_eta,*kb,*kb);fflush(stdout);}
 }
 
-/*!  computes \f[Sigma_eta = (Db - \Lambda Da \Lambda^T)^{-1}\f]
-MEMORY:
-	dp length = ka^2 + ka *kb
+/*!  computes \f[ \Sigma_\eta = (Db - \Lambda D_\alpha \Lambda^T)^{-1} \f]
+@MEMORY:
+	- dp length = ka^2 + ka *kb
 */
 void pfda_gen_e_eta_inv(
 	double       * const sigma_eta_inv,
@@ -51,9 +51,9 @@ void pfda_gen_e_eta_inv(
 	if(sr){pfda_error("PFDA ERR - pfda_gen_e_eta: pfda_sym_inverse returned %i (inv_sigma_eta)",sr);}
 }
 
-/* \f[\zeta_{aa} = D_a^-1 + \Lambda\trans Sigma_eta \Lambda + phii\trans phii\f]
-MEMORY:
-	dp length = ka*kb
+/*! \f[ \zeta_{aa} = D_a^-1 + \Lambda^T Sigma_eta \Lambda + phi_i^T phi_i \f]
+@MEMORY
+	-dp length = ka*kb
 */
 void pfda_gen_e1_aa(
 	double       * const zeta_aa,
@@ -80,6 +80,10 @@ void pfda_gen_e1_aa(
 	if(checkdebug(dl,debugnum_pfda_gen_e1_aa)){pfda_debug_msg("zeta_aa:\n");printmat(zeta_aa,*ka,*ka);fflush(stdout);}
 }
 
+/*! \f$ \zeta_{\alpha\beta} = - \Lambda^T \Sigma_\eta^{-1} \f$
+@MEMORY
+	NONE
+*/
 void pfda_gen_e1_ab(
 	double       * const zeta_ab,
 	double const * const lambda,
@@ -88,11 +92,6 @@ void pfda_gen_e1_ab(
 	int    const * const kb,
 
 	int const * const dl)
-/*DESCRIPTION
-	zeta_ab = - Lambda\trans(Sigma_eta)^-1
-MEMORY
-	NONE
-*/
 {	
 	if(checkdebug(dl,debugnum_pfda_gen_e1_ab)){pfda_debug_msg("entering pfda_gen_e1_ab:\n");fflush(stdout);}
 	dgemm_(&Trans, &NoTrans, ka, kb, kb, &mOne,  lambda, kb, inv_sigma_eta, kb, &dzero, zeta_ab, ka);	
@@ -100,6 +99,10 @@ MEMORY
 	                                                   pfda_debug_msg("leaving pfda_gen_e1_ab:\n");fflush(stdout);}
 }
 
+/*! \f$ \zeta_{\beta\beta} = \Sigma_\eta^{-1} +\frac{1}{\xi} \psi_i^T psi_i \f$
+@MEMORY
+	NONE
+*/
 void pfda_gen_e1_bb(
 	double       * const zeta_bb,
 	double const * const inv_sigma_eta,
@@ -109,11 +112,6 @@ void pfda_gen_e1_bb(
 	int    const * const n,
 	int    const * const kb,
 	int const * const dl)
-/* DESCRIPTION
-	zeta_bb = sigma_eta^-1 +1/xi * psii\trans psii
-MEMORY
-	NONE
-*/
 {
 	double inv_xi = xi?1/(*xi):1;
 	if(checkdebug(dl,debugnum_pfda_gen_e1_bb)){pfda_debug_msg("entering pfda_gen_e1_bb:\n");fflush(stdout);}
@@ -125,46 +123,36 @@ MEMORY
 	if(checkdebug(dl,debugnum_pfda_gen_e1_bb)){pfda_debug_msg("zeta_bb:\n");printmat(zeta_bb,*kb,*kb);fflush(stdout);}
 }
 
-void pfda_dual_e1(
-	int    const * const M,
-	int    const * const n,
-	double const * const lambda,
-	double const * const Da,
-	double const * const phi,
-	double const * const epsilon,
-	int    const * const ka,
-	double const * const Db,
-	double const * const psi,
-	double const * const xi,
-	int    const * const kb,
-	double       * const zeta_aa,
-	double       * const zeta_ab,
-	double       * const zeta_bb,
-	int const * const dl,double * dp, int * ip)
-/* DESCRIPTION
-INPUTS:
-	M - for this purpose the number of rows for psi and phi
-	n - the number of observations for this subject.  The number of rows in psi and phi
-	lambda (kb x ka)  - represent the covariance of alpha and beta
-	Da (ka)  - represents vaiance of alpha
-	phi (n x ka) - represents Theta_f %*% B_i
-	epsilon - sigma_epsilon
-	ka - number of principle components for y
-	Db (kb)  - represents vaiance of beta
-	psi (n x kb) - represents Theta_g %*% B_i
-	xi - sigma_xi
-	kb - number of principle components for z
-OUTPUT:
-	symetric matrices are returned in the upper portion
-	\[ %tex description
-		\zeta_aa <- Da + \Lambda\trans \Sigma_eta^{-1} \Lambda +\frac{1}{\sigma_\epsilon} \phi\trans\phi
-		\zeta_ab <- -\Lambda\trans \Sigma_eta^{-1}
-		\zeta_bb <- \Sigma_eta^{\1} \frac{1}{\sigma_\xi} \psi\trans\psi
-	\]
-MEMORY:
-	dp - kb2 + ka2 + max ( ka*kb  , 2*kb2)
-	ip - kb
+/*! Symetric matrices are returned in the upper portion
+	\f{eqnarray*}{
+		\zeta_{\alpha\alpha} &=& Da + \Lambda^T \Sigma_eta^{-1} \Lambda +\frac{1}{\sigma_\epsilon} \phi^T\phi\\
+		\zeta_{\alpha\beta} &=& -\Lambda^T \Sigma_eta^{-1}\\
+		\zeta_{\beta\beta} &=& \Sigma_eta^{-1} \frac{1}{\sigma_\xi} \psi^T\psi
+	\f}
+@MEMORY
+	- dp = \f$ kb^2 + ka^2 + \max ( ka*kb  , 2*kb^2) \f$
+	- ip = \f$ kb \f$
+@callgraph
+@callergraph
 */
+void pfda_dual_e1(
+	int    const * const M, ///< total number of observations
+	int    const * const n, ///< number of subjects
+	double const * const lambda, ///< \f$ \Lambda \f$
+	double const * const Da, ///< \f$ D_\alpha \f$
+	double const * const phi, ///< \f$ \phi=B\Theta_f \f$
+	double const * const epsilon, ///< \f$ \sigma_\epsilon \f$
+	int    const * const ka, ///< number of columns of \f$ phi \f$
+	double const * const Db, ///< \f$ D_\beta \f$
+	double const * const psi, ///< \f$ \psi = B\Theta_g \f$
+	double const * const xi, ///< \f$ \sigma_\xi \f$
+	int    const * const kb, ///< number of columns of \f$ \psi \f$
+	double       * const zeta_aa, ///< [out] \f$ \zeta_{\alpha\alpha} \f$
+	double       * const zeta_ab, ///< [out] \f$ \zeta_{\alpha\beta}  \f$
+	double       * const zeta_bb, ///< [out] \f$ \zeta_{\beta\beta}  \f$
+	int const * const dl, ///< debuglevel
+	double * dp,  ///< double pool
+	int * ip) ///< integer pool
 {//code
 	if(checkdebug(dl,debugnum_dual_e1)){
 		pfda_debug_msg("pfdaDual_e1 - \n");
@@ -211,33 +199,32 @@ MEMORY:
 	if(checkdebug(dl,debugnum_dual_e1)){pfda_debug_msg("leaving pfdaDual_e1\n");fflush(stdout);}
 }
 
-void pfda_gen_e2_1(
-	int    const * const outer,
-	int    const * const a1,
-	int    const * const c1,
-	double const * const A,
-	double const * const B,
-	double       * const C,
-	double       * const D,
-	int const * const dl, double * dp,int * ip)
-/* DESCRIPTION
-INPUTS:
-	a1
-	c1
-	A (a1 x a1)
-	B (a1 x c1) or (c1 x a1)
-	C (c1 x c1)  symetric		
-OUTPUT:
-	symetric matrices are returned in the upper portion
-	D=(A-B C\inv C\trans)\inv      if outer 
-	D=(A-B\trans C\inv \trans)    otherwise
-	C=C\inv
-MEMORY:
-	dp	length = max( 2 a1^2, 2 c1^2)
-	ip	length =  max ( a1, c1 )
-dl: 281
+/*! Computes the components as follows:
+\f{eqnarray*}{
+	D&=& \begin{cases}(A-B C^{-1} B^T)^{-1} & \text{if outer=TRUE}\\
+          (A-B^T C^{-1} B)^{-1} & \text{otherwise.} \end{cases}\\
+	C&=&C^{-1}
+\f}
+
+debug level number = 281
+@MEMORY:
+	- dp	length = \f$ \max( 2 a_1^2, 2 c_1^2) \f$
+	- ip	length =  \f$ max ( a_1, c_1 ) \f$
+@callgraph
+@callergraph
 */
-{//code
+void pfda_gen_e2_1(
+	int    const * const outer,///< logical determining which operation to perfom
+	int    const * const a1,   ///< dimention \f$ a_1 \f$
+	int    const * const c1,   ///< dimention \f$ c_1 \f$
+	double const * const A,    ///< \f$ (a_1\times a_1) \f$ matrix
+	double const * const B,    ///< \f$ (a_1 \times c_1) \f$ or \f$ (c_1 \times a_1) \f$ matrix depending on outer
+	double       * const C,    ///<  [in/out] \f$ (c_1 \times c_1) \f$ matrix, is inverted on output.
+	double       * const D,    ///<  [out] \f$(a_1 \times a_1) \f$ matrix
+	int const * const dl,      ///< debuglevel
+	double * dp,               ///< double pool
+	int * ip)                  ///< integer pool
+{/// \par Code:
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){
 		pfda_debug_msg("pfdaDual_e2_1 - \n");
 		pfda_debug_msg("outer:\n%d=%s\n\n",*outer,(*outer)?("use outer"):("use inner"));
@@ -253,27 +240,35 @@ dl: 281
 
 	//invert C
 	double * C_inv = C;
-	pfda_sym_inverse(C_inv, c1, &sr, dl, dp, ip);
+	pfda_sym_inverse(C_inv, c1, &sr, dl, dp, ip); /// \f[ C=C^{-1} \f]
 	if(sr){pfda_error("PFDA ERR - pfdaDual_e2_1: Leading minor of order %i is not positive definite (C)",sr);}
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){pfda_debug_msg("C_inv:\n"); printmat(C_inv, *c1, *c1); fflush(stdout);}
-		
-	if(*outer){ pfda_matrix_outer_quadratic_form(D, B, a1, a1, C_inv, c1, dl, dp);
+	
+	/*! \f[ 
+		D = \begin{cases} B C^{-1} B^T	& \text{if outer=TRUE} \\ B^T C^{-1} B	& \text{otherwise.} \end{cases}
+	\f] */
+	if(*outer){ pfda_matrix_outer_quadratic_form(D, B, a1, a1, C_inv, c1, dl, dp); 
 	} else {    pfda_matrix_inner_quadratic_form(D, B, a1, c1, C_inv, c1, dl, dp); }
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){
 		if(*outer){pfda_debug_msg("B(C_inv)B^t:\n"); printmat(D, *a1, *a1); 
 		}else{     pfda_debug_msg("B^t(C_inv)B:\n"); printmat(C_inv, *a1, *a1);}
 		fflush(stdout);
 	}
-	dscal_(&a2, &mOne, D,&one); 
-	daxpy_(&a2, &dOne, A, &one, D, &one);
+	dscal_(&a2, &mOne, D,&one); /// \f[ D=-D \f]
+	daxpy_(&a2, &dOne, A, &one, D, &one);  /// \f[ D = D + A \f]
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){pfda_debug_msg("A-i/o_q_form(B,C):\n"); printmat(D, *a1, *a1); fflush(stdout);}
 
-	pfda_sym_inverse(D, a1, &sr, dl, dp, ip);
+	pfda_sym_inverse(D, a1, &sr, dl, dp, ip);  /// \f[ D=D^{-1} \f]
 	if(sr){pfda_error("PFDA ERR - pfdaDual_e2_1: Leading minor of order %i is not positive definite (D)",sr);}
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){pfda_debug_msg("D=solve(A-i/o_q_form(B,C)):\n"); printmat(D, *a1, *a1); fflush(stdout);}
 	if(checkdebug(dl,debugnum_pfda_gen_e2_1)){pfda_debug_msg("leaving pfda_gen_e2_1\n"); fflush(stdout);}
 }
 
+/*! \f$(\zeta_{\alpha\alpha} - \zeta_{\alpha\beta} \zeta_{\beta\beta}^{-1} \zeta_{\alpha\beta}^T)^{-1} \f$
+@MEMORY
+ 	- dp	length = \f$ max( 2 ka^2, 2 kb^2) \f$
+	- ip	length =  \f$ max ( ka, kb ) \f$
+*/
 void pfda_gen_e2_aa(
 	double       * const sigma_aa,
 	double const * const zeta_aa,
@@ -284,16 +279,15 @@ void pfda_gen_e2_aa(
 	int const * const dl,
 
 	double * dp, int * ip)
-/* DESCRIPTION
-	(zeta_aa - zeta_ab (zeta_bb)\inv zeta_ab\trans)\inv
-MEMORY
- 	dp	length = max( 2 ka^2, 2 kb^2)
-	ip	length =  max ( ka, kb )
-*/
 {
 	pfda_gen_e2_1(&one,  ka, kb, zeta_aa, zeta_ab, zeta_bb, sigma_aa, dl, dp, ip);
 }
 
+/*! \f$ (\zeta_{\alpha\alpha} - \zeta_{\alpha\beta} (\zeta_{\beta\beta})^{-1} \zeta_{\alpha\beta}^T)^{-1} \f$
+@MEMORY
+ 	- dp	length = max( 2 ka^2, 2 kb^2)
+	- ip	length =  max ( ka, kb )
+*/
 void pfda_gen_e2_bb(
 	double * const sigma_bb,
 	double       * const zeta_aa,
@@ -304,16 +298,14 @@ void pfda_gen_e2_bb(
 	int const * const dl,
 
 	double * dp, int * ip)
-/* DESCRIPTION
-	(zeta_aa - zeta_ab (zeta_bb)\inv zeta_ab\trans)\inv
-MEMORY
- 	dp	length = max( 2 ka^2, 2 kb^2)
-	ip	length =  max ( ka, kb )
-*/
 {
 	pfda_gen_e2_1(&zero, kb, ka, zeta_bb, zeta_ab, zeta_aa, sigma_bb, dl, dp, ip);
 }
 
+/*! \f$ \Sigma _{\alpha\beta} = - \Sigma_{\alpha\alpha} \zeta_{\alpha\beta} (\zeta_{\beta\beta})^{-1} \f$
+@MEMORY
+	- dp length  = ka*kb
+*/
 void pfda_gen_e2_ab(
 	double       * const sigma_ab,
 	double const * const sigma_aa,
@@ -323,11 +315,6 @@ void pfda_gen_e2_ab(
 	int    const * const kb,
 	int const * const dl,
 	double * dp)
-/* DESCRIPTION
-	sigma _ab = - sigma_aa zeta_ab (zeta_bb)inv
-MEMORY
-	dp length  = ka*kb
-*/
 {
 	if(checkdebug(dl,debugnum_pfda_gen_e2_ab)){pfda_debug_msg("entering pfda_gen_e2_ab\n"); fflush(stdout);}
 	double * tmp = pfdaAlloc_d(*ka**kb, &dp);
@@ -338,35 +325,29 @@ MEMORY
 	if(checkdebug(dl,debugnum_pfda_gen_e2_ab)){pfda_debug_msg("leaving pfda_gen_e2_ab\n"); fflush(stdout);}
 }
 
+/* Computes Variance matrices
+	\f{eqnarray*}{
+		\sigma_aa &=& (\zeta_aa-\zeta_ab \zeta_bb^{-1} \zeta_ab^T)^{-1}\\
+		\sigma_ab &=& -\sigma_aa\zeta_ab \zeta_bb^{-1}\\
+		\sigma_bb &=& (\zeta_bb-\zeta_ab^T \zeta_aa^{-1} \zeta_ab)^{-1}
+	\f}
+@MEMORY:
+	- dp	length = kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
+	- ip	length = max ( ka ,kb)
+*/
 void pfdaDual_e2(
 	int    const * const ka,
 	int    const * const kb,
-	double       * const zeta_aa,
-	double const * const zeta_ab,
-	double       * const zeta_bb,
-	double       * const sigma_aa,
-	double       * const sigma_ab,
-	double       * const sigma_bb,
-	int const * const dl, double * dp, int * ip	)
-/* DESCRIPTION
-INPUTS:
-	ka
-	kb
-	zeta_aa (ka x ka)
-	zeta_ab (ka x kb)
-	zeta_bb (kb x kb)
-OUTPUT:
-	symetric matrices are returned in the upper portion
-	\f[ %tex description
-		\sigma_aa = (\zeta_aa-\zeta_ab \zeta_bb\inv \zeta_ab\trans)\inv
-		\sigma_ab = -\sigma_aa\zeta_ab \zeta_bb\inv
-		\sigma_bb = (\zeta_bb-\zeta_ab\trans \zeta_aa\inv \zeta_ab)\inv
-	\f]
-MEMORY:
-	dp	length = kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
-	ip	length = max ( ka ,kb)
-*/
-{//code
+	double       * const zeta_aa, ///< \f$ \zeta_{\alpha\alpha} \f$
+	double const * const zeta_ab, ///< \f$ \zeta_{\alpha\beta} \f$
+	double       * const zeta_bb,///< \f$ \zeta_{\beta\beta} \f$
+	double       * const sigma_aa,///< \f$ \Sigma_{\alpha\alpha} \f$
+	double       * const sigma_ab,///< \f$ \Sigma_{\alpha\beta} \f$
+	double       * const sigma_bb,///< \f$ \Sigma_{\beta\beta}  \f$
+	int const * const dl, ///< debug level
+	double * dp, ///< double pool
+	int * ip	) ///< integer pool
+{// \par Code:
 	if(checkdebug(dl,debugnum_dual_e2)){
 		pfda_debug_msg("pfdaDual_e2 - \n");
 		pfda_debug_msg("ka:\n%d\n\n",*ka);
@@ -384,8 +365,6 @@ MEMORY:
 	pfda_gen_e2_aa( sigma_aa, zeta_aa, zeta_ab, zeta_bb_inv, ka, kb, dl, dp, ip);
 	if(checkdebug(dl,debugnum_dual_e2)){pfda_debug_msg("zeta_bb_inv:\n"); printmat(zeta_bb_inv, *kb, *kb); fflush(stdout);}
 	pfda_gen_e2_bb( sigma_bb, zeta_aa, zeta_ab, zeta_bb, ka, kb, dl, dp, ip);
-	// pfdaDual_e2_1(&one,  ka, kb, zeta_aa, zeta_ab, zeta_bb_inv, sigma_aa, dl, dp, ip);
-	// pfdaDual_e2_1(&zero, kb, ka, zeta_bb, zeta_ab, zeta_aa    , sigma_bb, dl, dp, ip);
 	if(checkdebug(dl,debugnum_dual_e2)){pfda_debug_msg("sigma_aa:\n"); printmat(sigma_aa, *ka, *ka); fflush(stdout);}
 	if(checkdebug(dl,debugnum_dual_e2)){pfda_debug_msg("sigma_bb:\n"); printmat(sigma_bb, *kb, *kb); fflush(stdout);}
 	
@@ -517,31 +496,38 @@ void pfda_dual_e3_1(
 }
 
 /*! Computes the variance matrices of alpha and beta given the data.
-
+	\f{eqnarray*}{
+		\zeta_{\alpha\alpha} &=& Da + \Lambda^T \Sigma_eta^{-1} \Lambda +\frac{1}{\sigma_\epsilon} \phi^T\phi\\
+		\zeta_{\alpha\beta} &=& -\Lambda^T \Sigma_eta^{-1}\\
+		\zeta_{\beta\beta} &=& \Sigma_eta^{-1} \frac{1}{\sigma_\xi} \psi^T\psi
+	\f}
 @MEMORY
 	- dp = ka^2 + kb^2 + ka*kb + max(
 		- kb2 + ka2 + max ( ka*kb  , 2*kb2)
 		- kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
 	7 * max(ka,kb)^2 is ample to cover it.
 	- ip = max(ka, kb)
+@callgraph
+@callergraph
 */
 void dual_gen_sigmas(
-	      double * const Saa,  ///< \f$ \Sigma_{\alpha\alpha} \f$
-	      double * const Sab,
-	      double * const Sbb,
-	const double * const phi,
-	const double * const psi,
-	const double * const lambda,
-	const double * const Da,
-	const double * const Db,
-	const double * const sep,
-	const double * const sxi,
-	const int    * const M,
-	const int    * const ni,
-	const int    * const ka,
-	const int    * const kb,
-	const int * const dl,
-	double*dp, int * ip)
+				double * const Saa,   ///< \f$ \Sigma_{\alpha\alpha} \f$
+				double * const Sab,   ///< \f$ \Sigma_{\alpha\beta} \f$
+				double * const Sbb,   ///< \f$ \Sigma_{\beta\beta} \f$
+	const double * const phi,   ///< \f$ \phi = B\Theta_f \f$
+	const double * const psi,   ///< \f$ \psi=B\Theta_g \f$
+	const double * const lambda,///< \f$  \Lambda \f$
+	const double * const Da,    ///< \f$ D_\alpha \f$
+	const double * const Db,    ///< \f$ D_\beta \f$
+	const double * const sep,   ///< \f$ \sigma_\epsilon \f$
+	const double * const sxi,   ///< \f$ \sigma_\xi \f$
+	const int    * const M,     ///< Total number of observations and the nubmer of rows of \f$\phi\f$ and \f$\psi\f$.
+	const int    * const ni,    ///< \f$ n_i \f$ the number of observations for the current subject
+ 	const int    * const ka,    ///< number of principal components for Y
+	const int    * const kb,    ///< number of principal components for Z
+	const int * const dl,       ///< debug level
+	double*dp,                  ///< double pool
+	int * ip)                   ///< integer pool
 {
 	double * zeta_aa = pfdaAlloc_d(*ka**ka,&dp);
 	double * zeta_ab = pfdaAlloc_d(*ka**kb,&dp);
@@ -633,7 +619,7 @@ void pfdaDual_e(
 	double * dp,int * ip)
 /*DESCRIPTION:
 	computes the Estep of the Paired fucntional data analysis problem to Zhou, et al.
-MEMORY:
+@MEMORY:
 	dp	length = 2*M+M*ka+M*kb+ka^2+ka*kb+kb^2
 		+PLUS+
 		Max of:

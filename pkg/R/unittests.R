@@ -2,6 +2,7 @@
 
 #		library(pfda);i=1
 #		set.seed(123)
+#   with(getNamespace('pfda'),with(new.env(),browser()))
 
 { # Simulate data Expressions
 sim.tm<-function(B,K,pen=1){
@@ -2604,6 +2605,7 @@ C<-.C('test_dual_bc_genw', wsim = double(Nsim), y=as.integer(y), Rz=Rz, Rw=Rw, r
 saved.seed->>.Random.seed
 R <- .dual.bc.genw(j,Nsim,y[ix],w[ix],z[ix],B[ix,],tm,tn,tf,tg,Da,Db,lambda)
 
+cbind(C=C$wsim, R)
 stopifnot(all.equal(C$wsim,R))
 })
 UT_dual_bc_genw<-function()eval(X_dual_bc_genw)#UT_generate(X_dual_bc_genw)
