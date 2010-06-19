@@ -75,7 +75,7 @@ void dual_bc_i(
 }
 
 /*!  computes the  following \f[
-\Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi
+\mu=\Sigma_{\alpha\alpha}\phi_i^T R_{y_i}+\Sigma_{\alpha\beta}\psi_i^T R_{z_i}/\sigma_\xi
 \f]
 
 \ingroup dualbc
@@ -114,13 +114,13 @@ void dual_bc_1a(
 
 	pfda_debug_line
 	dsymv_(&Upper, ka, &dOne, Sa, ka, tmpa, &one, &dzero, mu,&one);
-	pfda_debug_argvec(mu, kb);
+	pfda_debug_argvec(mu, ka);
 
 	double sxi_inv = 1/(*sxi);
 	pfda_debug_arg(sxi_inv);
 	pfda_debug_line
 	dgemv_(&NoTrans, ka, kb, &sxi_inv, Sab, ka, tmpb, &one, &dOne , mu  ,&one);
-	pfda_debug_argvec(mu, kb);
+	pfda_debug_argvec(mu, ka);
 }
 
 /*!  computes the  following \f$ \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f$
@@ -514,7 +514,7 @@ void dual_bc_genw(
 	double * dp,                ///< double pool
 	int * ip                    ///< integer pool
 	)
-{ pfda_debug_dualstep
+{ pfda_debug_step
 /// \par Code:
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
 	dcopy_(ka, phi+*j, M, old_phi_row, &one); /// \f$ \phi_j^{\mathrm{(old)}} = \phi_{j.} \f$  copy the current row for ability to restore later.
@@ -523,41 +523,46 @@ void dual_bc_genw(
 	double * Saa = pfdaAlloc_d(*ka**ka,&dp);
 	double * Sab = pfdaAlloc_d(*ka**kb,&dp);
 	double * Sbb = pfdaAlloc_d(*kb**kb,&dp);
-	/* pfda_gen_sigmas \f[
-	 
-	\f] */
+	/// dual_gen_sigmas for computing \f$ \Sigma_{\alpha\alpha}, \Sigma_{\alpha\beta}, \Sigma_{\beta\beta} \f$ 
+	/// with \f$\sigma_\epsilon=\sigma_\xi=1 \f$. 
 	dual_gen_sigmas(Saa, Sab, Sbb, phi, psi, lambda, Da, Db, &dOne, &dOne, M, ni, ka, kb, dl, dp, ip);
+	pfda_debug_argmat(Saa,*ka,*ka);pfda_debug_argmat(Sab,*ka,*kb);pfda_debug_argmat(Sbb,*kb,*kb);
 
+	/// dual_bc_1a with \f$ \sigma_\xi=1 \f$ :
+	/// \f$  \mu = \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i \f$
 	double * mu = pfdaAlloc_d(*ka,&dp);
-	/// dual_bc_1a: \f$  \Sigma_{\alpha\alpha}B_i^T\Theta_f^T Ry_i+\Sigma_{\alpha\beta}B_i^T\Theta_f Rz_i/\sigma_\xi \f$
 	dual_bc_1a(mu, Rw, Rz, phi, psi, &dOne, Saa, Sab, M, ni, ka, kb, dl, dp);
+	pfda_debug_argvec(mu,ka);
 
-	double * s = pfdaAlloc_d(one, &dp);
-	/// 
-	pfda_matrix_inner_quadratic_form(s, old_phi_row, &one, ka, Saa, ka, dl, dp);
-	*s += dOne;
+	/// inner_quadratic_form: \f$ s =  (\phi_j^{\mathrm{(old)}})^T  \Sigma_{\alpha\alpha} \phi_j^{\mathrm{(old)}}+1 \f$
+	/// remember \f$ \phi_j^{\mathrm{(old)}} \f$ is a vector.
+	double s = 1.0;pfda_debug_arg(s); //pfdaAlloc_d(one, &dp);
+	pfda_matrix_inner_quadratic_form(&s, old_phi_row, &one, ka, Saa, ka, dl, dp);
+	s+=1.0;pfda_debug_arg(s);
 
-	double * a = pfdaAlloc_d(one, &dp);
-	*a = ddot_(ka, old_phi_row, &one, mu, &one);
-	*a += pi[*j];
+	/// \f$ a=  \mu^T\phi_j^{\mathrm{(old)}} + \pi_j \f$
+	double a = pi[*j];pfda_debug_arg(a); // pfdaAlloc_d(one, &dp);
+	a += ddot_(ka, old_phi_row, &one, mu, &one);pfda_debug_arg(a);
 
 	if(y[*j]){
-		double c = -*a/(*s);
-		pfda_gen_truncnorm( w_sim, kr, &c, dl);
-		for(int k=0;k<*kr;k++){
-			w_sim[k] *= *s;
-			w_sim[k] += *a;
+		/// if Y=1:
+		double c = -a/(s);pfda_debug_arg(c);  /// \f$ c=-a/s \f$
+		pfda_gen_truncnorm( w_sim, kr, &c, dl);  /// generate truncated normals with pfda_gen_truncnorm
+		for(int k=0;k<*kr;k++){ /// \f$ w^{\mathrm{sim}}  = s*w^{\mathrm{sim}}+a \f$
+			w_sim[k] *= s;
+			w_sim[k] += a;
 		}
 	} else {
-		double c = *a/(*s);
-		pfda_gen_truncnorm( w_sim, kr, &c, dl);
-		for(int k=0;k<*kr;k++){
-			w_sim[k] *= -*s;
-			w_sim[k] += *a;
+		/// if Y=0: 
+		double c = a/(s);pfda_debug_arg(c);  /// \f$ c=a/s \f$
+		pfda_gen_truncnorm( w_sim, kr, &c, dl); /// generate truncated normals with pfda_gen_truncnorm
+		for(int k=0;k<*kr;k++){ /// \f$  w^{\mathrm{sim}} = s*w^{\mathrm{sim}}+a \f$
+			w_sim[k] *= -s;
+			w_sim[k] += a;
 		}
 	}
 
-	dcopy_(ka, old_phi_row, &one, phi+*j, M);
+	dcopy_(ka, old_phi_row, &one, phi+*j, M); /// restore \f$ \phi_{j.} = \phi_j^{\mathrm{(old)}} \f$
 }
 void test_dual_bc_genw(
 	double       * const w_sim,

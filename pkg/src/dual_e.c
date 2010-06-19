@@ -325,19 +325,19 @@ void pfda_gen_e2_ab(
 	if(checkdebug(dl,debugnum_pfda_gen_e2_ab)){pfda_debug_msg("leaving pfda_gen_e2_ab\n"); fflush(stdout);}
 }
 
-/* Computes Variance matrices
+/*! Computes Variance matrices
 	\f{eqnarray*}{
-		\sigma_aa &=& (\zeta_aa-\zeta_ab \zeta_bb^{-1} \zeta_ab^T)^{-1}\\
-		\sigma_ab &=& -\sigma_aa\zeta_ab \zeta_bb^{-1}\\
-		\sigma_bb &=& (\zeta_bb-\zeta_ab^T \zeta_aa^{-1} \zeta_ab)^{-1}
+		\Sigma_{\alpha\alpha} &=& (\zeta_aa-\zeta_ab \zeta_bb^{-1} \zeta_ab^T)^{-1}\\
+		\Sigma_{\alpha\beta}  &=& -\sigma_aa\zeta_ab \zeta_bb^{-1}\\
+		\Sigma_{\beta\beta}   &=& (\zeta_bb-\zeta_ab^T \zeta_aa^{-1} \zeta_ab)^{-1}
 	\f}
 @MEMORY:
 	- dp	length = kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
 	- ip	length = max ( ka ,kb)
 */
 void pfdaDual_e2(
-	int    const * const ka,
-	int    const * const kb,
+	int    const * const ka,      ///< \f$ k_\alpha \f$ 
+	int    const * const kb,      ///< \f$ k_\beta \f$
 	double       * const zeta_aa, ///< \f$ \zeta_{\alpha\alpha} \f$
 	double const * const zeta_ab, ///< \f$ \zeta_{\alpha\beta} \f$
 	double       * const zeta_bb,///< \f$ \zeta_{\beta\beta} \f$
@@ -499,12 +499,15 @@ void pfda_dual_e3_1(
 	\f{eqnarray*}{
 		\zeta_{\alpha\alpha} &=& Da + \Lambda^T \Sigma_eta^{-1} \Lambda +\frac{1}{\sigma_\epsilon} \phi^T\phi\\
 		\zeta_{\alpha\beta} &=& -\Lambda^T \Sigma_eta^{-1}\\
-		\zeta_{\beta\beta} &=& \Sigma_eta^{-1} \frac{1}{\sigma_\xi} \psi^T\psi
+		\zeta_{\beta\beta} &=& \Sigma_eta^{-1} \frac{1}{\sigma_\xi} \psi^T\psi \\
+		\Sigma_{\alpha\alpha} &=& (\zeta_{\alpha\alpha}-\zeta_{\alpha\beta} \zeta_{\beta\beta}^{-1} \zeta_{\alpha\beta}^T)^{-1}\\
+		\Sigma_{\alpha\beta}  &=& -\Sigma_{\alpha\alpha}\zeta_{\alpha\beta} \zeta_{\beta\beta}^{-1}\\
+		\Sigma_{\beta\beta}   &=& (\zeta_{\beta\beta}-\zeta_{\alpha\beta}^T \zeta_{\alpha\alpha}^{-1} \zeta_{\alpha\beta})^{-1}
 	\f}
 @MEMORY
 	- dp = ka^2 + kb^2 + ka*kb + max(
-		- kb2 + ka2 + max ( ka*kb  , 2*kb2)
-		- kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
+		# kb2 + ka2 + max ( ka*kb  , 2*kb2)
+		# kb^2 + max ( 2ka^2, 2*kb^2 )   use 3* max(ka,kb)^2
 	7 * max(ka,kb)^2 is ample to cover it.
 	- ip = max(ka, kb)
 @callgraph

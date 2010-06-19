@@ -1281,14 +1281,13 @@ penalty.pfda.dual.cc<-function(object,..)with(object,structure(matrix(penalties,
 
 	#
 	r<-.gen.dual.sigmas(Bij,Bi,tf,tg,lambda,Da,Db,1,1)
-	mu = .dual.bc.1a<-function(zi,Bi,wi,tm,tn,tf,tg,s.xi,r$Saa,r$Sab)
-	#mu = r$Saa%*%crossprod(Bij%*%tf,wij-Bij%*%tm)+r$Sab%*%crossprod(Bi%*%tg,zi-Bi%*%tn)
+	mu <- r$Saa %*%crossprod(Bij%*%tf,wij-Bij%*%tm) + r$Sab %*% crossprod(Bi%*%tg, zi-Bi%*%tn)
+	# mu = .dual.bc.1a(zi,Bij,wij,tm,tn,tf,tg,1.0,r$Saa,r$Sab)
 
 	# Ss <- solve(crossprod(Bij%*%tf)+solve(diag(Da,length(Da))))
-	# mu <- Ss%*%t(Bij%*%tf)%*%(wij-Bij%*%tm)
 
 	# pfda_bin_single_generate_w_parms2
-	a <- t(Bi[j,])%*%tm + t(Bi[j,])%*%tf%*%mu
+	a <- crossprod(Bi[j,],tm) + t(Bi[j,])%*%tf%*%mu
 	s <- 1+ t(Bi[j,])%*%tf%*%r$Saa%*%t(tf)%*%Bi[j,]
 
 	a+if(yi[j]){

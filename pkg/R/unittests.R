@@ -1,8 +1,8 @@
 # unittests.R
 
-#		library(pfda);i=1
+#  	library(pfda);i=1
 #		set.seed(123)
-#   with(getNamespace('pfda'),with(new.env(),browser()))
+#	  with(getNamespace('pfda'),with(new.env(),browser()))
 
 { # Simulate data Expressions
 sim.tm<-function(B,K,pen=1){
