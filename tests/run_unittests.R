@@ -50,18 +50,15 @@ pfda:::UT_pfda_sum_cond_dd()
 pfda:::UT_dual_gen_sigmas()
 
 # dual mixed bc
-pfda:::UT_dual_bc_i()    # FAIL
+pfda:::UT_dual_bc_i()
 pfda:::UT_dual_bc_1a()
 pfda:::UT_dual_bc_1b()
 pfda:::UT_dual_bc_1cde()
-pfda:::UT_dual_bc_1()    # FAIL
-pfda:::UT_dual_bc_2()    # FAIL
+pfda:::UT_dual_bc_1()
+pfda:::UT_dual_bc_2()
 pfda:::UT_dual_bc_3()
 pfda:::UT_dual_bc_4()
 pfda:::UT_dual_bc_5()
 pfda:::UT_dual_bc_6()
 pfda:::UT_dual_bc_genw() 
-
-
-eval(pfda:::X_dual_bc_genw)
 

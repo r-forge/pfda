@@ -55,6 +55,8 @@ void dual_bc_i(
 	double * dp, int*ip)
 {
 	pfda_debug_dualstep
+	pfda_debug_argp(dp);
+	pfda_debug_argp(ip);
 	double * w = pfdaAlloc_d(*M,&dp);
 	for(int i=0;i<*M;i++)w[i]=(double)y[i];
 	double s_eps=0;
@@ -63,15 +65,18 @@ void dual_bc_i(
 	int ka2 = *ka**ka;
 	double * sum_aa = pfdaAlloc_d(ka2,&dp);
 	double * sum_ab  = lambda;
+  pfda_debug_line;
 
 	dsyrk_(&Upper,&Trans,ka, N, &dOne, alpha, N, &dzero, sum_aa, ka);
 	dgemm_(&Trans, &NoTrans, ka, kb, N, &dOne, alpha, N, beta, N, &dzero, sum_ab, ka);
+	pfda_debug_line;
 
 	int svr=0;
-	int * ipiv = pfdaAlloc_i(*N,&ip);
+	int * ipiv = pfdaAlloc_i(*ka,&ip);
 	int lwork = 8**N;
 	dsysv_(&Upper, ka, kb, sum_aa, ka, ipiv, sum_ab, ka, dp, &lwork,&svr);
 	pfda_transpose(lambda,*ka, *kb,dl,dp);
+	pfda_debug_line;
 }
 
 /*!  computes the  following \f[
@@ -98,10 +103,14 @@ void dual_bc_1a(
 	const int    * const kb, ///< length of \f$ \beta_i \f$
 	const int * const dl,    ///< debugging level
 	double*dp                ///< pool of double memory
-){pfda_debug_dualstep
+)
+{ pfda_debug_dualstep
 	pfda_debug_argi(*ka);
 	pfda_debug_argi(*kb);
 	pfda_debug_arg(*sxi);
+	pfda_debug_argvec(Ry, ni);
+	pfda_debug_argvec(Rz, ni);
+	pfda_debug_argmat(Sa , *ka, *ka);
 	pfda_debug_argmat(Sab, *ka, *kb);
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
@@ -123,7 +132,7 @@ void dual_bc_1a(
 	pfda_debug_argvec(mu, ka);
 }
 
-/*!  computes the  following \f$ \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f$
+/*!  computes the  following \f[\mu= \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f]
 \ingroup dualbc
 
 @MEMORY
@@ -145,7 +154,8 @@ void dual_bc_1b(
 	const int    * const kb,
 	const int * const dl,
 	double*dp
-){pfda_debug_dualstep
+)
+{pfda_debug_dualstep
 	double * tmpa=pfdaAlloc_d(*ka, &dp);
 	double * tmpb=pfdaAlloc_d(*kb, &dp);
 	dgemv_(&Trans, ni,ka,&dOne, phi, M, Ry, &one, &dzero, tmpa, &one);
@@ -156,7 +166,6 @@ void dual_bc_1b(
 
 	dgemv_(&Trans, ka, kb, &dOne, Sab, ka, tmpa, &one, &dOne, mu,&one);
 }
-
 
 /*!   Computes aa, ab, bb
 \ingroup dualbc
@@ -187,37 +196,46 @@ void dual_bc_1cde(
 	const int    * const kb,
 	const int * const dl,
 	double*dp)
-{pfda_debug_dualstep
+{pfda_debug_step /// \par Code:
+  /// via dual_bc_1a: \f[ S_1 = \Sigma_{\alpha\alpha}\phi_i^T \rho_i+\Sigma_{\alpha\beta}\psi_i^T R_{z_i}/\sigma_\xi  \f]
 	double * S1 = pfdaAlloc_d(*ka, &dp);
 	dual_bc_1a(S1,rho,Rz,phi,psi,sxi,Saa,Sab,M,ni,ka,kb,dl,dp);
-
+	pfda_debug_argvec(S1,ka);
+  /// via dual_bc_1b: \f[ S_2 = \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T \rho_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f]
 	double * S2 = pfdaAlloc_d(*kb, &dp);
 	dual_bc_1b(S2,rho,Rz,phi,psi,sxi,Sab,Sbb,M,ni,ka,kb,dl,dp);
-
-	double * S3 = pfdaAlloc_d(*ka**ni, &dp);  //defined as transpose of what is foudn in R version
+	pfda_debug_argvec(S2,kb);
+  /// \f[ S_3 = \Sigma_{\alpha\alpha} \phi_i \f]
+	double * S3 = pfdaAlloc_d(*ka**ni, &dp);  //defined as transpose of what is found in R version
 	dsymm_(&Right, &Upper, ni,ka, &dOne, Saa, ka, phi, M, &dzero, S3, ni);
-
+	pfda_debug_argmat(S3,*ni,*ka);
+  /// \f[ S_4 = S_3^T w_i \f]
 	double * S4 = pfdaAlloc_d(*ka, &dp);
 	dgemv_(&Trans, ni, ka, &dOne, S3, ni, wi, &one, &dzero, S4, &one);
-
+	pfda_debug_argvec(S4,ka);
+  /// \f[ S_5 = \Sigma_{\alpha\beta}^T \phi^T \f]
 	double * S5 = pfdaAlloc_d(*ni**kb, &dp);
 	dgemm_(&Trans, &Trans, kb, ni, ka, &dOne, Sab, ka, phi, M, &dzero, S5, kb);
-
+	pfda_debug_argmat(S5,*kb,*ni);
+  /// \f[ S_6 = S_5 w_i \f]
 	double * S6 = pfdaAlloc_d(*kb, &dp);
 	dgemv_(&NoTrans, kb, ni, &dOne, S5, kb, wi, &one, &dzero, S6, &one);
+	pfda_debug_argvec(S6,kb);
 
+	/// \f[ \widehat{\alpha\alpha^T} = \Sigma_{\alpha\alpha} + S_1 S_1^T + S_1 S_4^T + S3^T WW_i S_3  \f]
 	int ka2=*ka**ka;
-	pfda_matrix_inner_quadratic_form( aa,S3,ka,ni,wwi,ni,dl,dp);
-	dsyr2_(&Upper, ka, &dOne, S1, &one, S4, &one, aa, ka);
-	dsyr_(&Upper, ka, &dOne, S1, &one, aa, ka);
-	daxpy_(&ka2,&dOne,Saa,&one,aa,&one);
-
+	pfda_matrix_inner_quadratic_form( aa,S3,ka,ni,wwi,ni,dl,dp); pfda_debug_argmat(aa,*ka,*ka);
+	dsyr2_(&Upper, ka, &dOne, S1, &one, S4, &one, aa, ka); pfda_debug_argmat(aa,*ka,*ka);
+	dsyr_(&Upper, ka, &dOne, S1, &one, aa, ka); pfda_debug_argmat(aa,*ka,*ka);
+	daxpy_(&ka2,&dOne,Saa,&one,aa,&one); pfda_debug_argmat(aa,*ka,*ka);
+  /// \f[ \widehat{\beta\beta^T} = S_5 WW_i S_5^T + S_2 S_6^T + S_2 S_2^T + \Sigma_{\beta\beta} \f]
 	int kb2 = *kb**kb;
 	pfda_matrix_outer_quadratic_form( bb,S5,kb,kb,wwi,ni,dl,dp);
 	dsyr2_(&Upper, kb, &dOne, S2, &one, S6, &one, bb, kb);
 	dsyr_(&Upper, kb, &dOne, S2, &one, bb, kb);
 	daxpy_(&kb2,&dOne,Sbb,&one,bb,&one);
-
+	pfda_debug_argmat(bb,*kb,*kb);
+  /// \f[ \widehat{\alpha\beta^T} =  S_3 WW_i S_5^T + S_1 S_6^T + S_4 S_2^T + S_1 S_2^T + \Sigma_{\alpha\beta}\f]
 	int kab = *ka**kb;
 	double * tmp=pfdaAlloc_d(*ni**ka,&dp);
 	dsymm_(&Left, &Upper, ni,ka, &dOne, wwi, ni, S3, ni,&dzero, tmp, ni);
@@ -226,10 +244,12 @@ void dual_bc_1cde(
 	dger_(ka, kb, &dOne,S4, &one, S2, &one, ab, ka);
 	dger_(ka, kb, &dOne,S1, &one, S2, &one, ab, ka);
 	daxpy_(&kab,&dOne, Sab, &one,ab,&one);
+	pfda_debug_argmat(ab,*ka,*kb);
 }
 
 
-/*!   E step for binary/continuous model
+/*!   E step for binary/continuous model estimating \f$\Sigma_{\alpha\alpha}\f$, \f$\Sigma_{\alpha\beta}\f$, \f$\Sigma_{\beta\beta}\f$, \f$\alpha\f$, and \f$ \beta\f$.
+ * 
 \ingroup dualbc
 
 @MEMORY
@@ -266,20 +286,27 @@ void dual_bc_1(
 	const int    * const p,
 	const int * const dl,
 	double*dp, int * ip)
-{pfda_debug_dualstep
+{pfda_debug_dualstep ///\par Code:
+	/// \f$ \phi=B\Theta_f \f$
 	double * phi = pfdaAlloc_d(*M**ka,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
-
+  
+	/// \f$ \psi=B\Theta_g \f$
 	double * psi = pfdaAlloc_d(*M**kb,&dp);
 	dgemm_(&NoTrans,&NoTrans, M, kb, p, &dOne, B, M, tg, p, &dzero, psi, M);
 
+	/// \f$ \rho = -B\theta_\mu\f$
 	double * rho = pfdaAlloc_d(*M, &dp);
 	dgemv_(&NoTrans, M,p, &mOne, B, M, tm, &one, &dzero, rho, &one);
 
+	/// \f$ R_w = w-\rho \f$
 	double * Rw = pfdaAlloc_d(*M, &dp);
 	dcopy_(M,w,&one,Rw,&one);
+	pfda_debug_argvec(Rw, nobs); 
 	daxpy_(M,&dOne,rho,&one,Rw,&one);
+	pfda_debug_argvec(Rw, nobs); 
 
+  /// \f$ R_z = z-B\theta_\nu \f$
 	double * Rz = pfdaAlloc_d(*M, &dp);
 	dcopy_(M,z,&one,Rz,&one);
 	dgemv_(&NoTrans, M,p, &mOne, B, M, tn, &one, &dOne, Rz, &one);
@@ -287,12 +314,13 @@ void dual_bc_1(
 	double * a = pfdaAlloc_d(*ka,&dp);
 	double * b = pfdaAlloc_d(*kb,&dp);
 	int no = 0, nno=0;
-	for(int i=0;i<*N;i++){
+	for(int i=0;i<*N;i++){ pfda_debug_argi(i);
 		dual_gen_sigmas( Saa+i**ka**ka, Sab+i**ka**kb, Sbb+i**kb**kb, phi+no, psi+no, lambda, Da, Db, &dOne, sxi, M, nobs+i, ka, kb, dl, dp, ip);
+		pfda_debug_argvec(a,ka);
 		dual_bc_1a( a, Rw+no, Rz+no, phi+no, psi+no, sxi, Saa+i**ka**ka , Sab+i**ka**kb, M, nobs+i, ka, kb, dl, dp);
-		dcopy_(ka,a,&one,alpha+i,N);
+		dcopy_(ka,a,&one,alpha+i,N); pfda_debug_argvec(a,ka);
 		dual_bc_1b( b, Rw+no, Rz+no, phi+no, psi+no, sxi, Sab+i**ka**kb, Sbb+i**kb**kb, M, nobs+i, ka, kb, dl, dp);
-		dcopy_(kb,b,&one,beta+i,N);
+		dcopy_(kb,b,&one,beta+i,N); pfda_debug_argvec(b,kb);
 		dual_bc_1cde(aa+i**ka**ka, ab+i**ka**kb, bb+i**kb**kb, Rz+no, w+no, rho+no, phi+no, psi+no, ww+nno, tf, tg, sxi, Saa+i**ka**ka, Sab+i**ka**kb, Sbb+i**kb**kb, M, nobs+i, ka, kb, dl, dp);
 		no  += nobs[i];
 		nno += nobs[i]*nobs[i];
@@ -536,7 +564,7 @@ void dual_bc_genw(
 
 	/// inner_quadratic_form: \f$ s =  (\phi_j^{\mathrm{(old)}})^T  \Sigma_{\alpha\alpha} \phi_j^{\mathrm{(old)}}+1 \f$
 	/// remember \f$ \phi_j^{\mathrm{(old)}} \f$ is a vector.
-	double s = 1.0;pfda_debug_arg(s); //pfdaAlloc_d(one, &dp);
+	double s = 1.0;pfda_debug_arg(s);
 	pfda_matrix_inner_quadratic_form(&s, old_phi_row, &one, ka, Saa, ka, dl, dp);
 	s+=1.0;pfda_debug_arg(s);
 

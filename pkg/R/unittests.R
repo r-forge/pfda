@@ -2420,62 +2420,53 @@ utb<-upper.tri(R$bb,T)
 if(!isTRUE(all.equal(as.vector(R$bb)[utb],C$bb[utb])))return('failed')
 if(!isTRUE(all.equal(as.vector(R$ab),C$ab)))return('failed')
 })
-UT_dual_bc_1cde<-UT_generate(X_dual_bc_4)
+UT_dual_bc_1cde<-UT_generate(X_dual_bc_1cde)
 
 X_dual_bc_1<-expression({
 	eval(get('sim.dual.bc',envir=parent.env(environment())))
-R<-.dual.bc.1(z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,s.xi)
-C<-{ # C related computations for dual_bc_1
-ldp = M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3*(ka+kb) + (ka + kb+ max(ka,kb))*max(nobs))
-lip = max(ka,kb)
-dp = double(ldp)
-ip = integer(lip)
-.C("dual_bc_1",
-	alpha =double(N*ka),
-	beta  =double(N*kb),
-	aa    =double(N*ka*ka),
-	ab    =double(N*ka*kb),
-	bb    =double(N*kb*kb),
-	Saa   =double(N*ka*ka),
-	Sab   =double(N*ka*kb),
-	Sbb   =double(N*kb*kb),
-	z     =as.double(z),
-	B     =as.double(B),
-	w     =as.double(w),
-	ww    =as.double(unlist(ww)),
-	tm    =as.double(tm),
-	tn    =as.double(tn),
-	tf    =as.double(tf),
-	tg    =as.double(tg),
-	lambda=as.double(lambda),
-	Da    =as.double(Da),
-	Db    =as.double(Db),
-	sxi   =as.double(s.xi),
-	nobs  =as.integer(nobs),
-	N     =as.integer(N),
-	M     =as.integer(M),
-	ka    =as.integer(ka),
-	kb    =as.integer(kb),
-	p     =as.integer(p), 0L, dp, ip,
-	DUP=FALSE)
-}
-gc()
-
-if(!all(
-all.equal(as.vector(R$alpha),C$alpha),
-all.equal(as.vector(R$beta),C$beta),
-all.equal(as.vector(unlist(R$Saa)),C$Saa),
-all.equal(as.vector(unlist(R$Sab)),C$Sab),
-all.equal(as.vector(unlist(R$Sbb)),C$Sbb),
-all.equal(as.vector(R$ab),C$ab),
-{
-u<-list(
-	aa=as.vector(upper.tri(matrix(nrow=ka,ncol=ka),diag=TRUE)),
-	bb=as.vector(upper.tri(matrix(nrow=kb,ncol=kb),diag=TRUE)))
-all(sapply(c('aa','bb'),function(x)
-	all.equal(matrix(as.vector(R[[x]]),kb*kb,N)[u[[x]],],matrix(C[[x]],kb*kb,N)[u[[x]],])))
-}))stop('FAILED')
-TRUE
+	R<-.dual.bc.1(z,B,subject,w,ww,tm,tn,tf,tg,lambda,Da,Db,s.xi)
+	C<-{ # C related computations for dual_bc_1
+	ldp = M*(ka + kb + 3) + max(7 * max(ka,kb)^2 , 3*(ka+kb) + (ka + kb+ max(ka,kb))*max(nobs))
+	lip = max(ka,kb)
+	dp = double(ldp)
+	ip = integer(lip)
+	.C("dual_bc_1",
+		alpha =matrix(0,N,ka),
+		beta  =matrix(0,N,kb),
+		aa    =double(N*ka*ka),
+		ab    =double(N*ka*kb),
+		bb    =double(N*kb*kb),
+		Saa   =double(N*ka*ka),
+		Sab   =double(N*ka*kb),
+		Sbb   =double(N*kb*kb),
+		z     =as.double(z),
+		B     =as.double(B),
+		w     =as.double(w),
+		ww    =as.double(unlist(ww)),
+		tm    =as.double(tm),
+		tn    =as.double(tn),
+		tf    =as.double(tf),
+		tg    =as.double(tg),
+		lambda=as.double(lambda),
+		Da    =as.double(Da),
+		Db    =as.double(Db),
+		sxi   =as.double(s.xi),
+		nobs  =as.integer(nobs),
+		N     =as.integer(N),
+		M     =as.integer(M),
+		ka    =as.integer(ka),
+		kb    =as.integer(kb),
+		p     =as.integer(p), 
+		Cdebug(200), 
+		dp, ip,
+		DUP=FALSE)
+	}
+	stopifnot( all.equal(R$alpha,C$alpha))
+	stopifnot( all.equal(R$beta,C$beta))
+	stopifnot( all.equal(as.vector(unlist(R$Saa)),C$Saa))
+	stopifnot( all.equal(as.vector(unlist(R$Sab)),C$Sab))
+	stopifnot( all.equal(as.vector(unlist(R$Sbb)),C$Sbb))
+	stopifnot( all.equal(as.vector(R$ab),C$ab))
 })
 UT_dual_bc_1<-UT_generate(X_dual_bc_1)
 
@@ -2490,8 +2481,7 @@ dp =double(M + M*kb + 2*kb^2 + 10000)
 C<-.C('dual_bc_2',s.xi=double(1),z,B,tn,tg,beta,unlist(Sbb),
 	as.integer(nobs),as.integer(N),as.integer(M),as.integer(kb),as.integer(p),
 	pfda:::Cdebug(123),dp)
-
-if(R$s.xi==C$s.xi)stop('failed')
+stopifnot(all.equal(as.vector(R$s.xi),C$s.xi))
 })
 UT_dual_bc_2<-UT_generate(X_dual_bc_2)
 

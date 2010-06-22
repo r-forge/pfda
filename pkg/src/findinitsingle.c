@@ -9,8 +9,8 @@ find initial values for the single algorithm
 /*! new function for computing the initial values
 
 @MEMORY
-	* dp = 2*p^2 + M + M*k+ p*N + 8*p
-	* ip = 6*p
+	- dp = 2*p^2 + M + M*k+ p*N + 8*p
+	- ip = 6*p
 */
 void pfda_s_i(
 	double       * const tm,
