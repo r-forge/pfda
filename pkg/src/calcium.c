@@ -16,10 +16,10 @@ void zero_lambda(
 }
 
 /*! Computes residuals for the calcium model
-
-@MEMORY
-- dp = M*max(kg,kd)
-*/
+ *
+ *	@MEMORY
+ *		- dp = M*max(kg,kd)
+ */
 void dual_ca_resid(
 	double       * const Ry,
 	double const * const y,
@@ -715,17 +715,17 @@ void dual_ca_core(
 	      double * const tol,
 	const int * const dl, double * dp, int * ip)
 {
-	if(checkdebug(dl,debugnum_dual_ca_inputs)){
-		pfda_debug_msg("lt: %g\n", *lt);
-		pfda_debug_msg("lx: %g\n", *lx);
-		pfda_debug_msg("lf: %g\n", *lf);
-		pfda_debug_msg("lg: %g\n", *lg);
-		pfda_debug_msg("Kt[1,1]: %g\n", Kt[1]);
-		pfda_debug_msg("Kx[1,1]: %g\n", Kx[1]);
-		pfda_debug_msg("minV: %g\n", *minV);
-		pfda_debug_msg("maxI: %d\n", *maxI);
-		pfda_debug_msg("tol: %g\n", *tol);
-		pfda_debug_msg("dl length: %d\n", *dl);
+	pfda_debug_cdl(debugnum_dual_ca_inputs){
+		pfda_debug_arg(*lt);
+		pfda_debug_arg(*lx);
+		pfda_debug_arg(*lf);
+		pfda_debug_arg(*lg);
+		pfda_debug_arg(Kt[1]);
+		pfda_debug_arg(Kx[1]);
+		pfda_debug_arg(*minV);
+		pfda_debug_arg(*maxI);
+		pfda_debug_arg(*tol);
+		pfda_debug_arg(*dl);
 	}
 	dual_ca_i( tz, tt, tx, tf, tg, gamma, delta, lambda, Dg, Dd, sigma, gg, gd, dd, y, Z, Bt, Bx, nobs, N, M, kz, kg, kd, pt, px, minV, dl, dp, ip);
 	int I=0, kgd = *kg**kd, pg = *pt**kg, pd=*px**kd;
@@ -809,7 +809,7 @@ void dual_ca_core(
 
 			cc/=9;
 			///* Debug */
-			if(checkdebug(dl,debugnum_dual_criteria_components)){
+			pfda_debug_cdl(debugnum_dual_criteria_components){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("sigma:  \t%5.5g\n", fabs(sigma_old-*sigma));
 				pfda_debug_msg("tz:   \t%5.5g\n", cctz);
@@ -822,9 +822,9 @@ void dual_ca_core(
 				pfda_debug_msg("Dd:   \t%5.5g\n", ccDd);
 				fflush(stdout);
 			}
-			if(checkdebug(dl,debugnum_dual_criteria)){pfda_debug_msg("Criteria:%g\n", cc);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria){pfda_debug_arg(cc);fflush(stdout);}
 			if(cc < *tol){ //break when acheiving convergence
-				if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
+				pfda_debug_cdl(debugnum_dual){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
 				break;
 			}	
 		}

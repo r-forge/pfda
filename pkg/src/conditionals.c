@@ -31,7 +31,7 @@ OUTPUT:
 debug number:	301
 */
 {
-	if(checkdebug(dl,debugnum_cond_dd)){
+	pfda_debug_cdl(debugnum_cond_dd){
 		pfda_debug_msg("pfda_cond_dd:\n");
 		pfda_debug_msg("dd_hat:\n"); printmat(dd_hat, *kd, *kd);
 		pfda_debug_msg("Delta:\n"); printmat2(one, *kd, Delta_i, lddelta);
@@ -83,7 +83,7 @@ OUTPUT:
 dl:	302
 */
 {
-	if(checkdebug(dl,debugnum_cond_ab)){
+	pfda_debug_cdl(debugnum_cond_ab){
 		pfda_debug_msg("pfda_cond_ab:\n");
 		pfda_debug_msg("ab_hat:\n"); printmat(ab_hat, *ka, *kb);
 		pfda_debug_msg("N:\n%d\n\n",*ld );

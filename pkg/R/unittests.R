@@ -2040,72 +2040,50 @@ UT_pfda_bin_single_generate_w_parms2<-function(){
 		invisible(FALSE)
 	}
 }
-UT_pfda_bin_s_gen_w<-function(){
-	fname='pfda_bin_s_gen_w'
-	cat('UNIT TEST -',fname,'\n')
-	if(is.loaded(fname)){
-		cat("testing with random input...")
-		Nsim<-100
-		# p=print
-		p=invisible
+X_pfda_bin_s_gen_w<-expression({
+	ni  = trunc(runif(1,4,15))
+	p   = trunc(runif(1,7,15))
+	k   = trunc(runif(1,1,4))
+	wi  = rnorm(ni)
+	Bi  = matrix(rnorm(p*ni),ni,p)
+	tf  = matrix(rnorm(p*k),p,k)
+	tm  = rnorm(p)
+	Da  = sort(rexp(k),T)
+	kr=10
+	# compute y
+	yi = wi>0
+	j = sample(seq_len(ni),1)
+	# drop the Bij and wij
+	Bij <- Bi[-j,,drop=F]
+	wij <- wi[-j]
+	# R computations
+	saved.seed<-.Random.seed
+	R<-pfda:::.single.b.w.genw(yi,wi,Bi,tm,tf,Da,kr,j)
+	# Compute C arguments
+	saved.seed->>.Random.seed
+	dpl = ni* k + ni+ k^2 + k + p + p^2 + k*p + 3*k
+	C<-.C('pfda_bin_s_gen_w',
+		w_sim =   double(kr),
+		Nsim  = as.integer(kr),
+		Yi    = as.integer(yi), 
+		RWi   = as.double(wi-Bi%*%tm),
+		ni    = as.integer(ni),
+		Bi    = as.double(Bi),
+		M     = as.integer(NROW(Bi)), 
+		p     = as.integer(p), 
+		tm    = as.double(tm),
+		tf    = as.double(tf),
+		k     = as.integer(k),
+		Da    = as.double(Da),
+		j     = as.integer(j-1),
+		dl    = 0L,
+		dp=double(dpl), ip=integer(k))
+	gc()
+	# Test equality
+	stopifnot(all.equal(C$w_sim,R))
+})
+UT_pfda_bin_s_gen_w<-UT_generate(X_pfda_bin_s_gen_w)
 
-		if(!exists('.Random.seed'))runif(1)
-		save.seed<-.Random.seed
-		for(simnum in 1:Nsim){
-			ni  = trunc(runif(1,4,15))
-			p   = trunc(runif(1,7,15))
-			k   = trunc(runif(1,1,4))
-			wi  = rnorm(ni)
-			Bi  = matrix(rnorm(p*ni),ni,p)
-			tf  = matrix(rnorm(p*k),p,k)
-			tm  = rnorm(p)
-			Da  = sort(rexp(k),T)
-
-			yi = wi>0
-			j = sample(seq_len(ni),1)
-
-			Bij <- Bi[-j,,drop=F]
-			wij <- wi[-j]
-
-			kr=10
-
-			seed<-trunc(runif(1,1e6,1e7))
-			set.seed(seed)
-			R<-pfda:::.single.b.w.genw(yi,wi,Bi,tm,tf,Da,kr,j)
-				
-			set.seed(seed)
-			pool = double(ni* k + ni+ k^2 + k + p + p^2 + k*p + 3*k)
-			C<-.C('pfda_bin_s_gen_w',
-				w_sim =   double(kr),
-				Nsim  = as.integer(kr),
-				Yi    = as.integer(yi), 
-				RWi   = as.double(wi-Bi%*%tm),
-				ni    = as.integer(ni),
-				Bi    = as.double(Bi),
-				M     = as.integer(NROW(Bi)), 
-				p     = as.integer(p), 
-				tm    = as.double(tm),
-				tf    = as.double(tf),
-				k     = as.integer(k),
-				Da    = as.double(Da),
-				j     = as.integer(j-1),
-				dl    = 0L,
-				dp=as.double(pool), ip=as.integer(k))
-			gc()
-			
-			if(!isTRUE(all.equal(C$w_sim,R))){
-				cat('Failed on attempt',simnum,'\n')
-				return(invisible(FALSE))
-			}
-		}
-		.Random.seed<-save.seed
-		cat("PASS\n")
-	} else {
-	cat("no",fname,"function found.\n")
-	cat("Failed\n")
-		invisible(FALSE)
-	}
-}
 UT_pfda_bin_single_approximate_moments_forobs<-function(){
 	fname='pfda_bin_single_approximate_moments_forobs'
 	cat('UNIT TEST -',fname,'\n')

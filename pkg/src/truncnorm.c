@@ -27,7 +27,7 @@ void pfda_rtruncnorm(
 	double const * const sd   ,	int    const * const ns,
 	int const * const dl)
 {
-	if(checkdebug(dl,debugnum_pfda_rtruncnorm)){
+	pfda_debug_cdl(debugnum_pfda_rtruncnorm){
 		pfda_debug_msg("entering pfda_rtruncnorm\n");
 		pfda_debug_msg("nl:%p\n",nl);
 		pfda_debug_msg("nu:%p\n",nu);
@@ -41,7 +41,7 @@ void pfda_rtruncnorm(
 	if(nl && nu && *upper - *lower < dzero )pfda_error("error in pfda_rtruncnrom. Bad endpoints specified.");
 	GetRNGstate();
 	for (int i = 0; i < *n; ++i) {
-		if(checkdebug(dl,debugnum_pfda_rtruncnorm)){pfda_debug_msg("attempting to generate %d\n", i);fflush(stdout);}
+		pfda_debug_cdl(debugnum_pfda_rtruncnorm){pfda_debug_msg("attempting to generate %d\n", i);fflush(stdout);}
 		const double ca = nl?lower[i % *nl]:0.0 ;
 		const double cb = nu?upper[i % *nu]:0.0 ;
 		const double cmean = mean[i % *nm];
@@ -55,7 +55,7 @@ void pfda_rtruncnorm(
 		int nattempts = maxattempts;
 		while (--nattempts) { 
 			tmp = rnorm(cmean, csd);
-			if(checkdebug(dl,debugnum_pfda_rtruncnorm_attempts)){
+			pfda_debug_cdl(debugnum_pfda_rtruncnorm_attempts){
 				pfda_debug_msg("candidate[%d]: %g\n",maxattempts-nattempts ,tmp);fflush(stdout);}
 			if ((!nl || ca >= tmp) && (!nu || tmp <= cb))break;
 		}
@@ -63,7 +63,7 @@ void pfda_rtruncnorm(
 		x[i] = tmp;
 	}
 	PutRNGstate();
-	if(checkdebug(dl,debugnum_pfda_rtruncnorm)){pfda_debug_msg("leaving pfda_rtruncnorm\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_rtruncnorm){pfda_debug_msg("leaving pfda_rtruncnorm\n");fflush(stdout);}
 }
 void pfda_rtruncnorm_from_below(
 	double       * const x,
@@ -98,7 +98,7 @@ void pfda_robert_truncnorm(
 	int * ip
 )
 {
-	if(checkdebug(dl,debugnum_pfda_robert_truncnorm)){pfda_debug_msg("niterations: %d\n",*niterations);fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_robert_truncnorm){pfda_debug_msg("niterations: %d\n",*niterations);fflush(stdout);}
 	double * ct = pfdaAlloc_d(*m,&dp);
 	double * R = pfdaAlloc_d(*m,&dp);
 	double * U = pfdaAlloc_d(*m,&dp);
@@ -118,7 +118,7 @@ void pfda_robert_truncnorm(
 						R[i] = rnorm(0.0,1.0);
 	}
 	for(int j=0;j<*niterations;j++){
-		if(checkdebug(dl,debugnum_pfda_robert_truncnorm)){pfda_debug_msg("iteration: %d\n",j);fflush(stdout);}
+		pfda_debug_cdl(debugnum_pfda_robert_truncnorm){pfda_debug_msg("iteration: %d\n",j);fflush(stdout);}
 		for(i=0;i<*m;i++)	U[i]= runif(0.0,1.0);
 		for(i=0;i<*m;i++)	Z[i]= ct[i]-log(U[i])/a;
 		for(i=0;i<*m;i++)	U[i]= runif(0.0,1.0);
@@ -159,7 +159,7 @@ void pfda_roberts_1(
 		*x = *c-log(u)/a;
 		p = exp(-(*x-a)*(*x-a)/2.0) ;
 		v = runif(zero,one);
-		if(checkdebug(dl,debugnum_pfda_rtruncnorm_attempts)){pfda_debug_msg("Attempts remaining = %d, x=%g, p=%g, v=%g\n",I,*x,p,v);}
+		pfda_debug_cdl(debugnum_pfda_rtruncnorm_attempts){pfda_debug_msg("Attempts remaining = %d, x=%g, p=%g, v=%g\n",I,*x,p,v);}
 		if(!(--I))pfda_error("pfda_robets_1: Excceeded maximum number of attempts to find a suitible random number.");
 	} while(v>p);
 	PutRNGstate();
@@ -188,7 +188,7 @@ void pfda_gen_truncnorm(
 	double const * const c,///< the truncation value.  Truncation is from the left
 	int const * const dl)  ///< the debug level
 {
-	if(checkdebug(dl,debugnum_pfda_gen_truncnorm)){
+	pfda_debug_cdl(debugnum_pfda_gen_truncnorm){
 		pfda_debug_msg("entering pfda_gen_truncnorm\n");
 		pfda_debug_msg("n:%d\n",*n);
 		pfda_debug_msg("c:%g\n",*c);

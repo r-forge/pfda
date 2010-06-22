@@ -34,7 +34,7 @@ void pfda_eigens(
 	int    const * const dl, double * dp, int * ip)
 {
 
-	if(checkdebug(dl,debugnum_pfda_eigens)){
+	pfda_debug_cdl(debugnum_pfda_eigens){
 		pfda_debug_msg("pfda_eigens - \n");
 		pfda_debug_msg("S:\n"); printmat(S, *ns, *ns);
 		pfda_debug_msg("ns:\n%d\n\n",*ns );
@@ -48,7 +48,7 @@ void pfda_eigens(
 	double * work=pfdaAlloc_d(lwork, &dp);	
 	int * iwork=pfdaAlloc_i(5**ns,&ip);	
 	int * ifail=pfdaAlloc_i(*ns, &ip);
-	if(checkdebug(dl,debugnum_pfda_eigens)){		
+	pfda_debug_cdl(debugnum_pfda_eigens){		
 		pfda_debug_msg("lower_val_num:\n%d\n\n", lower_val_num );
 		pfda_debug_msg("entering dsyevx:\n");
 		fflush(stdout);
@@ -56,7 +56,7 @@ void pfda_eigens(
 	dsyevx_(&Vectors, &IthValues, &Upper, 
 		ns, S, ns, NULL, NULL, &lower_val_num, ns, &dzero, &N_val_found, values, vectors, ns,
 		work, &lwork, iwork, ifail, &e_result);
-	if(checkdebug(dl,debugnum_pfda_eigens)){		pfda_debug_msg("returned from dsyevx\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_eigens){		pfda_debug_msg("returned from dsyevx\n");fflush(stdout);}
 	if(e_result)pfda_error("PFDA ERR: Could not find eigen values associated with D_alpha, info:%d",e_result);
 	reverse(k, values);
 	reverseColumns(k, vectors, ns);
@@ -64,7 +64,7 @@ void pfda_eigens(
 	pfdaFree(work);
 	pfdaFree(iwork);
 	pfdaFree(ifail);
-	if(checkdebug(dl,debugnum_pfda_eigens)){
+	pfda_debug_cdl(debugnum_pfda_eigens){
 		pfda_debug_msg("vectors:\n"); printmat(vectors, *ns, *k);
 		pfda_debug_msg("values:\n"); printmat(values, one, *k);
 		pfda_debug_msg("Leaving pfda_eigens\n");

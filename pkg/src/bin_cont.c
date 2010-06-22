@@ -85,7 +85,7 @@ void dual_bc_i(
 
 \ingroup dualbc
 @MEMORY
-	-dp = ka +kb
+	-dp = \f$ k_a +k_b \f$
 \callgraph
 */
 void dual_bc_1a(
@@ -97,7 +97,7 @@ void dual_bc_1a(
 	const double * const sxi,///< \f$ \sigma_\xi\f$
 	const double * const Sa, ///< \f$ \Sigma_{\alpha\alpha} \f$
 	const double * const Sab,///< \f$ \Sigma_{\alpha\beta} \f$
-	const int    * const M,  ///< number of rows of full \f$\phi\f$
+	const int    * const M,  ///< number of rows of full \f$ \phi \f$
 	const int    * const ni, ///< number of observations for the current subject
 	const int    * const ka, ///< length of \f$ \alpha_i \f$
 	const int    * const kb, ///< length of \f$ \beta_i \f$
@@ -903,7 +903,7 @@ void dual_bc_core(
 			#endif
 		}
 		if(cc < *tol){
-			if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
 			break;
 		}
 	}

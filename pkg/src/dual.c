@@ -45,7 +45,7 @@ MEMORY:
 dl:	240
 */
 { //code
-	if(checkdebug(dl,debugnum_dual_m4)){
+	pfda_debug_cdl(debugnum_dual_m4){
 		pfda_debug_msg("pfdaDual_m4 - \n");
 		pfda_debug_msg("Lambda(in):\n"); printmat(Lambda, *kb, *ka);
 		pfda_debug_msg("N:\n%d\n\n",*N );
@@ -66,7 +66,7 @@ dl:	240
 	if(solve_result!=0)pfda_error("PFDA ERR:pfdaDual_m4: Leading minor of order %i is not positive definite(Lambda)",solve_result);
 	pfda_transpose(Lambda, *ka, *kb, dl, dp);
 	pfdaFree(work_aa);
-	if(checkdebug(dl,debugnum_dual_m4)){
+	pfda_debug_cdl(debugnum_dual_m4){
 		pfda_debug_msg("Lambda(out):\n"); printmat(Lambda, *kb, *ka);
 		pfda_debug_msg("leaving pfdaDual_m4\n");
 	}
@@ -104,7 +104,7 @@ MEMORY:
 	ip	length = ka
 */
 {//code
-	if(checkdebug(dl,debugnum_dual_m5_2)){
+	pfda_debug_cdl(debugnum_dual_m5_2){
 		pfda_debug_msg("pfdaDual_m5_2 - \n");
 		pfda_debug_msg("Lambda:\n"); printmat(Lambda, *kb, *ka);
 		pfda_debug_msg("trans_f:\n"); printmat(trans_f, *ka, *ka);
@@ -120,18 +120,18 @@ MEMORY:
 	dgesv_(ka,ka,trans_f, ka, ipiv,  inv_trans_f, ka, &solve_info);
 	pfdaFree(ipiv);
 	if(!solve_info){
-		if(checkdebug(dl,debugnum_dual_m5_2)){pfda_debug_msg("inv_trans_f:\n");printmat(inv_trans_f, *ka, *ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_dual_m5_2){pfda_debug_msg("inv_trans_f:\n");printmat(inv_trans_f, *ka, *ka);fflush(stdout);}
 		double *tmp = pfdaAlloc_d(*kb**ka, &dp);
 		dgemm_(&NoTrans, &NoTrans, kb,ka,ka, &dOne, Lambda , kb, inv_trans_f, ka, &dzero, tmp   ,kb);
 		pfdaFree(inv_trans_f);
-		if(checkdebug(dl,debugnum_dual_m5_2)){pfda_debug_msg("tmp:\n"); printmat(tmp, *kb, *ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_dual_m5_2){pfda_debug_msg("tmp:\n"); printmat(tmp, *kb, *ka);fflush(stdout);}
 		dgemm_(&NoTrans, &NoTrans, kb,ka,kb, &dOne, trans_g, kb, tmp        , kb, &dzero, Lambda, kb);
 		pfdaFree(tmp);
 	} else {
 		pfdaFree(inv_trans_f);
 		pfda_error("PFDA ERR - pfdaDual_m5_2: could not invert trans_f");
 	}
-	if(checkdebug(dl,debugnum_dual_m5_2)){pfda_debug_msg("leaving pfdaDual_m5_2\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual_m5_2){pfda_debug_msg("leaving pfdaDual_m5_2\n");fflush(stdout);}
 }
 
 void pfdaDual_m5(
@@ -176,20 +176,20 @@ MEMORY:
 	ip	length = 6*p
 */
 {//code
-	if(checkdebug(dl,debugnum_dual_m5)){	pfda_debug_msg("pfdaDual_m5 - \n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_dual_m5){	pfda_debug_msg("pfdaDual_m5 - \n");fflush(stdout);	}
 	double * trans_f     = pfdaAlloc_d(*ka**ka,&dp);
 	double * trans_g     = pfdaAlloc_d(*kb**kb,&dp);
 	
 
-	if(checkdebug(dl,debugnum_dual_m5)){	pfda_debug_msg("sub steps\n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_dual_m5){	pfda_debug_msg("sub steps\n");fflush(stdout);	}
 	pfda_m5_1(N,alpha,ka,Sigma_aa,Theta_f,Da,p,trans_f,minimum_variance,dl,dp,ip);
 	pfda_m5_1(N,Beta ,kb,Sigma_bb,Theta_g,Db,p,trans_g,minimum_variance,dl,dp,ip);
 	pfdaDual_m5_2(Lambda, trans_f, ka, trans_g, kb, dl,dp,ip);
 
-	if(checkdebug(dl,debugnum_dual_m5)){	pfda_debug_msg("freeing memory\n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_dual_m5){	pfda_debug_msg("freeing memory\n");fflush(stdout);	}
 	pfdaFree(trans_f);
 	pfdaFree(trans_g);
-	if(checkdebug(dl,debugnum_dual_m5)){	pfda_debug_msg("leaving pfdaDual_m5\n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_dual_m5){	pfda_debug_msg("leaving pfdaDual_m5\n");fflush(stdout);	}
 }
 
 void pfdaDual(
@@ -268,7 +268,6 @@ void pfdaDual(
 {  // Code
 	///* declarations //
 	//int pcount=0;
-	double *const dpstart=dp;
 	const int kab=*ka**kb, ka2=*ka**ka, kb2=*kb**kb;	//  common constants in computations
 	///* Convergence  */
 	int I=0; 														//  Itteration number
@@ -281,11 +280,10 @@ void pfdaDual(
 	double * Lambda_old =pfdaAlloc_d(kab, &dp);
 	double * Da_old     =pfdaAlloc_d(*ka, &dp);
 	double * Db_old     =pfdaAlloc_d(*kb, &dp);
-	if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 
 	if(*dl){
-		if(checkdebug(dl,debugnum_dual_steps))pfda_debug_msg("Entering pfdaDual\n");
-		if(checkdebug(dl,debugnum_dual_inputs)){
+		pfda_debug_cdl(debugnum_dual_steps)pfda_debug_msg("Entering pfdaDual\n");
+		pfda_debug_cdl(debugnum_dual_inputs){
 			pfda_debug_msg("INPUTS\n----------------------------------------\n");
 			pfda_debug_msg("y:\n"); printmat(y, 1, *M);
 			pfda_debug_msg("z:\n"); printmat(z, 1, *M);
@@ -313,7 +311,7 @@ void pfdaDual(
 			pfda_debug_msg("beta:\n"); printmat(beta, *N, *kb);
 			pfda_debug_msg("Criteria:\t%g\nTolerance:\t%g\nMaximun Iterations:\t%d\nI:\t%d\n", convergenceCriteria, *tol, *maxI, I);
 		}
-		if(checkdebug(dl,debugnum_dual_inputs_large)){
+		pfda_debug_cdl(debugnum_dual_inputs_large){
 			pfda_debug_msg("Sigma_aa:\n"); printmat(Sigma_aa, *N, ka2);
 			pfda_debug_msg("Sigma_ab:\n"); printmat(Sigma_ab, *N, kab);
 			pfda_debug_msg("Sigma_bb:\n"); printmat(Sigma_bb, *N, kb2);
@@ -321,7 +319,7 @@ void pfdaDual(
 			}
 		fflush(stdout);
 	}
-	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Finding Initial values.\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Finding Initial values.\n");fflush(stdout);}
 	pfdafindinits( y,  z,  nobs, M,  N,  ka, kb, B,  p, minimum_variance,
 	   						tm, tn, tf,  tg,  Da,  Db,  lambda,  seps,  sxi,  alpha,  beta,  Sigma_aa,  Sigma_ab,  Sigma_bb); //return values
 	setMinVar(seps, &one, minimum_variance);
@@ -329,18 +327,18 @@ void pfdaDual(
 	setMinVar(Da, ka, minimum_variance);
 	setMinVar(Db, kb, minimum_variance);
 
-	if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Allocating btb(dp=%p)\n",dp);fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual){pfda_debug_msg("Allocating btb(dp=%p)\n",dp);fflush(stdout);}
 	double * btb = pfdaAlloc_d(*p**p**N,&dp);
-	if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Computing btb\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Computing btb\n");fflush(stdout);}
 	pfda_computebtb(btb,N,B,M,p,nobs,dl);
 	
-	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Entering Convergence Loop\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Entering Convergence Loop\n");fflush(stdout);}
 	while(I<*maxI)/*Limited loop with exit condition at end*/{
-		if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("entering loop:%d\n", I);fflush(stdout);}
+		pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("entering loop:%d\n", I);fflush(stdout);}
 
 		{ /// * setup convergence */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Setup for convergence\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Setup for convergence\n");fflush(stdout);}
 			sigma_epsilon_old = *seps; //teporarily store values for use with convergence
 			sigma_xi_old = *sxi;
 			dcopy_(&kab, lambda, &one, Lambda_old, &one);
@@ -353,11 +351,11 @@ void pfdaDual(
 			dcopy_(kb, Db, &one, Db_old, &one);
 		}
 		{ ///* steps 1 */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("steps 1\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 1\n");fflush(stdout);}
 			pfda_m1(seps, y, nobs,M, N, ka, B, p,minimum_variance, tm, tf, alpha, Sigma_aa, dl, dp	);
 			pfda_m1(sxi , z, nobs,M, N, kb, B, p,minimum_variance, tn, tg, beta , Sigma_bb, dl, dp	);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("seps:\n%# .8g\n\n",*seps);
 				pfda_debug_msg("sxi:\n%# .8g\n\n",*sxi);
@@ -365,11 +363,11 @@ void pfdaDual(
 			}
 		}
 		{ ///* steps 2 */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("steps 2\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 2\n");fflush(stdout);}
 			pfda_m2(tm, y, nobs,M, N, ka, B, p, penalties+0, ISD,tf, seps, alpha, dl, dp);
 			pfda_m2(tn, z, nobs,M, N, kb, B, p, penalties+1, ISD,tg, sxi , beta , dl, dp);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("tm:\n");printmat(tm,*p,one);
 				pfda_debug_msg("tn:\n");printmat(tn,*p,one);
@@ -377,11 +375,11 @@ void pfdaDual(
 			}
 		}
 		{ ///* steps 3 */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("steps 3\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 3\n");fflush(stdout);}
 			pfda_m3(tf, y, nobs, M, N, ka, B, p, penalties+2, ISD,tm, seps, alpha, Sigma_aa, btb, dl, dp, ip);
 			pfda_m3(tg, z, nobs, M, N, kb, B, p, penalties+3, ISD,tn, sxi , beta , Sigma_bb, btb, dl, dp, ip);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("tf:\n");printmat(tf,*p,*ka);
 				pfda_debug_msg("tg:\n");printmat(tg,*p,*kb);
@@ -389,20 +387,20 @@ void pfdaDual(
 			}
 		}
 		{ ///* 4 update lambda */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("step 4\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("step 4\n");fflush(stdout);}
 			pfdaDual_m4(N,lambda,alpha, ka, beta, kb, Sigma_aa, Sigma_ab,dl, dp);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("lambda:\n");printmat(lambda,*kb,*ka);
 				fflush(stdout);
 			}
 		}
 		{ ///* 5. Orthogonalize  find Da, Db, Update lambda*/
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("step 5\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("step 5\n");fflush(stdout);}
 			pfdaDual_m5(N, p, lambda, alpha, Sigma_aa, tf, Da, ka, beta, Sigma_bb, tg, Db, kb, minimum_variance,dl, dp, ip);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("lambda:\n");printmat(lambda,*kb,*ka);
 				pfda_debug_msg("Da:\n");printmat(Da,one,*ka);
@@ -413,14 +411,14 @@ void pfdaDual(
 			}
 		}
 		{ ///* E Step */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("step E\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("step E\n");fflush(stdout);}
 			pfdaDual_e(
 				y, z, nobs, M, N, ka, kb, B, p,
 				tm, tn, tf, tg, Da, Db, lambda,seps, sxi,
 				alpha, beta, Sigma_aa, Sigma_ab, Sigma_bb,
 				dl, dp ,ip);
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_estimates)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("Sigma_aa:\n");printmat(Sigma_aa,*N,*ka**ka);
 				pfda_debug_msg("Sigma_bb:\n");printmat(Sigma_bb,*N,*ka**ka);
@@ -431,10 +429,10 @@ void pfdaDual(
 			}
 		}
 		{ ///* Compute Convergence Criteria */
-			if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Computing convergence criteria\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Computing convergence criteria\n");fflush(stdout);}
 			convergenceCriteria = fabs(sigma_epsilon_old-*seps)/MMAX(*seps,*minimum_variance) + fabs(sigma_xi_old-*sxi)/MMAX(*sxi,*minimum_variance);
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("coputing criteria for seps & sxi:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("coputing criteria for seps & sxi:\n");fflush(stdout);}
 			daxpy_(p, &mOne, tm, &one, tm_old, &one);
 			daxpy_(p, &mOne, tn, &one, tn_old, &one);
 			double cctm=0;
@@ -445,31 +443,31 @@ void pfdaDual(
 			}
 			convergenceCriteria+=cctm/(*p)+cctn/(*p);
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("Convergence criteria for tf:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("Convergence criteria for tf:\n");fflush(stdout);}
 			double cctf=0;
 			{int itmp=*p**ka;daxpy_(&itmp, &mOne, tf, &one, tf_old, &one);
 			for(int i=0;i<itmp;i++)cctf+=fabs(tf_old[i])/MMAX(fabs(tf[i]),*minimum_variance);
 			convergenceCriteria+=cctf/itmp;}
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("Convergence criteria for tg:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("Convergence criteria for tg:\n");fflush(stdout);}
 			double cctg=0;
 			{int itmp=*p**kb;daxpy_(&itmp, &mOne, tg, &one, tg_old, &one);
 			for(int i=0;i<itmp;i++)cctg+=fabs(tg_old[i])/MMAX(fabs(tg[i]),*minimum_variance);
 			convergenceCriteria+=cctg/itmp;}
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("Convergence criteria for lambda:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("Convergence criteria for lambda:\n");fflush(stdout);}
 			daxpy_(&kab, &mOne, lambda, &one, Lambda_old, &one);
 			double ccL=0;
 			for(int i=0;i<kab;i++)ccL+=fabs(Lambda_old[i])/MMAX(fabs(lambda[i]),*minimum_variance);
 			convergenceCriteria+=ccL;
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("Convergence criteria for Da:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("Convergence criteria for Da:\n");fflush(stdout);}
 			daxpy_(ka, &mOne, Da, &one, Da_old, &one);
 			double ccDa=0;
 			for(int i=0;i<*ka;i++)ccDa+=convergenceCriteria+=fabs(Da_old[i])/MMAX(fabs(Da[i]),*minimum_variance);
 			convergenceCriteria+=ccDa;
 
-			if(checkdebug(dl,debugnum_dual_criteria_components)){pfda_debug_msg("Convergence criteria for Db:\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){pfda_debug_msg("Convergence criteria for Db:\n");fflush(stdout);}
 			daxpy_(kb, &mOne, Db, &one, Db_old, &one);
 			double ccDb=0;
 			for(int i=0;i<*kb;i++)ccDb+=fabs(Db_old[i])/MMAX(fabs(Db[i]),*minimum_variance);
@@ -477,8 +475,8 @@ void pfdaDual(
 
 			convergenceCriteria/=9;
 			///* Debug */
-			if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
-			if(checkdebug(dl,debugnum_dual_criteria_components)){
+			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria_components){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("seps: \t%5.5g\n", fabs(sigma_epsilon_old-*seps));
 				pfda_debug_msg("sxi:  \t%5.5g\n", fabs(sigma_xi_old-*sxi));
@@ -491,24 +489,24 @@ void pfdaDual(
 				pfda_debug_msg("Db:   \t%5.5g\n", ccDb);
 				fflush(stdout);
 			}
-			if(checkdebug(dl,debugnum_dual_criteria)){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual_criteria){pfda_debug_msg("Criteria:%g\n", convergenceCriteria);fflush(stdout);}
 		}
 		I++;
 		if(convergenceCriteria < *tol){
-			if(checkdebug(dl,debugnum_dual)){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
+			pfda_debug_cdl(debugnum_dual){pfda_debug_msg("Criteria met leaving loop.%g\n");fflush(stdout);}
 			break;
 		}
 	}
 	///* Allow Program to exit normally and leave ensuring convergence to R. */
 	{ ///*  Finishing */
-		if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Finishing off.\n");fflush(stdout);}
+		pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Finishing off.\n");fflush(stdout);}
 		if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 		pfda_computeResid(y, y,nobs,M, N, ka, B, p,tm, tf, alpha, dl, dp);
 		pfda_computeResid(z, z,nobs,M, N, kb, B, p,tn, tg, beta , dl, dp);
-		if(checkdebug(dl,debugnum_memory)){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
+		pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 		*tol = convergenceCriteria;
 		*maxI = I;
 	}
-	if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Leaving pfdaDual\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Leaving pfdaDual\n");fflush(stdout);}
 }
 

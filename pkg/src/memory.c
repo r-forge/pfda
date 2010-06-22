@@ -22,13 +22,13 @@ double * pfdaAlloc_d(int size, double ** pool){
 }
 void pfdaFree(void * p){}
 void test_pfdaAlloc_int(int * PASS,int * dl){
-	if(checkdebug(dl,debugnum_test_pfdaAlloc_int)){pfda_debug_msg("test_pfdaAlloc_int\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_test_pfdaAlloc_int){pfda_debug_msg("test_pfdaAlloc_int\n");fflush(stdout);}
 	int dp[100];
 	int * dpp=dp;
 	int * new;
 	
 	new = (int*)pfdaAlloc_i(10, &dpp);
-	if(checkdebug(dl,debugnum_test_pfdaAlloc_int)){
+	pfda_debug_cdl(debugnum_test_pfdaAlloc_int){
 		pfda_debug_msg("dp:  %p\n", dp);
 		pfda_debug_msg("dpp: %p\n", dpp);
 		pfda_debug_msg("new: %p\n", new);
@@ -42,7 +42,7 @@ void test_pfdaAlloc_double(int * PASS, int * dl){
 	double * new;
 	
 	new = (double*)pfdaAlloc_d(10, &dpp);
-	if(checkdebug(dl,debugnum_test_pfdaAlloc_double)){
+	pfda_debug_cdl(debugnum_test_pfdaAlloc_double){
 		pfda_debug_msg("dp:  %p\n", dp);
 		pfda_debug_msg("dpp: %p\n", dpp);
 		pfda_debug_msg("new: %p\n", new);

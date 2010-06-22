@@ -73,32 +73,32 @@ void pfda_transpose(double * const A, const int nrow, const int ncol,
 	MEMORY:
 		pd - nrow*ncol
 	*/
-	if(checkdebug(dl,debugnum_pfda_transpose)){pfda_debug_msg("pfda_transpose - \n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_transpose){pfda_debug_msg("pfda_transpose - \n");fflush(stdout);}
 	double * ldp = dp;
 	if((ncol==1)||(nrow==1)) return;
 	double * B=NULL; //temporary storage
 	int i;
 	int N=nrow*ncol;
-	if(checkdebug(dl,debugnum_pfda_transpose)){
+	pfda_debug_cdl(debugnum_pfda_transpose){
 		pfda_debug_msg("allocating B - \n");
-		pfda_debug_msg("ldp: %p\n",ldp);
-		pfda_debug_msg("B:  %p\n",B);
+		pfda_debug_arg(ldp);
+		pfda_debug_arg(B);
 		fflush(stdout);
 	}
 	B=pfdaAlloc_d(N,&ldp);
-	if(checkdebug(dl,debugnum_pfda_transpose)){
-		pfda_debug_msg("ldp: %p\n",ldp);
-		pfda_debug_msg("B:  %p\n",B);
+	pfda_debug_cdl(debugnum_pfda_transpose){
+		pfda_debug_arg(ldp);
+		pfda_debug_arg(B);
 		pfda_debug_msg("B <- A\n");
 		fflush(stdout);
 	}
 	dcopy_(&N,A, &one, B, &one);
-	if(checkdebug(dl,debugnum_pfda_transpose)){pfda_debug_msg("A <- t(B)\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_transpose){pfda_debug_msg("A <- t(B)\n");fflush(stdout);}
 	for(i=0;i<nrow;i++){
-		if(checkdebug(dl,debugnum_pfda_transpose)){pfda_debug_msg("i: %d\n", i);fflush(stdout);}
+		pfda_debug_cdl(debugnum_pfda_transpose){pfda_debug_msg("i: %d\n", i);fflush(stdout);}
 		dcopy_(&ncol,B+i, &nrow, A+i*ncol, &one);
 	}
-	if(checkdebug(dl,debugnum_pfda_transpose)){pfda_debug_msg("leaving pfda_transpose\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_transpose){pfda_debug_msg("leaving pfda_transpose\n");fflush(stdout);}
 }
 void transpose(double *A, const int nrow, const int ncol)//depreciated
 {
@@ -133,16 +133,16 @@ void _dqfmm(const char* UPLO, const int* m,const int* k,const double* alpha, con
 	//pfda_debug_msg("_dqfmm is depreciated pleas use pfda_matrix_outer_quadratic_form.\n");
 	if(debug){
 		pfda_debug_msg("beta: %g\n", *beta);
-		pfda_debug_msg("A:\n");printmat2(*m, *k, A, lda);
-		pfda_debug_msg("S:\n");printmat2(*k, *k, S, lds);
-		pfda_debug_msg("Q:\n");printmat2(*m, *m, Q, ldq);
+		pfda_debug_argmat2(*m, *k, A, lda);
+		pfda_debug_argmat2(*k, *k, S, lds);
+		pfda_debug_argmat2(*m, *m, Q, ldq);
 		fflush(stdout);
 	}
 	double* tmp=NULL;
 	tmp = Calloc(*k**m, double);
 	dsymm_(&Right, UPLO, m, k, &dOne, S, lds, A, lda, &dzero, tmp, m);//tmp=AS
 	if(debug){
-		pfda_debug_msg("tmp(A*S):\n");printmat2(*m, *k, tmp, m);
+		pfda_debug_msg("tmp(A*S):\n");pfda_debug_argmat2(*m, *k, tmp, m);
 	}
 	dgemm_(&NoTrans, &Trans, m, m, k, alpha, tmp, m, A,lda, beta, Q, ldq);//Q=beta tmp A'=beta A S A'
 	Free(tmp);
@@ -157,12 +157,6 @@ void _dtqimm(const char* UPLO, const int* m,const int* k,const double* alpha, co
 	Q contains the new quadratic form.
 	S contains the cholesky decomposition. for S
 	*/
-	// pfda_debug_msg("UPLO:%c(%p)[%d]\n",*UPLO,UPLO,*UPLO+1);
-	// pfda_debug_msg("m:%d\tk:%d\n",*m,*k);
-	// pfda_debug_msg("alpha:%g\tbeta:%g\n",*alpha,*beta);
-	// pfda_debug_msg("A:\n");printmat2(*m,*k, A, lda);
-	// pfda_debug_msg("S:\n");printmat2(*m,*m, S, lds);
-	// pfda_debug_msg("Q:\n");printmat2(*k,*k, Q, ldq);
 	pfda_warning("_dqfmm is depreciated pleas use pfda_matrix_inner_quadratic_form.\n");
 	int row, col;
 	double* tmp=NULL;
@@ -170,7 +164,6 @@ void _dtqimm(const char* UPLO, const int* m,const int* k,const double* alpha, co
 	for(row=0;row<*k;row++)for(col=0;col<*m;col++)tmp[col+row**m]=A[col+row**lda];//copy A into tmp.
 	dposv_( UPLO, m, k, S, lds, tmp, m, info ); //Tmp= S^-1 A
 	if(!*info)dgemm_(&Trans, &NoTrans, k, k, m, alpha, A, lda, tmp, m, beta, Q, ldq);//Q=alpha tmp A'=alpha A S^-1 A'+beta Q
-	//pfda_debug_msg("Q:\n");printmat(Q, *k, *k);
 	Free(tmp);
 } 
 void _dqimm(const char* UPLO, const int* m,const int* k,const double* alpha, const double* A, const int* lda, double* S, const int* lds, const double* beta, double *Q, const int* ldq, int *info){
@@ -183,22 +176,12 @@ void _dqimm(const char* UPLO, const int* m,const int* k,const double* alpha, con
 	Q contains the new quadratic form.
 	S contains the cholesky decomposition. for S
 	*/
-	// pfda_debug_msg("m:%d\tk:%d\n",*m,*k);
-	// pfda_debug_msg("alpha:%g\tbeta:%g\n",*alpha,*beta);
-	// pfda_debug_msg("A:\n");printmat2(*m,*k, A, lda);
-	// pfda_debug_msg("S:\n");printmat2(*k,*k, S, lds);
-	// pfda_debug_msg("Q:\n");printmat2(*m,*m, Q, ldq);
-	//pfda_debug_msg("_dqimm is depreciated pleas use pfda_matrix_inner_quadratic_form.\n");
 	int i, j;
 	double* tmp=NULL;
 	tmp = Calloc(*m**k, double);// tmp is k by m
 	for(i=0;i<*k;i++)for(j=0;j<*m;j++)tmp[j+i**m]=A[j+i**lda];//copy A into tmp.
-//	transpose(tmp, *m, *k); // tmp = A'
 	dposv_( UPLO, k, m, S, lds, tmp, k, info ); //Tmp= S^-1 A'
-	// pfda_debug_msg("Tmp:\n");printmat2(*k,*m, tmp, m);	
-	// pfda_debug_msg("*info: %d\n",*info);
 	if(!*info)dgemm_(&NoTrans, &NoTrans, m, m, k, alpha, A, lda, tmp, k, beta, Q, ldq);//Q=alpha A S^-1 A'+ beta Q
-	// pfda_debug_msg("Q:\n");printmat(Q, *m, *m);
 	Free(tmp);
 } 
 
@@ -263,38 +246,27 @@ void _dchsm(const char *side, const char *uplo, const int *M, const int *N,const
 	B - matrix on side
 	ldb - first dimention of B
 	*/
-	// pfda_debug_msg("side:%c(%p)[%d]\n",*side,side,*side+1);
-	// pfda_debug_msg("uplo:%c(%p)[%d]\n",*uplo,uplo,*uplo);
-	// pfda_debug_msg("M:%d(%p)\n",*M,M);
-	// pfda_debug_msg("N:%d(%p)\n",*N,N);
-	// pfda_debug_msg("alpha:%g\n",*alpha);
-	// pfda_debug_msg("A:\n");printmat(A,*lda,*side=='L'?*M:*N);
-	// pfda_debug_msg("lda:%d\n",*lda);
-	// pfda_debug_msg("B:\n");printmat(B,*ldb,*N);
-	// pfda_debug_msg("ldb:%d\n",*ldb);
-	
+
 	dtrsm_(side, uplo, ((*side==Left) ^ (*uplo==Upper))?&NoTrans:&Trans, &NonUnit, M, N, &dOne, A, lda, B, ldb);
-	// pfda_debug_msg("DCHSM PING\n");
-	// printmat2(*M,*N,B,ldb);
 	dtrsm_(side, uplo, ((*side==Left) ^ (*uplo==Upper))?&Trans:&NoTrans, &NonUnit, M, N, alpha, A, lda, B, ldb);
 }
 void uppersym2full(int const * const n, double const * const sym, double *const full, int const * const dl){
-	if(checkdebug(dl,debugnum_uppersym2full)){pfda_debug_msg("uppersym2full -");fflush(stdout);}
+	pfda_debug_cdl(debugnum_uppersym2full){pfda_debug_msg("uppersym2full -");fflush(stdout);}
 	int i,j;
 	for(i=0;i<*n;i++)for(j=i;j<*n;j++){
-		if(checkdebug(dl,debugnum_uppersym2full)){pfda_debug_msg("sym[%d,%d]=%# 9g",i,j,sym[i]);fflush(stdout);}
+		pfda_debug_cdl(debugnum_uppersym2full){pfda_debug_msg("sym[%d,%d]=%# 9g",i,j,sym[i]);fflush(stdout);}
 		if(i==j) full[j**n+i]=sym[j**n+i]; else full[i**n+j]=full[j**n+i]=sym[j**n+i];
 	}
-	if(checkdebug(dl,debugnum_uppersym2full)){pfda_debug_msg("leaving uppersym2full");fflush(stdout);}
+	pfda_debug_cdl(debugnum_uppersym2full){pfda_debug_msg("leaving uppersym2full");fflush(stdout);}
 }
 void pfda_fillsym(double * const sym,int const * const n, int const * const dl){
-	if(checkdebug(dl,debugmun_pfda_fillsym)){pfda_debug_msg("uppersym2full -");fflush(stdout);}
+	pfda_debug_cdl(debugmun_pfda_fillsym){pfda_debug_msg("uppersym2full -");fflush(stdout);}
 	int i,j;
 	for(i=0;i<*n;i++)for(j=i+1;j<*n;j++){
-		if(checkdebug(dl,debugmun_pfda_fillsym)){pfda_debug_msg("sym[%d,%d]=%# 9g",i,j,sym[i]);fflush(stdout);}
+		pfda_debug_cdl(debugmun_pfda_fillsym){pfda_debug_msg("sym[%d,%d]=%# 9g",i,j,sym[i]);fflush(stdout);}
 		sym[i**n+j]=sym[j**n+i];
 	}
-	if(checkdebug(dl,debugmun_pfda_fillsym)){pfda_debug_msg("leaving uppersym2full");fflush(stdout);}
+	pfda_debug_cdl(debugmun_pfda_fillsym){pfda_debug_msg("leaving uppersym2full");fflush(stdout);}
 }
 void test_LU_dchsm(const int *M, const int *N,const double *alpha, const double *A, const int *lda, double *B, const int *ldb){
 	_dchsm(&Left, &Upper, M, N, alpha, A, lda, B, ldb);
@@ -343,21 +315,20 @@ void pfda_matrix_outer_quadratic_form(
 	int const * const dl,
 	double * dp )
 {
-
-	if(checkdebug(dl,debugnum_pfda_matrix_outer_quadratic_form)){
+	pfda_debug_cdl(debugnum_pfda_matrix_outer_quadratic_form){
 		pfda_debug_msg("pfda_matrix_outer_quadratic_form - \n");
-		pfda_debug_msg("Q(in):\n"); printmat(Q, *nrowx, *nrowx);
-		pfda_debug_msg("X:\n"); printmat(X, *nrowx, *nrows);
-		pfda_debug_msg("nrowx:\n%d\n\n",*nrowx);
-		pfda_debug_msg("S:\n"); printmat(S, *nrows, *nrows);
-		pfda_debug_msg("nrows:\n%d\n\n",*nrows);
+		pfda_debug_argmat(Q, *nrowx, *nrowx);
+		pfda_debug_argmat(X, *nrowx, *nrows);
+		pfda_debug_arg(*nrowx);
+		pfda_debug_argmat(S, *nrows, *nrows);
+		pfda_debug_arg(*nrows);
 	}
-	///* memory allocation */
+	/* memory allocation */
 	double* tmp=NULL;
 	tmp = pfdaAlloc_d(*nrowx**nrows, &dp);
 	
-	/*tmp = XS*/	dsymm_(&Right, &Upper, nrowx, nrows, &dOne, S, nrows, X, ldx, &dzero, tmp, nrowx);
-	/*Q = tmp X^T = X S X^t*/		dgemm_(&NoTrans, &Trans, nrowx, nrowx, nrows, &dOne, tmp, nrowx, X, ldx, &dzero, Q, nrowx);//Q=beta tmp A'=beta A S A'
+	/*!\f$tmp = XS\f$*/	dsymm_(&Right, &Upper, nrowx, nrows, &dOne, S, nrows, X, ldx, &dzero, tmp, nrowx);
+	/*!\f$Q = tmp X^T = X S X^t\f$*/		dgemm_(&NoTrans, &Trans, nrowx, nrowx, nrows, &dOne, tmp, nrowx, X, ldx, &dzero, Q, nrowx);//Q=beta tmp A'=beta A S A'
 	pfdaFree(tmp);
 }
 
@@ -386,23 +357,23 @@ void pfda_matrix_inner_quadratic_form(
 		int const * const dl,
 		double * dp)
 {
-	if(checkdebug(dl,debugnum_pfda_matrix_inner_quadratic_form)){
+	pfda_debug_cdl(debugnum_pfda_matrix_inner_quadratic_form){
 		pfda_debug_msg("pfda_matrix_inner_quadratic_form - \n");
-		pfda_debug_msg("Q(in):\n"); printmat(Q, *ncolx, *ncolx);
-		pfda_debug_msg("X:\n"); printmat(X, *nrows, *ncolx);
-		pfda_debug_msg("ncolx:\n%d\n\n",*ncolx);
-		pfda_debug_msg("S:\n"); printmat(S, *nrows, *nrows);
-		pfda_debug_msg("nrows:\n%d\n\n",*nrows);
+		pfda_debug_argmat(Q, *ncolx, *ncolx);
+		pfda_debug_argmat(X, *nrows, *ncolx);
+		pfda_debug_arg(*ncolx);
+		pfda_debug_argmat(S, *nrows, *nrows);
+		pfda_debug_arg(*nrows);
 	}
 	///* memory allocation */
 	double* tmp=NULL;
 	tmp = pfdaAlloc_d(*ncolx**nrows, &dp);
 	
 	/*tmp = SX*/	dsymm_(&Left, &Upper, nrows, ncolx, &dOne, S, nrows, X, ldx, &dzero, tmp, nrows);
-	if(checkdebug(dl,debugnum_pfda_matrix_inner_quadratic_form)){pfda_debug_msg("tmp(S X):\n"); printmat(Q, *nrows, *ncolx);}
+	pfda_debug_cdl(debugnum_pfda_matrix_inner_quadratic_form){pfda_debug_msg("tmp(S X):\n"); pfda_debug_argmat(Q, *nrows, *ncolx);}
 	/*Q = X^T tmp = X^t S X*/		dgemm_(&Trans, &NoTrans, ncolx, ncolx, nrows, &dOne, X, ldx, tmp, nrows, &dzero, Q, ncolx	);//Q=beta tmp A'=beta A S A'
 	pfdaFree(tmp);
-	if(checkdebug(dl,debugnum_pfda_matrix_inner_quadratic_form)){pfda_debug_msg("Q(out):\n"); printmat(Q, *ncolx, *ncolx);}
+	pfda_debug_cdl(debugnum_pfda_matrix_inner_quadratic_form){pfda_debug_argmat(Q, *ncolx, *ncolx);}
 }
 
 
@@ -421,9 +392,9 @@ void pfda_matrix_inner_quadratic_form(
 void pfda_sym_inverse(double * const A,int const * const n, int * sr,
 	int const * const dl, double * dp, int * ip)
 {
-	if(checkdebug(dl,debugnum_pfda_sym_inverse)){
+	pfda_debug_cdl(debugnum_pfda_sym_inverse){
 		pfda_debug_msg("pfda_sym_inverse -\n");
-		pfda_debug_msg("A:\n");printmat(A,*n,*n);
+		pfda_debug_argmat(A,*n,*n);
 		pfda_debug_msg("n: %d\n\n", *n);
 		fflush(stdout); 
 	}
@@ -436,8 +407,8 @@ void pfda_sym_inverse(double * const A,int const * const n, int * sr,
 	// pfdaFree(ipiv);pfdaFree(work);
 	dcopy_(&n2,inv,&one,A,&one);
 	pfda_fillsym(A,n,dl);
-	if(checkdebug(dl,debugnum_pfda_sym_inverse)){
-		pfda_debug_msg("A^-1:\n");printmat(A,*n,*n);
+	pfda_debug_cdl(debugnum_pfda_sym_inverse){
+		pfda_debug_msg("A^-1:\n");pfda_debug_argmat(A,*n,*n);
 		pfda_debug_msg("sr: %d\n\n", *sr);
 		pfda_debug_msg("leaving pfda_sym_inverse\n");
 		fflush(stdout); 

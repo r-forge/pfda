@@ -112,23 +112,25 @@ void pfda_m1(
 	)
 {pfda_debug_step
 	// double *BTfi2=NULL, *BTfi3=NULL;
-	if(checkdebug(dl, debugnum_m1)){
+	pfda_debug_cdl(debugnum_m1){
 		pfda_debug_msg("pfda_m1 - \n");
 		pfda_debug_msg("y:\n");printyvec(y,nobs,N);
-		pfda_debug_msg("nobs:\n");printmati(nobs,1,*N);
-		pfda_debug_msg("M:\n%d\n\n",*M);
-		pfda_debug_msg("N:\n%d\n\n",*N);
-		pfda_debug_msg("ka:\n%d\n\n",*ka);
-		pfda_debug_msg("p:\n%d\n\n",*p);
-		pfda_debug_msg("minV:\n%# 9.8g\n\n",*minV);
-		pfda_debug_msg("tm:\n");printmat(tm,*p,1);
-		pfda_debug_msg("tf:\n");printmat(tf,*p,*ka);
-		pfda_debug_msg("alpha:\n");printmat(alpha,*N,*ka);
+		pfda_debug_argmati(nobs,1,*N);
+		pfda_debug_arg(*M);
+		pfda_debug_arg(*N);
+		pfda_debug_arg(*ka);
+		pfda_debug_arg(*p);
+		pfda_debug_arg(*minV);
+		pfda_debug_argmat(tm,*p,1);
+		pfda_debug_argmat(tf,*p,*ka);
+		pfda_debug_argmat(alpha,*N,*ka);
 		fflush(stdout);
 	}
-	if(checkdebug(dl, debugnum_m1_inputs)){
-		pfda_debug_msg("B:\n");printmat(B,*M,*p);
-		pfda_debug_msg("Saa:\n");int sn;for(sn=0;sn<*N;sn++){pfda_debug_msg("Subject #: %d\n", sn);printmat(Saa+sn**ka**ka,*ka,*ka);}
+	pfda_debug_cdl(debugnum_m1_inputs){
+		pfda_debug_argmat(B,*M,*p);
+		int sn;for(sn=0;sn<*N;sn++){
+			pfda_debug_arg(sn);pfda_debug_argmat(Saa+sn**ka**ka,*ka,*ka);
+		}
 		fflush(stdout);
 	}	///* memory allocation */
 	int maxn = nobs[1], i;for(i=1;i<*N;i++)maxn=MMAX(maxn,nobs[i]);
@@ -141,41 +143,41 @@ void pfda_m1(
 	double const * Sigma_i= Saa;
 	int subjectnum;
 
-	if(checkdebug(dl, debugnum_m1)){pfda_debug_msg("Compute Ry - \n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m1){pfda_debug_msg("Compute Ry - \n");fflush(stdout);}
 	dcopy_(M,y,&one,Ry,&one);
 	dgemv_(&NoTrans, M, p, &mOne, B, M, tm, &one, &dOne, Ry, &one); //Ry -= B*tm  (y-B*tm)
-	if(checkdebug(dl, debugnum_m1)){pfda_debug_msg("Ry = y-B*tm:\n");printyvec(Ry,nobs,N);}
+	pfda_debug_cdl(debugnum_m1){pfda_debug_msg("Ry = y-B*tm:\n");printyvec(Ry,nobs,N);}
 	dgemm_(&NoTrans, &NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);//compute phi = B*tf
-	if(checkdebug(dl, debugnum_m1_inputs)){pfda_debug_msg("phi:\n");printmat(phi,*M,*ka);}
+	pfda_debug_cdl(debugnum_m1_inputs){pfda_debug_argmat(phi,*M,*ka);}
 
-	if(checkdebug(dl, debugnum_m1)){pfda_debug_msg("Enter subject loop - \n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m1){pfda_debug_msg("Enter subject loop - \n");fflush(stdout);}
 	*sigma = 0.0;
 	Ryi=Ry; Sigma_i=Saa; phii=phi;
 	for(subjectnum=0; subjectnum<*N; subjectnum++){
-		if(checkdebug(dl,debugnum_m1_inloop)){pfda_debug_msg("Subject #: %d\n",subjectnum);fflush(stdout);}
+		pfda_debug_cdl(debugnum_m1_inloop){pfda_debug_arg(subjectnum);fflush(stdout);}
 		dgemm_(&NoTrans, &Trans, nobs+subjectnum, &one, ka, &mOne, phii, M, alpha+subjectnum, N, &dOne, Ryi, M);//Ry-=B*Tf*alpha[i]]
 		dsyrk_(&Upper, &Trans, ka, nobs+subjectnum, &dOne, phii, M, &dzero, phiphi, ka);
-		if(checkdebug(dl,debugnum_m1_inloop)){pfda_debug_msg("phi^t phi: \n");printmat(phiphi,*ka,*ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_m1_inloop){pfda_debug_argmat(phiphi,*ka,*ka);fflush(stdout);}
 		dsymm_(&Left, &Upper, ka, ka, &dOne, phiphi, ka, Sigma_i, ka, &dzero, Sigmaphiphi, ka);
-		if(checkdebug(dl,debugnum_m1_inloop)){pfda_debug_msg("Saa phi^t phi: \n");printmat(Sigmaphiphi,*ka,*ka);fflush(stdout);}
+		pfda_debug_cdl(debugnum_m1_inloop){pfda_debug_argmat(Sigmaphiphi,*ka,*ka);fflush(stdout);}
 		*sigma += tr(Sigmaphiphi, *ka); //add traces
-		if(checkdebug(dl,debugnum_m1_inloop)){pfda_debug_msg("sigma(partial sum): %g\n", *sigma);}
+		pfda_debug_cdl(debugnum_m1_inloop){pfda_debug_msg("sigma(partial sum): %g\n", *sigma);}
 		// /* Increment partial pointers */
 		phii+=nobs[subjectnum];
 		Ryi +=nobs[subjectnum];
 		Sigma_i+=*ka**ka;
 	}
-	if(checkdebug(dl, debugnum_m1)){
-		pfda_debug_msg("Ry=(y-B*tm-B*Tf*alpha):\n");printmat(Ry,1,*M);
+	pfda_debug_cdl(debugnum_m1){
+		pfda_debug_msg("Ry=(y-B*tm-B*Tf*alpha):\n");pfda_debug_argmat(Ry,1,*M);
 		pfda_debug_msg("sigma(sum of traces): %g\n", *sigma);
 	}
 
 	*sigma += ddot_(M, Ry, &one, Ry, &one);//sigma += Ry^t*Ry
-	if(checkdebug(dl, debugnum_m1)){pfda_debug_msg("sigma(with Ry^t*Ry): %g\n", *sigma);}
+	pfda_debug_cdl(debugnum_m1){pfda_debug_msg("sigma(with Ry^t*Ry): %g\n", *sigma);}
 
 	*sigma /= *M;//divide by number of observations
 	setMinVar(sigma, &one, minV);
-	if(checkdebug(dl, debugnum_m1)){
+	pfda_debug_cdl(debugnum_m1){
 		pfda_debug_msg("Step 1 results:\n");
 		pfda_debug_msg("sigma:\t%g\n", *sigma);
 	}
@@ -204,24 +206,24 @@ void pfda_m2(
 	double const * const alpha,
 	int const * const dl, double * dp)
 {pfda_debug_step
-	if(checkdebug(dl,debugnum_m2)){
+	pfda_debug_cdl(debugnum_m2){
 		pfda_debug_msg("pfda_m2 - \n");
 		fflush(stdout);
 		pfda_debug_msg("y:\n");printyvec(y,nobs,N);
-		pfda_debug_msg("nobs:\n");printmati(nobs,one,*N);
-		pfda_debug_msg("M:\n%d\n\n",*M);
-		pfda_debug_msg("N:\n%d\n\n",*N);
-		pfda_debug_msg("ka:\n%d\n\n",*ka);
-		pfda_debug_msg("p:\n%d\n\n",*p);
-		pfda_debug_msg("lm:\n%# 9.8g\n\n",*lm);
-		pfda_debug_msg("tf:\n");printmat(tf,*p,*ka);
-		pfda_debug_msg("sigma:\n%# 9.8g\n\n",*lm);
-		pfda_debug_msg("alpha:\n");printmat(alpha,*N,*ka);
+		pfda_debug_argmati(nobs,one,*N);
+		pfda_debug_arg(*M);
+		pfda_debug_arg(*N);
+		pfda_debug_arg(*ka);
+		pfda_debug_arg(*p);
+		pfda_debug_arg(*lm);
+		pfda_debug_argmat(tf,*p,*ka);
+		pfda_debug_arg(*lm);
+		pfda_debug_argmat(alpha,*N,*ka);
 		fflush(stdout);
 	}
-	if(checkdebug(dl,debugnum_m2_inputs_large)){
-		pfda_debug_msg("B:\n");printmat(B,*M,*p);
-		pfda_debug_msg("K:\n");printmat(K,*p,*p);
+	pfda_debug_cdl(debugnum_m2_inputs_large){
+		pfda_debug_argmat(B,*M,*p);
+		pfda_debug_argmat(K,*p,*p);
 		fflush(stdout);
 	}
 	double * Ry        = pfdaAlloc_d(*M, &dp);
@@ -245,30 +247,30 @@ void pfda_m2(
 	}
 	pfdaFree(Ry);
 	pfdaFree(phi);
-	if(checkdebug(dl,debugnum_m2)){
+	pfda_debug_cdl(debugnum_m2){
 		pfda_debug_msg("Ry:\n");printyvec(Ry,nobs,N);
-		pfda_debug_msg("tm (right side of solve):\n");printmat(tm, *p, one);
+		pfda_debug_argmat(tm, *p, one);
 		fflush(stdout);
 	}
 
 
-	if(checkdebug(dl,debugnum_m2)){pfda_debug_msg("PING!\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m2){pfda_debug_msg("PING!\n");fflush(stdout);}
 	double * BtB  = pfdaAlloc_d(*p**p, &dp);
-	if(checkdebug(dl,debugnum_m2)){pfda_debug_msg("PING!\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m2){pfda_debug_msg("PING!\n");fflush(stdout);}
 	dsyrk_(&Upper, &Trans, p, M, &dOne, B, M, &dzero, BtB, p);    // BtB = B^t B
-	if(checkdebug(dl,debugnum_m2)){pfda_debug_msg("PING!\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m2){pfda_debug_msg("PING!\n");fflush(stdout);}
 	for(int i=0;i<*p;i++)for(int j=0;j<=i;j++){  //BtB += sigma * lm * K
 		BtB[i**p+j]+=*sigma**lm*K[i**p+j];
 	}
-	if(checkdebug(dl,debugnum_m2)){pfda_debug_msg("sum B^t B + sigma*lm*K (left side of solve) = \n");printmat(BtB,*p,*p);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m2){pfda_debug_msg("sum B^t B + sigma*lm*K (left side of solve) = \n");pfda_debug_argmat(BtB,*p,*p);fflush(stdout);}
 
 	int sr = 0;
 	dposv_(&Upper, p, &one, BtB, p, tm, p, &sr);
 	pfdaFree(BtB);
 	if(sr)pfda_error("PFDA ERR: Leading minor of order %i is not positive definite (theta_mu)",sr);
 
-	if(checkdebug(dl,debugnum_m2)){
-		pfda_debug_msg("tm(new):\n");printmat(tm, *p, one);
+	pfda_debug_cdl(debugnum_m2){
+		pfda_debug_argmat(tm, *p, one);
 		pfda_debug_msg("leaving pfda_m2\n");
 		fflush(stdout);
 	}
@@ -300,34 +302,33 @@ void pfda_m3_for_subjectnum(
 	int const * const dl,
 	double * dp
 	)
-{pfda_debug_step
-	int const subjectnum = *subject_num;
+{	pfda_debug_step
 	int const estcolnum = *estcol_num;
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("subjectnum=%d\n",subjectnum);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_arg(*subject_num);fflush(stdout);}
 	double * sum_cols = pfdaAlloc_d(*p,&dp);
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("aa_hat_i = \n");printmat(aa_hat_i, *k,*k);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_argmat(aa_hat_i, *k,*k);fflush(stdout);}
 	pfda_uppersymadd(p, left, p, aa_hat_i+estcolnum*(*k+1), btb_i, p, dl);
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("left(partial) = \n");printmat(left, *p,*p);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_argmat(left, *p,*p);fflush(stdout);}
 	for(int cellnum=0;cellnum<*p;cellnum++){sum_cols[cellnum]=0;}
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("entering non-estimating column loop loop\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_msg("entering non-estimating column loop loop\n");fflush(stdout);}
 	for(int colnum=0;colnum<*k;colnum++)if(colnum!=estcolnum){
 		daxpy_(p, aa_hat_i+MMAX(estcolnum,colnum)**k+MMIN(estcolnum,colnum), tf+colnum**p, &one, sum_cols, &one);
-		if(checkdebug(dl, debugnum_m3_level3)){
+		pfda_debug_cdl(debugnum_m3_level3){
 			pfda_debug_msg("adding column # %d\n",colnum);
 			pfda_debug_msg("aa_hat_i offset: %d\n",MMAX(estcolnum,colnum)**k+MMIN(estcolnum,colnum));
 			pfda_debug_msg("multiplier: %9.8g\n",*(aa_hat_i+MMAX(estcolnum,colnum)**k+MMIN(estcolnum,colnum)));
-			pfda_debug_msg("tf[,colnum]:\n");printmat(tf+colnum**p,*p,one);
-			pfda_debug_msg("sum_cols (partial):\n");printmat(sum_cols,*p,one);
+			pfda_debug_argmat(tf+colnum**p,*p,one);
+			pfda_debug_argmat(sum_cols,*p,one);
 			fflush(stdout);}
 	}
-	if(checkdebug(dl, debugnum_m3_level2)){
-		pfda_debug_msg("btb[sn]:\n");printmat(btb_i,*p,*p);
-		pfda_debug_msg("sum_cols:\n");printmat(sum_cols,*p,one);
+	pfda_debug_cdl(debugnum_m3_level2){
+		pfda_debug_argmat(btb_i,*p,*p);
+		pfda_debug_argmat(sum_cols,*p,one);
 		fflush(stdout);}
 	dsymv_(&Upper, p, &mOne, btb_i, p, sum_cols, &one, &dOne, right, &one);
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("right(partial btb x sum_cols):\n");printmat(right,*p,one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_msg("right(partial btb x sum_cols):\n");pfda_debug_argmat(right,*p,one);fflush(stdout);}
 	dgemv_(&Trans, n_i, p, alpha_ij, Bi, M, Ryi, &one, &dOne, right, &one);
-	if(checkdebug(dl, debugnum_m3_level2)){pfda_debug_msg("right(partial):\n");printmat(right,*p,one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level2){pfda_debug_argmat(right,*p,one);fflush(stdout);}
 }
 
 /*! middle fucntion for the 3 comprising the 3rd step of the M step in the algorithm.
@@ -360,13 +361,13 @@ void pfda_m3_for_estcol(
 	int const * const dl, double * dp, int * ip)
 {pfda_debug_step
 	int const estcolnum=*estcol_num;
-	if(checkdebug(dl, debugnum_m3_level1)){pfda_debug_msg("estimating column =%d\n",estcolnum);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level1){pfda_debug_msg("estimating column =%d\n",estcolnum);fflush(stdout);}
 	//double * right=tf+estcolnum**p;
 	int const p2 = *p**p;
 	double * left     = pfdaAlloc_d(p2,&dp);
 	for(int cellnum=0;cellnum<*p;cellnum++){right[cellnum]=0.0;}
 	for(int cellnum=0;cellnum<p2;cellnum++){left[cellnum]=0.0;}
-	if(checkdebug(dl, debugnum_m3_level1)){pfda_debug_msg("entering subject loop\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level1){pfda_debug_msg("entering subject loop\n");fflush(stdout);}
 	double const *Bi=B, *Ryi=Ry;
 	for(int subjectnum=0;subjectnum<*N;subjectnum++){
 		pfda_m3_for_subjectnum(right, left, Ryi, nobs+subjectnum, M, k, Bi, tf, p,
@@ -378,8 +379,8 @@ void pfda_m3_for_estcol(
 	double penalty_multiplier = *sigma**lf;
 	pfda_uppersymadd(p, left, p, &penalty_multiplier, K, p, dl);
 
-	if(checkdebug(dl, debugnum_m3_level1)){pfda_debug_msg("left:\n");printmat(left, *p,*p);fflush(stdout);}
-	if(checkdebug(dl, debugnum_m3_level1)){pfda_debug_msg("right:\n");printmat(right,*p,one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level1){pfda_debug_argmat(left, *p,*p);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3_level1){pfda_debug_argmat(right,*p,one);fflush(stdout);}
 	int sr=0;
 	int lwork = -1;
 	double thiswork =0;
@@ -419,13 +420,13 @@ void pfda_m3_core(
 	double const * const btb,
 	int const * const dl, double * dp, int * ip)
 {pfda_debug_step
-	if(checkdebug(dl, debugnum_m3)){
+	pfda_debug_cdl(debugnum_m3){
 		pfda_debug_msg("entering pfda_m3_core\n");
-		pfda_debug_msg("lf: %# 9.8g\n",*lf);
-		pfda_debug_msg("tm:\n");printmat(tm,*p,one);
-		pfda_debug_msg("tf:\n");printmat(tf,*p,*k);
-		pfda_debug_msg("alpha:\n");printmat(alpha,*N,*k);
-		pfda_debug_msg("B:\n");printmat(B,*M,*p);
+		pfda_debug_arg(*lf);
+		pfda_debug_argmat(tm,*p,one);
+		pfda_debug_argmat(tf,*p,*k);
+		pfda_debug_argmat(alpha,*N,*k);
+		pfda_debug_argmat(B,*M,*p);
 		fflush(stdout);
 	}
 
@@ -434,15 +435,15 @@ void pfda_m3_core(
 	dcopy_(M, y, &one, Ry, &one); //set Ry=y
 	dgemv_(&NoTrans, M, p, &mOne, B, M, tm, &one, &dOne, Ry, &one); //Ry -= B*tm  (y-B*tm)
 
-	if(checkdebug(dl, debugnum_m3)){pfda_debug_msg("loop prep.\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3){pfda_debug_msg("loop prep.\n");fflush(stdout);}
 
-	if(checkdebug(dl, debugnum_m3)){pfda_debug_msg("entering estimating column loop\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3){pfda_debug_msg("entering estimating column loop\n");fflush(stdout);}
 	for(int estcolnum=0;estcolnum<*k;estcolnum++){
 		pfda_m3_for_estcol(tf+estcolnum**p, aa_hats, Ry, nobs, M, N, k, B, p, lf,
 			K, tm, tf, sigma, alpha,  btb, &estcolnum, dl, dp, ip);
 	}
-	if(checkdebug(dl, debugnum_m3)){pfda_debug_msg("tf(new):\n");printmat(tf,*p,*k);fflush(stdout);}
-	if(checkdebug(dl, debugnum_m3)){pfda_debug_msg("leaving pfda_m3_core\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3){pfda_debug_argmat(tf,*p,*k);fflush(stdout);}
+	pfda_debug_cdl(debugnum_m3){pfda_debug_msg("leaving pfda_m3_core\n");fflush(stdout);}
 }
 
 /*! @brief wrapper for the pfda_m3_core that does all the work for the single linear alorithm
@@ -475,7 +476,7 @@ void pfda_m3(
 	double * aa_hats = pfdaAlloc_d(k2**N, &dp);
 	for(int subject=0;subject<*N;subject++){
 		pfda_cond_dd( aa_hats+subject**k**k, alpha+subject, N, Saa+subject*k2, k, dl);
-		if(checkdebug(dl, debugnum_m3)){pfda_debug_msg("aa_hats[%d]:\n",subject);printmat(aa_hats+subject**k**k,*k,*k);fflush(stdout);}
+		pfda_debug_cdl(debugnum_m3){pfda_debug_argmat(aa_hats+subject**k**k,*k,*k);fflush(stdout);}
 	}
 	pfda_m3_core( tf, aa_hats, y, nobs, M, N, k, B, p, lf, K, tm, sigma, alpha, btb, dl, dp, ip);
 }
@@ -523,12 +524,12 @@ void pfda_m5_0(
 	double const * const minV,
 	int const * const dl, double * dp, int * ip	)
 {pfda_debug_step
-	if(checkdebug(dl,debugnum_m5_0)){
+	pfda_debug_cdl(debugnum_m5_0){
 		pfda_debug_msg("pfda_m5_1 - \n");
 		pfda_debug_msg("N:\n%d\n\n",*N );
-		pfda_debug_msg("delta:\n"); printmat(delta, *N, *k);
-		pfda_debug_msg("k:\n%d\n\n",*k);
-		pfda_debug_msg("Theta:\n"); printmat(Theta, *p, *k);
+		pfda_debug_argmat(delta, *N, *k);
+		pfda_debug_arg(*k);
+		pfda_debug_argmat(Theta, *p, *k);
 		fflush(stdout);
 	}
 	/* memory allocation  and initialization */
@@ -541,19 +542,19 @@ void pfda_m5_0(
 	{//braces issolate the use of Sigma_d
 	double inverseN=1/((double)(*N));
 	double * Sigma_d=Transformation; ///Sigma_d borrows the memory from Transofrmation to use compute hold the sum, and related computations.
-	if(checkdebug(dl,debugnum_m5_0)){	pfda_debug_msg("sum conditional expectations\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m5_0){	pfda_debug_msg("sum conditional expectations\n");fflush(stdout);}
 	dcopy_(&k2,sum_dd_hat, &one, Sigma_d,&one);
-	if(checkdebug(dl,debugnum_m5_0)){
-		pfda_debug_msg("Sigma_d(pre-scale):\n"); printmat(Sigma_d, *k, *k);
-		pfda_debug_msg("inverseN:\n%g5.3\n\n",inverseN);
+	pfda_debug_cdl(debugnum_m5_0){
+		pfda_debug_argmat(Sigma_d, *k, *k);
+		pfda_debug_arg(inverseN);
 		fflush(stdout);
 	}
 	dscal_(&k2, &inverseN, Sigma_d, &one);
 	pfda_matrix_outer_quadratic_form(TST,Theta,p,p,Sigma_d,k,dl, dp);
-	if(checkdebug(dl,debugnum_m5_0)){
-		pfda_debug_msg("Sigma_d(post-scale):\n"); printmat(Sigma_d, *k, *k);
+	pfda_debug_cdl(debugnum_m5_0){
+		pfda_debug_argmat(Sigma_d, *k, *k);
 		pfda_debug_msg("Compute eigen values\n");
-		pfda_debug_msg("TST:\n"); printmat(TST, *p, *p);
+		pfda_debug_argmat(TST, *p, *p);
 		fflush(stdout);
 		}
 	Sigma_d=NULL;
@@ -563,11 +564,11 @@ void pfda_m5_0(
 	double * values    = pfdaAlloc_d(*p,&dp);
 	pfda_eigens(TST,p,vectors, values,k,dl, dp, ip );
 
-	if(checkdebug(dl,debugnum_m5_0)){	pfda_debug_msg("compute transformation\n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_m5_0){	pfda_debug_msg("compute transformation\n");fflush(stdout);	}
 	/* delta_i<-Q^T\Theta\delta_i */
 	dgemm_(&Trans,&NoTrans, k, k, p, &dOne, vectors, p, Theta, p, &dzero, Transformation, k);
-	if(checkdebug(dl,debugnum_m5_0)){
-		pfda_debug_msg("Transformation: \n");printmat(Transformation, *k, *k);;fflush(stdout);
+	pfda_debug_cdl(debugnum_m5_0){
+		pfda_debug_argmat(Transformation, *k, *k);;fflush(stdout);
 		pfda_debug_msg("transform delta\n");fflush(stdout);	}
 
 	double * delta_tmp = pfdaAlloc_d(*k,&dp);
@@ -575,13 +576,13 @@ void pfda_m5_0(
 		dcopy_(k,delta+obsnum,N,delta_tmp,&one);
 		dgemv_(&NoTrans, k, k, &dOne, Transformation, k, delta_tmp, &one, &dzero, delta+obsnum, N);
 	}
-	if(checkdebug(dl,debugnum_m5_0)){pfda_debug_msg("copy new values into Theta and D\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m5_0){pfda_debug_msg("copy new values into Theta and D\n");fflush(stdout);}
 	int kp=*k**p;
 	dcopy_(&kp, vectors, &one, Theta, &one);
 	dcopy_(k, values, &one, D, &one);
 	setMinVar(D, k, minV);
 
-	if(checkdebug(dl,debugnum_m5_0)){pfda_debug_msg("leaving pfda_m5_1\n");fflush(stdout);	}
+	pfda_debug_cdl(debugnum_m5_0){pfda_debug_msg("leaving pfda_m5_1\n");fflush(stdout);	}
 }
 
 /*!  Wrapper function that addes the necessary sumation of \f$ \sum\limits_{i=1}^N\widehat{\delta_i\delta_i^T} \f$ for the linear case.
@@ -621,11 +622,11 @@ void pfdaSingle_m5(
 	int const * const dl, double * dp,int * ip
 	)
 {pfda_debug_step
-	if(checkdebug(dl,debugnum_m5)){pfda_debug_msg("pfdaSingle_m5\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m5){pfda_debug_msg("pfdaSingle_m5\n");fflush(stdout);}
 	double * transformation = pfdaAlloc_d(*k**k,&dp);
 	pfda_m5_1(N, delta, k, Sigma_dd, Theta, D, p, transformation, minV, dl, dp, ip);
 	pfdaFree(transformation);
-	if(checkdebug(dl,debugnum_m5)){pfda_debug_msg("leaving pfdaSingle_m5\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_m5){pfda_debug_msg("leaving pfdaSingle_m5\n");fflush(stdout);}
 }
 
 /*!  Performs the E step for the univariate version.
@@ -649,18 +650,18 @@ void pfdaSingle_e(
 	double const * const sigma,
 	const int * const dl, double *dp , int * ip)
 {pfda_debug_step
-	if(checkdebug(dl, debugnum_single_e)){pfda_debug_msg("pfdaSingle_e - \n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e){pfda_debug_msg("pfdaSingle_e - \n");fflush(stdout);}
 
 	///* memory allocation */
 	double * Ry       = pfdaAlloc_d(*M,&dp);
 	double * phi      = pfdaAlloc_d(*M**ka, &dp);
 	//double * alphaTmp = pfdaAlloc_d(*ka**N,&dp);
 	double inv_epsilon = 1.0 / *sigma;
-	if(checkdebug(dl, debugnum_single_e)){pfda_debug_msg("sigma epsilon inverse: %g\n",inv_epsilon);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e){pfda_debug_msg("sigma epsilon inverse: %g\n",inv_epsilon);fflush(stdout);}
 
 	pfda_computeResid(Ry, y, nobs, M, N, ka, B, p, tm, NULL, NULL, dl, dp);
 	// the nulls mean that the PC functions are not subtracted off and the phi matrix is not computed.   The memoy requirement for the above is 0.
-	if(checkdebug(dl, debugnum_single_e)){pfda_debug_msg("Ry:\n");
+	pfda_debug_cdl(debugnum_single_e){pfda_debug_msg("Ry:\n");
 				printyvec(Ry, nobs,N);fflush(stdout);}
 
 	dgemm_(&NoTrans, &NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);//compute BTf = B*tf
@@ -669,27 +670,6 @@ void pfdaSingle_e(
 	double *phii=phi, *Sigma_i=Saa, *Ryi=Ry;
 	for(int obsnum=0;obsnum<*N;obsnum++){
 		pfdaSingle_e_1( alpha+obsnum, N, Sigma_i, Ryi, nobs+obsnum, M, ka, phii, Da, &inv_epsilon, dl, dp, ip);
-/* 		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("obsnum: %d\n",obsnum);fflush(stdout);}
-		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii:\n");printmat2(nobs[obsnum],*ka,phii,M);fflush(stdout);}
-
-		dsyrk_(&Upper, &Trans, ka, nobs+obsnum, &inv_epsilon, phii, M, &dzero, Sigma_i, ka);
-		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
-		addInvDiag(ka, Da, Sigma_i, ka);
-		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
-
-		int sr=0;
-		pfda_sym_inverse(Sigma_i,ka, &sr, dl, dp, ip);
-		if(sr>0) pfda_error("PFDA ERR - pfdaSingle_e: pfda_sym_inverse returned %d\n",sr);
-		pfda_debug_cdl(debugnum_single_e_inloop){
-			pfda_debug_msg("pfda_sym_inverse Sigma_i success\n");
-			pfda_debug_msg("Sigma_i:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);
-		}
-
-		dgemv_(&Trans, nobs+obsnum, ka, &dOne, phii, M, Ryi, &one, &dzero, alphaTmp+obsnum, N); 	// alphaTmp = phii^T * Ry
-		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp+obsnum,N);fflush(stdout);}
-		dsymv_(&Upper, ka, &inv_epsilon, Sigma_i, ka, alphaTmp+obsnum, N, &dzero, alpha+obsnum, N);		// alpha = 1/sigma * Sigma_i * alphaTmp
-		pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha+obsnum,N);fflush(stdout);} */
-
 		phii+=nobs[obsnum];
 		Ryi +=nobs[obsnum];
 		Sigma_i += *ka**ka;
@@ -716,25 +696,25 @@ void pfdaSingle_e_1(
 	int const * const dl, double *dp , int * ip)
 {pfda_debug_step
 	double * alphaTmp = pfdaAlloc_d(*ka,&dp);
-	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii:\n");printmat2(*nobs_i,*ka,phii,M);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_argmat2(*nobs_i,*ka,phii,M);fflush(stdout);}
 
 	dsyrk_(&Upper, &Trans, ka, nobs_i, inv_epsilon, phii, M, &dzero, Sigma_i, ka);
-	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t phii:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t phii:\n");pfda_debug_argmat(Sigma_i,*ka,*ka);fflush(stdout);}
 	addInvDiag(ka, Da, Sigma_i, ka);
-	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("Da^-1+phi^t phi:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("Da^-1+phi^t phi:\n");pfda_debug_argmat(Sigma_i,*ka,*ka);fflush(stdout);}
 
 	int sr=0;
 	pfda_sym_inverse(Sigma_i,ka, &sr, dl, dp, ip);
 	if(sr>0) pfda_error("PFDA ERR - pfdaSingle_e: pfda_sym_inverse returned %d\n",sr);
 	pfda_debug_cdl(debugnum_single_e_inloop){
 		pfda_debug_msg("pfda_sym_inverse Sigma_i success\n");
-		pfda_debug_msg("Sigma_i:\n");printmat(Sigma_i,*ka,*ka);fflush(stdout);
+		pfda_debug_argmat(Sigma_i,*ka,*ka);fflush(stdout);
 	}
 
 	dgemv_(&Trans, nobs_i, ka, &dOne, phii, M, Ryi, &one, &dzero, alphaTmp, &one); 	// alphaTmp = phii^T * Ry
-	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t Ryi:\n");printmat2(one,*ka,alphaTmp,&one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("phii^t Ryi:\n");pfda_debug_argmat2(one,*ka,alphaTmp,&one);fflush(stdout);}
 	dsymv_(&Upper, ka, inv_epsilon, Sigma_i, ka, alphaTmp, &one, &dzero, alpha_i, ldalpha);		// alpha = 1/sigma * Sigma_i * alphaTmp
-	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_msg("alpha_i:\n");   printmat2(one,*ka,alpha_i,ldalpha);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_e_inloop){pfda_debug_argmat2(one,*ka,alpha_i,ldalpha);fflush(stdout);}
 }
 
 /*! performs the univariate fit for original model of functional data analysis using functional principle components
@@ -808,34 +788,34 @@ if(*dl){
 pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
 pfda_debug_cdl(debugnum_single_inputs){
 	pfda_debug_msg("INPUTS\n----------------------------------------\n");
-	pfda_debug_msg("M:\t%d\n",*M);
+	pfda_debug_arg(*M);
 	pfda_debug_msg("N:\t%d\n",*N );
-	pfda_debug_msg("ka:\t%d\n",*ka);
-	pfda_debug_msg("p:\t%d\n",*p);
-	pfda_debug_msg("lm:\t%g\n",*lm);
-	pfda_debug_msg("lf:\t%g\n",*lf);
+	pfda_debug_arg(*ka);
+	pfda_debug_arg(*p);
+	pfda_debug_arg(*lm);
+	pfda_debug_arg(*lf);
 	pfda_debug_msg("sigma:\n%g\n", *sigma);
-	pfda_debug_msg("minV:\n%g\n",*minV);
+	pfda_debug_arg(*minV);
 	pfda_debug_msg("Tolerance:\t%g\nMaximun Iterations:\t%d\n",  *tol, *maxI);
 	fflush(stdout);
 
 	pfda_debug_msg("Vector Arguments:\n");
-	pfda_debug_msg("t:\n"); printmat(t, 1, *M);
-	pfda_debug_msg("y:\n"); printmat(y, 1, *M);
+	pfda_debug_argmat(t, 1, *M);
+	pfda_debug_argmat(y, 1, *M);
 	pfda_debug_msg("nobs:\n"); for(int i=0;i<*N;i++)pfda_debug_msg("%d\t",nobs[i]); pfda_debug_msg("\n\n");
 	fflush(stdout);
 
 	pfda_debug_msg("Outputs:");
-	pfda_debug_msg("tm:\n"); printmat(tm, 1, *p);
-	pfda_debug_msg("tf:\n"); printmat(tf, *p, *ka);
-	pfda_debug_msg("Da:\n"); printmat(Da, 1, *ka);
-	pfda_debug_msg("alpha:\n"); printmat(alpha, *N, *ka);
+	pfda_debug_argmat(tm, 1, *p);
+	pfda_debug_argmat(tf, *p, *ka);
+	pfda_debug_argmat(Da, 1, *ka);
+	pfda_debug_argmat(alpha, *N, *ka);
 	fflush(stdout);
 }
 pfda_debug_cdl(debugnum_single_inputs_large){
-	pfda_debug_msg("K:\n"); printmat(K, *p, *p);
-	pfda_debug_msg("B:\n"); printmat(B, *M, *p);
-	pfda_debug_msg("Saa:\n"); printmat(Saa, *N, *ka**ka);
+	pfda_debug_argmat(K, *p, *p);
+	pfda_debug_argmat(B, *M, *p);
+	pfda_debug_argmat(Saa, *N, *ka**ka);
 }
 }
 pfdaFindInitSingle(t, y, nobs, M, N, ka,  B,  p,  minV, //input values
@@ -867,33 +847,33 @@ while(I < *maxI)/*  */{
 {///* step 1 */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 1\n");fflush(stdout);}
 	pfda_m1(sigma,y,nobs,M,N,ka,B,p,minV,tm,tf,alpha,Saa,dl, dp);
-	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("sigma: %# .8g\n\n", *sigma);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_estimates){pfda_debug_msg("sigma: %# .8g\n\n", *sigma);fflush(stdout);}
 }
 {///* step 2 */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 2\n");fflush(stdout);}
 	pfda_m2(tm,y,nobs,M,N,ka,B,p,lm,K,tf,sigma,alpha,dl, dp);
-	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("tm: \n");printmat(tm,*p,one);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_estimates){pfda_debug_argmat(tm,*p,one);fflush(stdout);}
 }
 {///* step 3 */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 3\n");fflush(stdout);}
 	pfda_m3(tf, y, nobs, M, N, ka, B, p, lf, K, tm, sigma, alpha, Saa, btb, dl, dp, ip);
-	if(checkdebug(dl, debugnum_single_estimates)){pfda_debug_msg("tf: \n");printmat(tf,*p,*ka);fflush(stdout);}
+	pfda_debug_cdl(debugnum_single_estimates){pfda_debug_argmat(tf,*p,*ka);fflush(stdout);}
 }
 {///* Steps 4 & 5 */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step 4&5\n");fflush(stdout);}
 	pfdaSingle_m5(N, alpha, ka, Saa, tf, Da, p, minV, dl, dp, ip);
-	if(checkdebug(dl, debugnum_single_estimates)){
-		pfda_debug_msg("tf: \n");printmat(tf,*p,*ka);
-		pfda_debug_msg("Da: \n");printmat(Da,*ka,one);
-		pfda_debug_msg("alpha: \n");printmat(alpha,*p,*ka);
+	pfda_debug_cdl(debugnum_single_estimates){
+		pfda_debug_argmat(tf,*p,*ka);
+		pfda_debug_argmat(Da,*ka,one);
+		pfda_debug_argmat(alpha,*p,*ka);
 		fflush(stdout);}
 }
 {///* E-Step */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Step E\n");fflush(stdout);}
 	pfdaSingle_e(alpha, Saa, y, nobs, M, N, ka, B, p, tm, tf, Da, sigma, dl, dp, ip);
-	if(checkdebug(dl, debugnum_single_estimates)){
-		pfda_debug_msg("alpha: \n");printmat(alpha,*p,*ka);
-		pfda_debug_msg("Saa: \n");printmat(Saa,*N,*ka**ka);
+	pfda_debug_cdl(debugnum_single_estimates){
+		pfda_debug_argmat(alpha,*p,*ka);
+		pfda_debug_argmat(Saa,*N,*ka**ka);
 		fflush(stdout);}
 }
 {///* Compute Convergence Criteria */
@@ -1138,33 +1118,33 @@ if(*dl){
 pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Entering pfdaSingle\n");fflush(stdout);}
 pfda_debug_cdl(debugnum_single_inputs){
 	pfda_debug_msg("INPUTS\n----------------------------------------\n");
-	pfda_debug_msg("M:\t%d\n",*M);
-	pfda_debug_msg("N:\t%d\n",*N );
-	pfda_debug_msg("k:\t%d\n",*k);
-	pfda_debug_msg("p:\t%d\n",*p);
-	pfda_debug_msg("lm:\t%g\n",*lm);
-	pfda_debug_msg("lf:\t%g\n",*lf);
-	pfda_debug_msg("sigma:\n%g\n", *sigma);
-	pfda_debug_msg("minV:\n%g\n",*minV);
+	pfda_debug_arg(*M);
+	pfda_debug_arg(*N);
+	pfda_debug_arg(*k);
+	pfda_debug_arg(*p);
+	pfda_debug_arg(*lm);
+	pfda_debug_arg(*lf);
+	pfda_debug_arg(*sigma);
+	pfda_debug_arg(*minV);
 	pfda_debug_msg("Tolerance:\t%g\nMaximun Iterations:\t%d\n",  *tol, *maxI);
 	fflush(stdout);
 
 	pfda_debug_msg("Vector Arguments:\n");
-	pfda_debug_msg("y:\n"); printmat(y, 1, *M);
-	pfda_debug_msg("nobs:\n"); for(int i=0;i<*N;i++)pfda_debug_msg("%d\t",nobs[i]); pfda_debug_msg("\n\n");
+	pfda_debug_yvec(y);
+	pfda_debug_argveci(nobs,N);
 	fflush(stdout);
 
 	pfda_debug_msg("Outputs:");
-	pfda_debug_msg("tm:\n"); printmat(tm, 1, *p);
-	pfda_debug_msg("tf:\n"); printmat(tf, *p, *k);
-	pfda_debug_msg("Da:\n"); printmat(Da, 1, *k);
-	pfda_debug_msg("alpha:\n"); printmat(alpha, *N, *k);
+	pfda_debug_argmat(tm, 1, *p);
+	pfda_debug_argmat(tf, *p, *k);
+	pfda_debug_argmat(Da, 1, *k);
+	pfda_debug_argmat(alpha, *N, *k);
 	fflush(stdout);
 }
 pfda_debug_cdl(debugnum_single_inputs_large){
-	pfda_debug_msg("K:\n"); printmat(K, *p, *p);
-	pfda_debug_msg("B:\n"); printmat(B, *M, *p);
-	pfda_debug_msg("Saa:\n"); printmat(Saa, *N, *k**k);
+	pfda_debug_argmat(K, *p, *p);
+	pfda_debug_argmat(B, *M, *p);
+	pfda_debug_argmat(Saa, *N, *k**k);
 }
 }
 

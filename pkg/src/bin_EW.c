@@ -23,13 +23,13 @@ void pfda_matrix_drop1(
 	int    const * const droprow,
 	int const * const dl)
 {pfda_debug_step
-	// if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("Entering pfda_matrix_drop1\n");
+	// pfda_debug_cdl(debugnum_pfda_matrix_drop1)pfda_debug_msg("Entering pfda_matrix_drop1\n");
 	for(int col=0;col<*ncol;col++){
 		pfda_debug_line;
 		int newrow=0, oldrow=0;
 		while(oldrow<*nrow)if(oldrow!=*droprow)new[col**ldnew + newrow++]=old[col**ldold + oldrow++]; else oldrow++;
 	}
-	// if(checkdebug(dl,debugnum_pfda_matrix_drop1))pfda_debug_msg("exiting pfda_matrix_drop1\n");
+	// pfda_debug_cdl(debugnum_pfda_matrix_drop1)pfda_debug_msg("exiting pfda_matrix_drop1\n");
 }
 
 /*!  computes the parameters for generating W|Y
@@ -49,10 +49,10 @@ void pfda_bin_single_generate_w_parms1(
 	int const * const dl,
 	double * dp, int * ip)
 {pfda_debug_step
-	// if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Entering debugnum_pfda_bin_single_generate_w_parms1\n");
+	// pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms1)pfda_debug_msg("Entering debugnum_pfda_bin_single_generate_w_parms1\n");
 	// /* compute \mu^* and \sigma^* */
 	pfdaSingle_e_1( mu, &one, sigma, RW_trimmed, ni_trimmed, ni_trimmed, k, phi_trimmed, Da, &dOne, dl, dp, ip);
-	// if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms1))pfda_debug_msg("Exiting debugnum_pfda_bin_single_generate_w_parms1\n");
+	// pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms1)pfda_debug_msg("Exiting debugnum_pfda_bin_single_generate_w_parms1\n");
 }
 
 /*! 	Computes parameters for generating W|Y
@@ -83,12 +83,12 @@ void pfda_bin_single_generate_w_parms2(
 		fflush(stdout);
 	};
 	// /* a_ij */
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms2))pfda_debug_msg("Computing a\n");
+	pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms2)pfda_debug_msg("Computing a\n");
 	double * tfmu = pfdaAlloc_d(*p, &dp);
 	dgemv_(&NoTrans, p,k, &dOne, tf, p, mu, &one, &dzero, tfmu, &one);
 	daxpy_(p, &dOne, tm, &one, tfmu, &one);
 	*a = ddot_(p, B, M, tfmu, &one);
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms2)){pfda_debug_msg("a:  %g\n", *a);fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms2){pfda_debug_msg("a:  %g\n", *a);fflush(stdout);}
 	
 	// /* sigma_ij */
 	double * tfb = pfdaAlloc_d(*k,&dp);
@@ -100,8 +100,8 @@ void pfda_bin_single_generate_w_parms2(
 	// pfda_matrix_outer_quadratic_form(tmp,tf,p,p,sigma,k,dl,dp );
 	// pfda_matrix_inner_quadratic_form(s,B,&one,M,tmp,p,dl,dp );
 	*s += dOne;
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms2)){pfda_debug_msg("s:  %g\n", *s);fflush(stdout);}
-	if(checkdebug(dl,debugnum_pfda_bin_single_generate_w_parms2))pfda_debug_msg("Exiting pfda_bin_single_generate_w_parms2\n");
+	pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms2){pfda_debug_msg("s:  %g\n", *s);fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_bin_single_generate_w_parms2)pfda_debug_msg("Exiting pfda_bin_single_generate_w_parms2\n");
 }
 
 
@@ -129,8 +129,8 @@ void pfda_bin_s_gen_w(
 	int const * const dl,
 	double * dp, int * ip)
 {
-	if(checkdebug(dl,debugnum_pfda_bin_s_gen_w))pfda_debug_msg("entering pfda_bin_s_gen_w\n");
-	if(checkdebug(dl,debugnum_pfda_bin_s_gen_w)){
+	pfda_debug_cdl(debugnum_pfda_bin_s_gen_w)pfda_debug_msg("entering pfda_bin_s_gen_w\n");
+	pfda_debug_cdl(debugnum_pfda_bin_s_gen_w){
 		pfda_debug_msg("RWi: \n");printmat(RWi,*ni,one);
 		fflush(stdout);
 	}	
@@ -147,7 +147,7 @@ void pfda_bin_s_gen_w(
 			RW_trimmed[o] = RWi[l]; 
 		}
 	}
-	if(checkdebug(dl,debugnum_pfda_bin_s_gen_w)){
+	pfda_debug_cdl(debugnum_pfda_bin_s_gen_w){
 		pfda_debug_msg("RW_trimmed: \n");printmat(RW_trimmed,ni_trimmed,one);
 		fflush(stdout);
 	}
@@ -158,7 +158,7 @@ void pfda_bin_s_gen_w(
 	double a_ij=0.0, sigma_ij=0.0;
 	pfda_bin_single_generate_w_parms1( mu, sigma, RW_trimmed, Da, phi_trimmed, k, &ni_trimmed, dl, dp, ip);
 	pfda_bin_single_generate_w_parms2( &a_ij, &sigma_ij, mu, sigma, Bi+*j, M, p, tm, tf, k, dl, dp);
-	if(checkdebug(dl,debugnum_pfda_bin_s_gen_w)){
+	pfda_debug_cdl(debugnum_pfda_bin_s_gen_w){
 		pfda_debug_msg("mu: \n");printmat(mu,*k,one);
 		pfda_debug_msg("sigma: \n");printmat(sigma,*k,*k);
 		pfda_debug_msg("a_ij: %g\n",a_ij);
@@ -209,7 +209,7 @@ void pfda_bin_single_approximate_moments_forobs(
 	int const * const dl, double * dp, int * ip)
 {
 	/// Rversion is almost .bin_s_w_1 but includes the weight.
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments_forobs)){
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments_forobs){
 		pfda_debug_msg("Entering pfda_bin_single_approximate_moments_forobs\n");
 		pfda_debug_msg("Weight: %g\n",*weight);
 	}
@@ -218,7 +218,7 @@ void pfda_bin_single_approximate_moments_forobs(
 	pfda_computeResid(RW_i,w_i,n_i, M, NULL, k, Bi, p, tm, NULL, NULL, dl, dp);
 	
 	double * wsim = pfdaAlloc_d(*n_i**kr, &dp);
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments_forobs)){
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments_forobs){
 		pfda_debug_msg("wsim:\n");printmat(wsim,*kr,*n_i);
 	}
 	for(int j=0;j<*n_i;j++)
@@ -228,20 +228,20 @@ void pfda_bin_single_approximate_moments_forobs(
 	double * V1 = pfdaAlloc_d(*kr,&dp);
 	for(int i=0;i<*kr;i++)V1[i]=krinv;
 	
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments_forobs)){
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments_forobs){
 		pfda_debug_msg("wsim:\n");printmat(wsim,*kr,*n_i);
 	}
 	double cweight = (1-*weight);
 	dgemv_(&Trans, kr, n_i, weight, wsim, kr, V1, &one, &cweight, w_i, &one);
 
 	double w2 = *weight/(double)*kr;
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments_forobs)){
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments_forobs){
 		pfda_debug_msg("w2: %g\n",w2);
 		pfda_debug_msg("wsim:\n");printmat(wsim,*kr,*n_i);
 	}
 	dsyrk_(&Upper, &Trans, n_i, kr, &w2, wsim, kr, &cweight, ww_i, n_i);
 	pfda_fillsym (ww_i,n_i,dl);
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments_forobs))
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments_forobs)
 		pfda_debug_msg("Exiting pfda_bin_single_approximate_moments_forobs\n");
 }
 
@@ -274,7 +274,7 @@ void pfda_bin_single_approximate_moments(
 	int const * const dl,
 	double * dp, int * ip)
 {
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments)){
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments){
 		pfda_debug_msg("Entering pfda_bin_single_approximate_moments\n");
 		pfda_debug_msg("w:\n");printyvec(w,nobs,N);
 		pfda_debug_msg("ww:\n");double*wwi=ww;for(int i=0;i<*N;i++){pfda_debug_msg("ww[%d]:\n",i);printmat(wwi,nobs[i],nobs[i]);wwi+=nobs[i]*nobs[i];}
@@ -294,15 +294,15 @@ void pfda_bin_single_approximate_moments(
 	int const * y_i = y;
 	double * w_i=w, *ww_i = ww;
 	double const *Bi=B;
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments)){pfda_debug_msg("Entering obsnum loop\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments){pfda_debug_msg("Entering obsnum loop\n");fflush(stdout);}
 	for(int obsnum=0;obsnum<*N;obsnum++){
-		if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments)){pfda_debug_msg("obsnum= %d\n",obsnum);fflush(stdout);}
+		pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments){pfda_debug_msg("obsnum= %d\n",obsnum);fflush(stdout);}
 		pfda_bin_single_approximate_moments_forobs(w_i,ww_i, y_i, nobs+obsnum, M, p, k, tm, Bi, tf, Da, kr, weight, dl, dp, ip);
 		w_i     += nobs[obsnum];
 		ww_i    += nobs[obsnum]*nobs[obsnum];
 		y_i     += nobs[obsnum];
 		Bi   += nobs[obsnum];
 	}
-	if(checkdebug(dl,debugnum_pfda_bin_single_approximate_moments))pfda_debug_msg("leaving pfda_bin_single_approximate_moments\n");
+	pfda_debug_cdl(debugnum_pfda_bin_single_approximate_moments)pfda_debug_msg("leaving pfda_bin_single_approximate_moments\n");
 }
 

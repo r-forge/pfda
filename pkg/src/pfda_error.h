@@ -27,6 +27,11 @@
 	#define pfda_debug_argveci(e,n) pfda_debug_msg("%s:\t",#e);printveci(e,n)
 	#define pfda_debug_argmat(e,r,c) pfda_debug_msg("%s:\n",#e);printmat(e,r,c)
 	#define pfda_debug_argmati(e,r,c) pfda_debug_msg("%s:\n",#e);printmati(e,r,c)
+	#define pfda_debug_argmat2(r,c,e,m) pfda_debug_msg("%s:\n",#e);printmat2(r,c,e,m)
+	#define pfda_debug_argyvec(y,o,n) 	{pfda_debug_msg("obs  | %s\n",#y);printyvec(y,o,n);}
+	#define pfda_debug_yvec(y) pfda_debug_argyvec(y,nobs,N)
+	#define pfda_debug_argyveci(y,o,n) 	{pfda_debug_msg("obs  | %s\n",#y);printyveci(y,o,n);}
+	#define pfda_debug_yveci(y) pfda_debug_argyvec(y,nobs,N)
 #else
 	#define pfda_debug_cdl(num) if(0L)
 	#define pfda_debug_msg(s,args...)
@@ -41,6 +46,11 @@
 	#define pfda_debug_argveci(e,n) 
 	#define pfda_debug_argmat(e,r,c) 
 	#define pfda_debug_argmati(e,r,c) 
+	#define pfda_debug_argmat2(e,r,c,m)
+	#define pfda_debug_argyvec(y,o,n)
+	#define pfda_debug_yvec(y)
+	#define pfda_debug_argyveci(y,o,n)
+	#define pfda_debug_yveci(y)
 #endif  //DEBUG
 
 /*!  	@enum pfda_debug_num

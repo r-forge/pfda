@@ -31,18 +31,18 @@ void pfda_s_i(
 	int const * const dl,
 	double * dp, int * ip)
 {
-	if(checkdebug(dl,debugnum_s_i)){pfda_debug_msg("entering pfda_s_i\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_s_i){pfda_debug_msg("entering pfda_s_i\n");fflush(stdout);}
 	// tm 
 	double * left = pfdaAlloc_d(*p**p,&dp);
 	for(int j=0;j<*p;j++)    left[j+j**p] = *minV;
 	dsyrk_(&Upper, &Trans, p, M, &dOne, B, M, &dOne, left, p);
 	dgemv_(&Trans,M,p,&dOne,B,M,y,&one,&dzero,tm,&one);
-	if(checkdebug(dl,debugnum_s_i)){
+	pfda_debug_cdl(debugnum_s_i){
 		pfda_debug_msg("tm left:\n");printmat(left,*p,*p);
 		pfda_debug_msg("tm right:\n");printmat(tm,*p,one);
 		fflush(stdout);
 	}
-	if(checkdebug(dl,debugnum_s_1_break_tm))return;
+	pfda_debug_cdl(debugnum_s_1_break_tm)return;
 	int svr=0;
 	dposv_(&Upper, p, &one, left, p, tm, p, &svr);
 
@@ -58,14 +58,14 @@ void pfda_s_i(
 		for(int j=0;j<*p**p;j++) left[j] += btb[j+*p**p*i];
 		dgemv_(&Trans,nobs+i,p,&dOne, Bi, M, Ryi,&one,&dzero,tfa+i**p,&one);
 		int svr=0;
-		if(checkdebug(dl,debugnum_s_i)){
+		pfda_debug_cdl(debugnum_s_i){
 			pfda_debug_msg("tfa[%d] left:\n",i);printmat(left,*p,*p);
 			pfda_debug_msg("tfa[%d] right:\n",i);printmat(tfa+i**p,*p,one);
 			fflush(stdout);
 		}
 		dposv_( &Upper, p, &one, left, p, tfa+i**p, p, &svr);  //(btbi)^-1 (tfa)  // Cholesky given in btbi
 		if(svr>0)pfda_error("PFDA ERR1: Leading minor of order %i is not positive definite",svr);
-		else if(checkdebug(dl,debugnum_s_i)){
+		else pfda_debug_cdl(debugnum_s_i){
 			pfda_debug_msg("tf[%d] solution:\n",i);printmat(tfa+i**p,*p,one);
 			fflush(stdout);
 		}
@@ -73,20 +73,20 @@ void pfda_s_i(
 		Ryi += nobs[i];
 		Bi  += nobs[i];
 	}
-	if(checkdebug(dl,debugnum_s_i)){ pfda_debug_msg("tfa:\n");printmat(tfa,*p,*N);fflush(stdout);}
+	pfda_debug_cdl(debugnum_s_i){ pfda_debug_msg("tfa:\n");printmat(tfa,*p,*N);fflush(stdout);}
 	double * T=pfdaAlloc_d(*p**p,&dp);
 	dsyrk_(&Upper, &NoTrans, p, N, &dOne, tfa, p, &dzero, T, p);
 
-	if(checkdebug(dl,debugnum_s_i)){
+	pfda_debug_cdl(debugnum_s_i){
 		pfda_debug_msg("tf T:\n");printmat(T,*p,*p);
 		fflush(stdout);
 	}
 	pfda_eigens(T,	p, tf, Da, k, dl, dp, ip);
 	positivefirstrow(tf,*p,*k);
-	if(checkdebug(dl,debugnum_s_i_break_alpha))return;
+	pfda_debug_cdl(debugnum_s_i_break_alpha)return;
 	for(int i=0;i<*N;i++){
 		dgemv_(&Trans, p,k,&dOne, tf, p, tfa+i**p, &one, &dzero, alpha+i, N);
-		if(checkdebug(dl,debugnum_s_i)){
+		pfda_debug_cdl(debugnum_s_i){
 			pfda_debug_msg("alpha[%d]:\n",i);printmat2(one, *k, alpha+i, N);
 			fflush(stdout);
 		}
@@ -98,7 +98,7 @@ void pfda_s_i(
 		*sigma = ddot_(M,Ry,&one,Ry,&one);
 		*sigma /= (double)*M;
 	}
-	if(checkdebug(dl,debugnum_s_i)){pfda_debug_msg("exiting pfda_s_i\n");fflush(stdout);}
+	pfda_debug_cdl(debugnum_s_i){pfda_debug_msg("exiting pfda_s_i\n");fflush(stdout);}
 }
 
 void pfdaFindInitSingle(
