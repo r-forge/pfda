@@ -4,7 +4,7 @@
 #ifndef PFDA_ERROR_H_
 #define PFDA_ERROR_H_
 #include <R.h>
-//#define DEBUG
+// #define DEBUG
 #define pfda_error Rf_error /// For error messages.  Raises an R generic error.  Works like printf
 #define pfda_warning Rf_warning /// For warning messages.  Raises an R generic Warning.  works like printf.
 
@@ -19,6 +19,9 @@
 	#define pfda_debug_dualstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
 	#define pfda_debug_singlestep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
 	#define pfda_debug_step pfda_debug_dualstep pfda_debug_singlestep
+	#define pfda_debug_duallstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("Leaving %s\n",__FUNCTION__);fflush(stdout);}
+	#define pfda_debug_singlelstep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("Leaving %s\n",__FUNCTION__);fflush(stdout);}
+	#define pfda_debug_lstep pfda_debug_duallstep pfda_debug_singlelstep
 	#define pfda_debug_line if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("At %s(%s:%d)\n",__FUNCTION__, __FILE__, __LINE__);fflush(stdout);}
 	#define pfda_debug_arg(e) pfda_debug_msg("%s:%# 9.8g\n",#e,e)
 	#define pfda_debug_argi(e) pfda_debug_msg("%s:%d\n",#e,e)
@@ -38,6 +41,9 @@
 	#define pfda_debug_dualstep
 	#define pfda_debug_singlestep
 	#define pfda_debug_step 
+	#define pfda_debug_duallstep
+	#define pfda_debug_singlelstep
+	#define pfda_debug_lstep 
 	#define pfda_debug_line 
 	#define pfda_debug_arg(e) 
 	#define pfda_debug_argi(e) 

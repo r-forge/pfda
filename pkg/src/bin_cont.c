@@ -54,7 +54,7 @@ void dual_bc_i(
 	const int * const dl,
 	double * dp, int*ip)
 {
-	pfda_debug_dualstep
+	pfda_debug_step
 	pfda_debug_argp(dp);
 	pfda_debug_argp(ip);
 	double * w = pfdaAlloc_d(*M,&dp);
@@ -76,7 +76,7 @@ void dual_bc_i(
 	int lwork = 8**N;
 	dsysv_(&Upper, ka, kb, sum_aa, ka, ipiv, sum_ab, ka, dp, &lwork,&svr);
 	pfda_transpose(lambda,*ka, *kb,dl,dp);
-	pfda_debug_line;
+	pfda_debug_lstep;
 }
 
 /*!  computes the  following \f[
@@ -128,8 +128,11 @@ void dual_bc_1a(
 	double sxi_inv = 1/(*sxi);
 	pfda_debug_arg(sxi_inv);
 	pfda_debug_line
+	pfda_debug_argi(*ka);
+	pfda_debug_argi(*kb);
 	dgemv_(&NoTrans, ka, kb, &sxi_inv, Sab, ka, tmpb, &one, &dOne , mu  ,&one);
 	pfda_debug_argvec(mu, ka);
+	pfda_debug_lstep;
 }
 
 /*!  computes the  following \f[\mu= \Sigma_{\alpha\beta}^T B_i^T\Theta_f^T Ry_i+\Sigma_{\beta\beta}B_i^T\Theta_f Rz_i /\sigma_\xi\f]
@@ -165,6 +168,7 @@ void dual_bc_1b(
 	dsymv_(&Upper, kb, &sxi_inv, Sbb, kb, tmpb, &one, &dzero, mu,&one);
 
 	dgemv_(&Trans, ka, kb, &dOne, Sab, ka, tmpa, &one, &dOne, mu,&one);
+	pfda_debug_lstep;
 }
 
 /*!   Computes aa, ab, bb
@@ -245,7 +249,7 @@ void dual_bc_1cde(
 	dger_(ka, kb, &dOne,S1, &one, S2, &one, ab, ka);
 	daxpy_(&kab,&dOne, Sab, &one,ab,&one);
 	pfda_debug_argmat(ab,*ka,*kb);
-}
+	pfda_debug_lstep; }
 
 
 /*!   E step for binary/continuous model estimating \f$\Sigma_{\alpha\alpha}\f$, \f$\Sigma_{\alpha\beta}\f$, \f$\Sigma_{\beta\beta}\f$, \f$\alpha\f$, and \f$ \beta\f$.
@@ -325,7 +329,7 @@ void dual_bc_1(
 		no  += nobs[i];
 		nno += nobs[i]*nobs[i];
 	}
-}
+pfda_debug_lstep; }
 
 /*! computes the estimate of
 \ingroup dualbc
@@ -364,7 +368,7 @@ void dual_bc_2(
 
 	double minimum_variance = 1e-4;
 	pfda_m1(sxi,z,nobs,M,N,kb,B,p,&minimum_variance,tn,tg,beta,Sbb,dl, dp);
-}
+pfda_debug_lstep; }
 
 /*! computing tm, & tn
 \ingroup dualbc
@@ -397,7 +401,7 @@ void dual_bc_3(
 {pfda_debug_dualstep
 	pfda_m2(tm, w, nobs,M, N, ka, B, p, lm, K, tf, &dOne, alpha, dl, dp);
 	pfda_m2(tn, z, nobs,M, N, kb, B, p, ln, K, tg, sxi  , beta , dl, dp);
-}
+pfda_debug_lstep; }
 
 /*! computes tf and tg
 \ingroup dualbc
@@ -435,7 +439,7 @@ void dual_bc_4(
 {pfda_debug_dualstep
 	pfda_m3_core(tf, aa, w, nobs, M, N, ka, B, p, lf, K, tm, &dOne, alpha, btb, dl, dp, ip);
 	pfda_m3_core(tg, bb, z, nobs, M, N, kb, B, p, lg, K, tn, sxi  , beta , btb, dl, dp, ip);
-}
+pfda_debug_lstep; }
 
 /*! Computes  estimate of lambda
 \ingroup dualbc
@@ -466,7 +470,7 @@ void dual_bc_5(
 	int lwork = 10**MMAX(ka,kb);
 	dsysv_(&Upper, ka, kb, sumaa, ka,ip,sumab,ka,dp, &lwork,&sr);
 	pfda_transpose(lambda, *ka, *kb,dl, dp);
-}
+pfda_debug_lstep; }
 
 /*! Computes Da,and Db, updates, tf,tg,alpha,beta, & lambda,
 \ingroup dualbc
@@ -508,7 +512,7 @@ void dual_bc_6(
 	gen_orthog( tg, beta , Db, transb, sumbb, N, kb, p, dl, dp, ip);
 
 	pfdaDual_m5_2(lambda, transa, ka, transb, kb, dl,dp,ip);
-}
+pfda_debug_lstep; }
 
 /*! simulates the latest response given the binary and continuous reponses and all parameters
  * \ingroup dualbc
@@ -542,8 +546,8 @@ void dual_bc_genw(
 	double * dp,                ///< double pool
 	int * ip                    ///< integer pool
 	)
-{ pfda_debug_step
-/// \par Code:
+{ pfda_debug_step /// \par Code:
+	pfda_debug_argi(*kr);
 	double * old_phi_row = pfdaAlloc_d(*ka,&dp);
 	dcopy_(ka, phi+*j, M, old_phi_row, &one); /// \f$ \phi_j^{\mathrm{(old)}} = \phi_{j.} \f$  copy the current row for ability to restore later.
 	for(int i=0;i<*ka;i++)phi[*j+i**M]=dzero; /// \f$ \phi_{j.} = 0 \f$
@@ -572,6 +576,9 @@ void dual_bc_genw(
 	double a = pi[*j];pfda_debug_arg(a); // pfdaAlloc_d(one, &dp);
 	a += ddot_(ka, old_phi_row, &one, mu, &one);pfda_debug_arg(a);
 
+	pfda_debug_line;
+	pfda_debug_argi(y[*j]);
+	pfda_debug_argi(*kr);
 	if(y[*j]){
 		/// if Y=1:
 		double c = -a/(s);pfda_debug_arg(c);  /// \f$ c=-a/s \f$
@@ -591,7 +598,7 @@ void dual_bc_genw(
 	}
 
 	dcopy_(ka, old_phi_row, &one, phi+*j, M); /// restore \f$ \phi_{j.} = \phi_j^{\mathrm{(old)}} \f$
-}
+pfda_debug_lstep; }
 void test_dual_bc_genw(
 	double       * const w_sim,
 	int    const * const y,
@@ -648,22 +655,7 @@ void dual_bc_w_1(
 	int    const * const p,
 	int const * const dl, double * dp, int * ip)
 {pfda_debug_dualstep
-/*
-	double * Rw = pfdaAlloc_d(*ni,&dp);
-	pfda_computeResid(Rw,w,ni, M, NULL, ka, B, p, tm, NULL, NULL, dl, dp);
-
-	double * Rz = pfdaAlloc_d(*ni,&dp);
-	pfda_computeResid(Rz,z,ni, M, NULL, kb, B, p, tn, NULL, NULL, dl, dp);
-
-	double * phi = pfdaAlloc_d(*M**ka,&dp);
-	dgemm_(&NoTrans,&NoTrans, M, ka, p, &dOne, B, M, tf, p, &dzero, phi, M);
-
-	double * psi = pfdaAlloc_d(*M**kb,&dp);
-	dgemm_(&NoTrans,&NoTrans, M, kb, p, &dOne, B, M, tg, p, &dzero, psi, M);
-
-	double * pi = pfdaAlloc_d(*M, &dp);
-	dgemv_(&NoTrans, M,p, &dOne, B, M, tm, &one, &dzero, pi, &one);
- */
+	pfda_debug_argi(*kr);
 	double * wsim = pfdaAlloc_d(*ni**kr, &dp);
 	for(int j=0;j<*ni;j++)
 		dual_bc_genw(wsim+j**kr, y, Rz, Rw, pi, phi, psi, lambda, Da, Db, ni, M,  ka, kb, kr, p,  &j, dl, dp, ip);
@@ -672,13 +664,14 @@ void dual_bc_w_1(
 	double * V1 = pfdaAlloc_d(*kr,&dp);
 	for(int i=0;i<*kr;i++)V1[i]=krinv;
 
+	pfda_debug_line;pfda_debug_argi(*kr);pfda_debug_argi(*ni);
 	double cweight = (1-*weight);
 	dgemv_(&Trans, kr, ni, weight, wsim, kr, V1, &one, &cweight, w, &one);
 
 	double w2 = *weight/(double)*kr;
 	dsyrk_(&Upper, &Trans, ni, kr, &w2, wsim, kr, &cweight, ww, ni);
 	pfda_fillsym (ww,ni,dl);
-}
+pfda_debug_lstep; }
 
 /*! estimates by simulation \f[ E(W|Y,Z) \f] and \f[ E(WW|Y,Z) \f] for all subjects.
 \ingroup dualbc
@@ -731,7 +724,7 @@ void dual_bc_w(
 		no+=nobs[i];
 		nno+=nobs[i]*nobs[i];
 	}
-}
+pfda_debug_lstep; }
 
 
 /*! The core of the continuous/continuous model
@@ -793,13 +786,27 @@ void dual_bc_core(
 	const int * const dl, double * dp, int * ip)
 {
 	GetRNGstate();
-	pfda_debug_dualstep
-	pfda_debug_arg(*z);
-	pfda_debug_argi(*dl);
-	pfda_debug_argi(*N);
-	pfda_debug_argi(*M);
-	pfda_debug_argveci(nobs,N);
+	{ pfda_debug_dualstep
+	  pfda_debug_yveci(y);
+		pfda_debug_yvec(z);
+		pfda_debug_argveci(nobs,N);
+		pfda_debug_argi(*N);
+		pfda_debug_argi(*M);
+		pfda_debug_argi(*ka);
+		pfda_debug_argi(*kb);
+		pfda_debug_arg(*lm);
+		pfda_debug_arg(*ln);
+		pfda_debug_arg(*lf);
+		pfda_debug_arg(*lg);
+		pfda_debug_arg(*minV);
+		pfda_debug_argi(*k0);
+		pfda_debug_argi(*kr);
+		pfda_debug_argi(*maxI);
+		pfda_debug_arg(*tol);
+		pfda_debug_argveci(nobs,N);
+	}
 
+	pfda_debug_line
 	double * w = pfdaAlloc_d(*M,&dp);
 	int size_ww = 0;for(int i=0;i<*N;i++)size_ww+=nobs[i]*nobs[i];
 	pfda_debug_argi(size_ww);
@@ -817,6 +824,7 @@ void dual_bc_core(
 	double * lambda_old =pfdaAlloc_d(kab, &dp);
 	double * Da_old     =pfdaAlloc_d(*ka, &dp);
 	double * Db_old     =pfdaAlloc_d(*kb, &dp);
+	pfda_debug_line
 	while(++I<*maxI)/*limited loop with exit*/{
 		{ //setup for convergence
 			sigma_xi_old = *sxi;
@@ -911,5 +919,5 @@ void dual_bc_core(
 	*tol=cc;
 	*maxI = I;
 	PutRNGstate();
-}
+pfda_debug_lstep; }
 

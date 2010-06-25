@@ -11,7 +11,7 @@ export(
 			"pfda",
 			"pfdaControl"
 			)
-S3method(AIC,pfda.additive)
+S3method(AIC,pfda.dual.bc)
 S3method(AIC,pfda.dual.cc)
 S3method(AIC,pfda.single.c)
 S3method(AIC,pfda.single.b)

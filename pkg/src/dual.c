@@ -329,7 +329,6 @@ void pfdaDual(
 
 	pfda_debug_cdl(debugnum_dual){pfda_debug_msg("Allocating btb(dp=%p)\n",dp);fflush(stdout);}
 	double * btb = pfdaAlloc_d(*p**p**N,&dp);
-	pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 	pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("Computing btb\n");fflush(stdout);}
 	pfda_computebtb(btb,N,B,M,p,nobs,dl);
 	
@@ -354,7 +353,6 @@ void pfdaDual(
 			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 1\n");fflush(stdout);}
 			pfda_m1(seps, y, nobs,M, N, ka, B, p,minimum_variance, tm, tf, alpha, Sigma_aa, dl, dp	);
 			pfda_m1(sxi , z, nobs,M, N, kb, B, p,minimum_variance, tn, tg, beta , Sigma_bb, dl, dp	);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("seps:\n%# .8g\n\n",*seps);
@@ -366,7 +364,6 @@ void pfdaDual(
 			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 2\n");fflush(stdout);}
 			pfda_m2(tm, y, nobs,M, N, ka, B, p, penalties+0, ISD,tf, seps, alpha, dl, dp);
 			pfda_m2(tn, z, nobs,M, N, kb, B, p, penalties+1, ISD,tg, sxi , beta , dl, dp);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("tm:\n");printmat(tm,*p,one);
@@ -378,7 +375,6 @@ void pfdaDual(
 			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("steps 3\n");fflush(stdout);}
 			pfda_m3(tf, y, nobs, M, N, ka, B, p, penalties+2, ISD,tm, seps, alpha, Sigma_aa, btb, dl, dp, ip);
 			pfda_m3(tg, z, nobs, M, N, kb, B, p, penalties+3, ISD,tn, sxi , beta , Sigma_bb, btb, dl, dp, ip);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("tf:\n");printmat(tf,*p,*ka);
@@ -389,7 +385,6 @@ void pfdaDual(
 		{ ///* 4 update lambda */
 			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("step 4\n");fflush(stdout);}
 			pfdaDual_m4(N,lambda,alpha, ka, beta, kb, Sigma_aa, Sigma_ab,dl, dp);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("lambda:\n");printmat(lambda,*kb,*ka);
@@ -399,7 +394,6 @@ void pfdaDual(
 		{ ///* 5. Orthogonalize  find Da, Db, Update lambda*/
 			pfda_debug_cdl(debugnum_dual_steps){pfda_debug_msg("step 5\n");fflush(stdout);}
 			pfdaDual_m5(N, p, lambda, alpha, Sigma_aa, tf, Da, ka, beta, Sigma_bb, tg, Db, kb, minimum_variance,dl, dp, ip);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("lambda:\n");printmat(lambda,*kb,*ka);
@@ -417,7 +411,6 @@ void pfdaDual(
 				tm, tn, tf, tg, Da, Db, lambda,seps, sxi,
 				alpha, beta, Sigma_aa, Sigma_ab, Sigma_bb,
 				dl, dp ,ip);
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_estimates){
 				pfda_debug_msg("New Parameters\n");
 				pfda_debug_msg("Sigma_aa:\n");printmat(Sigma_aa,*N,*ka**ka);
@@ -475,7 +468,6 @@ void pfdaDual(
 
 			convergenceCriteria/=9;
 			///* Debug */
-			pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 			pfda_debug_cdl(debugnum_dual_criteria_components){
 				pfda_debug_msg("Convergence criteria components:\n");
 				pfda_debug_msg("seps: \t%5.5g\n", fabs(sigma_epsilon_old-*seps));
@@ -503,7 +495,6 @@ void pfdaDual(
 		if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
 		pfda_computeResid(y, y,nobs,M, N, ka, B, p,tm, tf, alpha, dl, dp);
 		pfda_computeResid(z, z,nobs,M, N, kb, B, p,tn, tg, beta , dl, dp);
-		pfda_debug_cdl(debugnum_memory){pfda_debug_msg("dp offset: %d\n",dp-dpstart);fflush(stdout);}
 		*tol = convergenceCriteria;
 		*maxI = I;
 	}

@@ -1415,14 +1415,15 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		eval(.X.optimize.penalties) }
 	else { # Pass to core function
 		eval(.X.binary.y)
-		rtn<-if(control$useC){
+		rtn<-modifyList(if(control$useC){
 			eval(.X.read.parameters)
 			{ #compute memory requirements
 				k=max(ka,kb)
 				ni=max(nobs)
 				kr=max(control$binary.k0, control$binary.kr)
 				dpl = M + sum(nobs^2) + N*k^2 + N*p^2 + p + p*k + k + max(
-					ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k),# step W
+					M*(3+ka+kb) + (ni*kr+kr+2+5*ka+kb+10*k^2) ,
+					#ni*kr + kr + (ni * k + ni + k^2 + k + p + p^2 + k*p + 3*k)+1000,# step W
 					M + M*k + N*k + 2* k^2 + 2 * k + k *ni                    ,# step 1/E
 					p^2+ M+ M*k                                               ,# step 2
 					M + p^2 + p + k^2                                         ,# step 3
@@ -1435,7 +1436,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				z         =as.double(z),
 				B         =Bt,
 				tm        =double(p),
-				n         =double(p),
+				tn         =double(p),
 				tf        =matrix(0.0,p,ka),
 				tg        =matrix(0.0,p,kb),
 				alpha     =matrix(0.0,N,ka),
@@ -1462,8 +1463,8 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 				lg        =penalties[4],
 				K         = Kt,
 				minV      =control$minimum.variance,
-				k0        = control$binary.k0, 
-				kr=control$binary.kr,
+				k0        =control$binary.k0, 
+				kr        =control$binary.kr,
 				Iterations=control$max.iterations,
 				tol       =control$convergence.tolerance,
 				dl        =control$C.debug,
@@ -1473,32 +1474,32 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		} else {
 			structure(dual.cc.core(y,z,B,subject,ka,kb,lm,ln,lf,lg,K,min.v,max.I,tol)
 				,class=c('pfda.dual.bc.R','pfda.dual.bc','list'))
-		}
+		},list(subject=subject))
 	}
 }
 .dual.bc.updatePCS<-function(Yi, Zi, Da, Db, lambda, phii, psii, Y.rhoi, Z.rhoi, alpha, beta){
 	ni = NROW(phii)
 	# mean functions
-	muy = Y.rhoi+phii%*%alpha.old
+	muy = Y.rhoi+phii%*%alpha
 	mua = pnorm(muy)
 	Y.tilda = muy + (Yi-mua)/dnorm(mua)
 	Z.tilda = Zi
   # blocks for means
-	A = tcrossprod(Da,phii)
-	B = Da %*% t(lambda) %*% t(psii)
-	C = lambda %*% Da %*% t(psii)
-	D = Db %*% t(psii)
+	A = tcrossprod(Da,phii)                               #' $ A = D_\alpha \phi_i^T $
+	B = Da %*% t(lambda) %*% t(psii)                      #' $ B = D_\alpha \Lambda^T \psi_i^T $
+	C = lambda %*% A                                      #' $ C = \Lambda D_\alpha \psi_i^T = \Lambda A$
+	D = Db %*% t(psii)                                    #' $ D = D_\beta \psi_i^T $
 	#blocks associated with variances
-	E = diag(1, ni) + crossprod(phii, A)
-	F = crossprod(phii, tcrossprod(Da,lambda) %*% psii)
-	G = crossprod(psii, lambda%*% Da%*%phii)
-	H = diag(1, ni) + crossprod(psii, Db%*%psii)
-	# inversion
-	E1 = solve(E)
-	T = solve(H-G%*%E1%*%F)
-	Q = E1+E1%*%F%*%J%*%G%*%E1
-	R = -E1%*%F%*%J
-	S = -J%*%G%*%E1
+	E = diag(1, ni) + (phii %*% A)                        #' $ E = I + \phi_i A = I + \phi_i D_\alpha \phi_i^T $
+	F = phii %*% B                                        #' $ F = \phi_i D_\alpha \Lambda^T \psi_i  $ 
+	G = psii %*% C                                        #' $ G = \psi_i \Lambda D_\alpha \phi_i $
+	H = diag(1, ni) + psii %*% D                          #' $ H = I + \psi_i D_\beta \psi_i $
+	# inversion by block
+	E1 = solve(E)                                         
+	T = solve(H-G%*%E1%*%F)                               #' $ T = (H - G E^{-1} F)^{-1} $
+	Q = E1+E1%*%F%*%T%*%G%*%E1                            #' $ Q = E^{-1} + E^{-1} F T G E^{-1} $
+	R = -E1%*%F%*%T                                       #' $ R = -E^{-1} F T $
+	S = -T%*%G%*%E1                                       #' $ S = -T G E^{-1} $
 	# results
 	list(
 	alpha= (A %*% Q + B %*% S) %*% Y.tilda + (A %*% R + B %*% T) %*% Z.tilda,
@@ -1506,7 +1507,8 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 }
 .dual.bc.estimatePCS<-function(Y, Z, B, subject, tm, tn, tf, tg, Da, Db, lambda, sxi){
 	Y.rho = B%*%tm
-	Z.rho = B%*%tn
+	Z.rho = B%*%tn                                                                                  
+	
 	phi = B%*%tf
 	psi = B%*%tg
 	ofun<-function(i){
@@ -1515,7 +1517,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		beta  = rep(0,NCOL(tg))
 		dif = 1
 		while(dif>1e-3){
-			ab<-.dual.bc.updatePCS(Yi[ix], Zi[ix], Da, Db, lambda, phii[ix,], psii[ix,], Y.rhoi[ix,], Z.rhoi[ix,], alpha, beta)
+			ab<-.dual.bc.updatePCS(Y[ix], Z[ix], Da, Db, lambda, phi[ix,,drop=F], psi[ix,,drop=F], Y.rho[ix,], Z.rho[ix,], alpha, beta)
 			dif<-mean(alpha-ab$alpha)+mean(beta - ab$beta)
 			alpha = ab$alpha
 			beta  = ab$beta
@@ -1542,17 +1544,41 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 }
 
 .dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
+  ka = length(Da)
+	kb = length(Db)
+	N = nlevels(subject)
+	M = length(y)
+	phi = B %*% tf
+	psi = B %*% tg
+	pi  = B %*% tm
+	rho = B %*% tn
+	ab = .dual.bc.estimatePCS(y, z, B, subject, tm, tn, tf, tg, Da, Db, lambda)
 	C = rbind(cbind(diag(Da,ka), diag(Da,ka)%*%t(lambda)),cbind(t(lambda%*%diag(Da,ka)), diag(Db,kb)))
-	N*determinant(C,log=T)$modulus+M*log(sxi) +
-	ab = .dual.bc.estimatePCS(Y, Z, B, subject, tm, tn, tf, tg, Da, Db, lambda)
+	N*(sum(log(Da))+determinant(diag(Db,kb)-lambda %*% tcrossprod(diag(Da,ka), lambda))$modulus) +	 
+	M*log(sxi) +
 	with(ab,sum(sapply(seq_len(N),function(i){
 		ix = subject==i
-		mu_alpha=pnorm( pi[ix]+phi[ix,]%*%alpha[i,])
-		mu_beta =pnorm(rho[ix]+psi[ix,]%*% beta[i,])
-		W_alpha.i = mu_alpha*(1-mu_alpha)*(1/dnorm(qnorm(mu_alpha)))^2
+		mu_alpha=pnorm( pi[ix]+phi[ix,,drop=F]%*%alpha[i,])
+		mu_beta =pnorm(rho[ix]+psi[ix,,drop=F]%*% beta[i,])
+		W_alpha.i = (dnorm(qnorm(mu_alpha))^2)/mu_alpha*(1-mu_alpha)
 		gamma<-c(alpha[i,],beta[i,])
-		determinant(diag(1,ka)+ crossprod(phi[ix,],W_alpha.i*phi[ix,])%*%C,log=T)$modulus+
-		sum(-2*(Y_i*log(mu_alpha) + (1-Y_i)*log(1-mu_alpha)) + (Z[ix]-mu_beta)^2) + crossprod(gamma,solve(C,gamma))
+
+		# $ \log|I+\Omega W_i \Omega C| $
+		A<-diag(1,ka)+crossprod(phi[ix,,drop=F], (W_alpha.i * phi[ix,,drop=F]) %*% diag(Da,ka) )
+		determinant(A)$modulus + 
+		determinant(diag(1,kb) + crossprod(psi[ix,,drop=F]) - lambda %*% (Da * solve(A)) %*% tcrossprod(diag(Da,ka),lambda) )$modulus + 
+		# determinant(diag(1,ka)+ crossprod(phi[ix,],W_alpha.i*phi[ix,,drop=F])%*%C,log=T)$modulus+
+		#  $\sumj^{n_i} Y_i $
+		sum(-2*(y[ix]*log(mu_alpha) + (1-y[ix])*log(1-mu_alpha)) + (z[ix]-mu_beta)^2) + 
+		{# $ \gamma_i^T C^{-1} \gamma_i $
+	  Sib <- solve(diag(Db,kb) - lambda %*% Da %*% lambda)
+		Siab <- -crossprod(lambda ,Sib)
+		Sia <- diag(1/Da,ka) - Siab %*% lambda %*% diag(1/Da,ka)
+		crossprod(gamma,solve(C,gamma))
+    crossprod(alpha[i,],Sia %*% alpha[i,]) +
+		crossprod(alpha[i,],Siab %*% beta[i,])*2 + 
+		crossprod(beta[i,] ,Sib %*% beta[i,])
+	  }
 		})))
 }
 AIC.pfda.dual.bc<-function(object,...){
@@ -1560,7 +1586,7 @@ AIC.pfda.dual.bc<-function(object,...){
 		.dual.bc.n2L(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi),0,
 		B   , B   , B  , B ,
 		1   , ka  , 1  , kb,
-		penalties[1]  , penalties[2]  , penalties[3] , penalties[4],
+		lm  , ln  , lf , lg,
 		K   , K   , K  , K ,
 		1, 1, sxi, sxi)
 	)

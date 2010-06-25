@@ -72,7 +72,7 @@ void pfda_gen_e1_aa(
 	pfda_matrix_inner_quadratic_form(zeta_aa,lambda,ka,kb,inv_sigma_eta,kb,dl,dp);
 	pfda_debug_cdl(debugnum_pfda_gen_e1_aa){pfda_debug_argmat(zeta_aa,*ka,*ka);}
 	dsyrk_(&Upper, &Trans, ka, n, &inv_epsilon, phi, M, &dOne, zeta_aa, ka);
-	pfda_debug_cdl(debugnum_pfda_gen_e1_aa){pfda_debug_msg("zeta_aa (L^t S L+phi^t phi/epsilon):\n")pfda_debug_argmat(zeta_aa,*ka,*ka);}
+	pfda_debug_cdl(debugnum_pfda_gen_e1_aa){pfda_debug_msg("zeta_aa (L^t S L+phi^t phi/epsilon):\n");pfda_debug_argmat(zeta_aa,*ka,*ka);}
 	addInvDiag(ka, Da, zeta_aa, ka);
 	pfda_fillsym(zeta_aa,ka,dl);
 	pfda_debug_cdl(debugnum_pfda_gen_e1_aa){pfda_debug_argmat(zeta_aa,*ka,*ka);}
@@ -220,7 +220,7 @@ void pfda_gen_e2_1(
 		pfda_debug_arg(*a1);
 		pfda_debug_arg(*c1);
 		pfda_debug_argmat(A, *a1, *a1);
-		if(outer) pfda_debug_argmat(B, *a1, *c1); else pfda_debug_argmat(B, *c1, *a1);
+		if(outer){ pfda_debug_argmat(B, *a1, *c1);} else {pfda_debug_argmat(B, *c1, *a1);}
 		pfda_debug_argmat(C, *c1, *c1);
 		fflush(stdout);
 	}
@@ -336,6 +336,7 @@ void pfdaDual_e2(
 	double * dp, ///< double pool
 	int * ip	) ///< integer pool
 {// \par Code:
+	pfda_debug_step;
 	pfda_debug_cdl(debugnum_dual_e2){
 		pfda_debug_msg("pfdaDual_e2 - \n");
 		pfda_debug_arg(*ka);
@@ -485,12 +486,13 @@ void dual_gen_sigmas(
 	const int * const dl,       ///< debug level
 	double*dp,                  ///< double pool
 	int * ip)                   ///< integer pool
-{
+{ pfda_debug_step;
 	double * zeta_aa = pfdaAlloc_d(*ka**ka,&dp);
 	double * zeta_ab = pfdaAlloc_d(*ka**kb,&dp);
 	double * zeta_bb = pfdaAlloc_d(*kb**kb,&dp);
 	pfda_dual_e1(M, ni, lambda, Da,  phi,   sep, ka, Db, psi , sxi, kb, zeta_aa, zeta_ab, zeta_bb, dl,dp, ip);
 	pfdaDual_e2(ka,kb,zeta_aa,zeta_ab,zeta_bb,Saa,Sab,Sbb,dl,dp,ip);
+	pfda_debug_lstep;
 }
 
 /*! Update \f$ \alpha \f$ and \f$ \beta \f$
