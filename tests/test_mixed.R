@@ -30,6 +30,7 @@ system.time({ pfda(y%&%z~x%|%id, data=d,k=c(1,1),df=NULL,driver="dual.mixed") ->
 
 #can optimize k?
 system.time({ pfda(y%&%z~x%|%id, data=d,k=NULL,df=c(2.1,2.1,2.1,2.1),driver="dual.mixed") -> testk })
+system.time({ pfda(y%&%z~x%|%id, data=d,k=NULL,df=c(2.1,2.1,2.1,2.1),driver="dual.mixed") -> testk })
 
 # can optimize both?
 system.time({ pfda(y%&%z~x%|%id, data=d,k=NULL,df=NULL,driver="dual.mixed") -> testboth })

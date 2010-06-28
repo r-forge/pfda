@@ -123,7 +123,7 @@
 		# model.k1<-try(eval(funcall,env=attr(funcall,'envir')),silent=TRUE)
 		k=k+1
 		model.k1 <- RecallWith(k=k)
-		if(class(model.k1)=="try-error")return(model.k0)
+		if(class(model.k1)[1]=="try-error")return(model.k0)
 		else if(AIC(model.k0)<AIC(model.k1))return(model.k0)
 		else model.k0<-model.k1
 	}
@@ -136,7 +136,7 @@
 	while(TRUE){
 		k=k+1
 		model.k1 <- try(RecallWith(k=k,fname=fname),silent=TRUE)
-		if(class(model.k1)=="try-error")return(model.k0)
+		if(class(model.k1)[1]=="try-error")return(model.k0)
 		else if(AIC(model.k0)<AIC(model.k1))return(model.k0)
 		else model.k0<-model.k1
 	}
@@ -745,7 +745,7 @@ plot.pfda.single.c<-function(x,...){
 	mua = pnorm(muy)
 	Y.tilda = muy + (Yi-mua)/dnorm(mua)
 
-	A = tcrossprod(Da, phii)
+	A = tcrossprod(diag(Da,length(Da)), phii)
 	Q = solve(diag(1, ni) + phii%*%A)
 
 	list(alpha= as.vector((A %*% Q) %*% Y.tilda))
@@ -1406,7 +1406,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	}
 	if(any(is.na(k))){
 		# stop("not finished with number of principal component optimization.")
-		model.y.single <- single.c(y,NULL,t,subject, knots=knots, penalties=penalties[,1],k=NULL, control=control,subset=subset)
+		model.y.single <- single.b(y,     t,subject, knots=knots, penalties=penalties[,1],k=NULL, control=control,subset=subset)
 		model.z.single <- single.c(z,NULL,t,subject, knots=knots, penalties=penalties[,2],k=NULL, control=control,subset=subset)
 		Recall(y,z,t,subject, knots=knots,penalties=penalties,k=c(model.y.single$k,single.z.single$k), control=control)
 	}
@@ -1542,7 +1542,6 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		#not finished
 	)
 }
-
 .dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
   ka = length(Da)
 	kb = length(Db)
@@ -1570,7 +1569,7 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 		# determinant(diag(1,ka)+ crossprod(phi[ix,],W_alpha.i*phi[ix,,drop=F])%*%C,log=T)$modulus+
 		#  $\sumj^{n_i} Y_i $
 		sum(-2*(y[ix]*log(mu_alpha) + (1-y[ix])*log(1-mu_alpha)) + (z[ix]-mu_beta)^2) + 
-		{# $ \gamma_i^T C^{-1} \gamma_i $
+		{ # $ \gamma_i^T C^{-1} \gamma_i $
 	  Sib <- solve(diag(Db,kb) - lambda %*% Da %*% lambda)
 		Siab <- -crossprod(lambda ,Sib)
 		Sia <- diag(1/Da,ka) - Siab %*% lambda %*% diag(1/Da,ka)
