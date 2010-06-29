@@ -132,14 +132,15 @@
 	message("optimizing number of principal components using AIC")
 	# localfuncs("RecallWith")
 	k=1
-	model.k0 <- RecallWith(k=k,fname=fname)
-	while(TRUE){
+	model.k0 <- tryCatch(RecallWith(k=k,fname=fname),warning=function(w)stop(w$message))
+	tryCatch(while(TRUE){ 
 		k=k+1
-		model.k1 <- try(RecallWith(k=k,fname=fname),silent=TRUE)
-		if(class(model.k1)[1]=="try-error")return(model.k0)
-		else if(AIC(model.k0)<AIC(model.k1))return(model.k0)
+		model.k1 <- RecallWith(k=k,fname=fname)
+		if(AIC(model.k0)<AIC(model.k1))return(model.k0)
 		else model.k0<-model.k1
-	}
+	}, warning=function(w){
+		if(w$message=="EM-algorithm did not converge")model.k0 else stop(w$message)
+	}, error=function(e)model.k0)
 }
 .X.dual.k<-expression({ # resloves k input for dual pc (cc/bc/add)
 	if(is.null(k)) k<-rep(NA,2)
@@ -276,9 +277,16 @@
 	  	p[pix]<-exp(pen)
 			if(any(is.infinite(p)))return(Inf)
 			# fc$penalties<-p
-			m<-try(RecallWith(penalties=p,fname=fname),silent=TRUE)
-			# m<-try(eval(fc,env=attr(fc,'envir')),silent=TRUE)
-			if(class(m)[1]=="try-error") NA else AIC(m)
+			tryCatch({
+				m<-RecallWith(penalties=p,fname=fname)
+				if(class(m)[1]=="try-error") NA else AIC(m)
+				}
+				,error=function(e)NA
+				,warning=function(w){
+					if(w$message=="EM-algorithm did not converge") return(NA)
+					else stop(w$message)
+				}
+			)
 		}
 		if(is.null(control$optim.method))control$optim.method<-"Nelder-Mead"
 		if(is.null(control$optim.start))control$optim.start<-rep(l.from.df(2.1,Bt,Kt),length(pix))
@@ -774,11 +782,11 @@ plot.pfda.single.c<-function(x,...){
 	phi = Bi%*%tf
 	mui = pnorm(Bi%*%tm+phi%*%alpha)
 	nui = mui*(1-mui)
-	Wi = diag(as.vector(dnorm(mui)^2/nui))
+	Wi = as.vector(dnorm(mui)^2/nui)
 	c(sum(log(Da)),
-		determinant(diag(NROW(Da))+crossprod(phi,Wi%*%phi%*%Da))$modulus, 
-		crossprod(alpha,solve(Da)%*%alpha), 
-		-2*sum(yi*log(mui)+ (1-yi)*log(1-mui)-diag(Wi)-mui)
+		determinant(diag(NROW(Da))+crossprod(phi,diag(Wi)%*%phi%*%diag(Da,length(Da))))$modulus, 
+		crossprod(alpha,solve(diag(Da,length(Da)))%*%alpha), 
+		-2*sum(yi*log(mui)+ (1-yi)*log(1-mui)-Wi-mui)
 	)
 }
 .single.b.n2L.bySubject<-function(y, subject, B, tm, tf, Da, alpha){
@@ -1406,9 +1414,9 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	}
 	if(any(is.na(k))){
 		# stop("not finished with number of principal component optimization.")
-		model.y.single <- single.b(y,     t,subject, knots=knots, penalties=penalties[,1],k=NULL, control=control,subset=subset)
-		model.z.single <- single.c(z,NULL,t,subject, knots=knots, penalties=penalties[,2],k=NULL, control=control,subset=subset)
-		Recall(y,z,t,subject, knots=knots,penalties=penalties,k=c(model.y.single$k,single.z.single$k), control=control)
+		if(is.na(k[1])) model.y.single <- single.b(y,     t,subject, knots=knots, penalties=penalties[,1],k=NULL, control=control,subset=subset)
+		if(is.na(k[2])) model.z.single <- single.c(z,NULL,t,subject, knots=knots, penalties=penalties[,2],k=NULL, control=control,subset=subset)
+		Recall(y,z,t,subject, knots=knots,penalties=penalties,k=c(model.y.single$k,model.z.single$k), control=control)
 	}
 	else if(any(is.na(penalties))){
 		funcall <- match.call()

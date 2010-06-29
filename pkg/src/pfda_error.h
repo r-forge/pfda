@@ -34,7 +34,7 @@
 	#define pfda_debug_argyvec(y,o,n) 	{pfda_debug_msg("obs  | %s\n",#y);printyvec(y,o,n);}
 	#define pfda_debug_yvec(y) pfda_debug_argyvec(y,nobs,N)
 	#define pfda_debug_argyveci(y,o,n) 	{pfda_debug_msg("obs  | %s\n",#y);printyveci(y,o,n);}
-	#define pfda_debug_yveci(y) pfda_debug_argyvec(y,nobs,N)
+	#define pfda_debug_yveci(y) pfda_debug_argyveci(y,nobs,N)
 #else
 	#define pfda_debug_cdl(num) if(0L)
 	#define pfda_debug_msg(s,args...)

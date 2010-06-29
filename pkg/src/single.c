@@ -1174,6 +1174,7 @@ while(I < *maxI){
 	single_c_penalized( tm, y, Z, B, tz, tf, alpha, sigma, nobs, N, M, kz, k, p, lm, K, dl, dp, ip);
 	single_c_princcomp( tf, y, Z, B, tz, tm, alpha, sigma, aa, nobs, N, M, kz, k, p, lf, K, btb, dl, dp, ip);
 	single_c_variances( tf, alpha, Da, sigma, y, Z, B, tz, tm, Saa, nobs, N, M, kz, k, p, dl, dp, ip);
+	for(int i=0;i<*k;i++){if(Da[i]<*minV)Da[i]=*minV;} /// Enforces Minimun variances on \f$D_\alpha\f$
 	{// Compute Convergence Criteria
 		pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Computing convergence Criteria\n");fflush(stdout);}
 		convergenceCriteria = fabs((sigma_old-*sigma)/(*sigma));
@@ -1210,7 +1211,7 @@ while(I < *maxI){
 }//end while loop
 {	///* Finishing */
 	pfda_debug_cdl(debugnum_singe_steps){pfda_debug_msg("Finishing\n");fflush(stdout);}
-	if(*maxI<=I){pfda_error("EM-algorithm did not converge");}
+	if(*maxI<=I){pfda_warning("EM-algorithm did not converge");}
 	single_c_resid( y, y, Z, nobs, M, N, kz, k, B, p, tz, tm, tf, alpha, dl, dp);
 	*tol = convergenceCriteria;
 	*maxI = I;
