@@ -16,7 +16,7 @@ try({testbase})
 	
 # AIC
 try({with(testbase, pfda:::.dual.bc.n2L(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi))})
-try({AIC(testbase))}
+try(AIC(testbase))
 
 # check smoothness
 # x<-seq(.5,3,length=250)
