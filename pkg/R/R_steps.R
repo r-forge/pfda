@@ -1,3 +1,38 @@
+{ # global scope variables
+# these variables are defined for the sole purpose of confusing the checker
+# Each of these should be masked or ignored by a different frame path.
+# This is necessary due to the eval/structure programming method employed here.
+subject<-
+y<-
+Z<-
+B<-
+Bt<-
+Bx<-
+fname<-
+s.xi<-
+s.eps<-
+ka<-
+kb<-
+kz<-
+nobs<-
+M<-
+N<-
+p<-
+K<-
+Kt<-
+Kx<-
+ln<-
+lf<-
+lg<-
+min.v<-
+max.I<-
+tol<-
+name.t<-
+name.x<-
+tbase<-
+xbase<-
+NULL
+}
 { # general steps
 .gen.tm<-function(y,B,subject,tf,alpha,sigma,l,K){
 	left<-sigma*l*K
