@@ -24,7 +24,8 @@ void pfda_matrix_drop1(
 	int const * const dl)
 {pfda_debug_step
 	// pfda_debug_cdl(debugnum_pfda_matrix_drop1)pfda_debug_msg("Entering pfda_matrix_drop1\n");
-	for(int col=0;col<*ncol;col++){
+	int col=0;
+	for(col=0;col<*ncol;col++){
 		pfda_debug_line;
 		int newrow=0, oldrow=0;
 		while(oldrow<*nrow)if(oldrow!=*droprow)new[col**ldnew + newrow++]=old[col**ldold + oldrow++]; else oldrow++;

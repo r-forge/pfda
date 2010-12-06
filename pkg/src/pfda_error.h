@@ -4,9 +4,9 @@
 #ifndef PFDA_ERROR_H_
 #define PFDA_ERROR_H_
 #include <R.h>
-// #define DEBUG
-#define pfda_error Rf_error /// For error messages.  Raises an R generic error.  Works like printf
-#define pfda_warning Rf_warning /// For warning messages.  Raises an R generic Warning.  works like printf.
+
+#define pfda_error Rf_error 
+#define pfda_warning Rf_warning 
 
 
 /*! \defgroup error Error and Debugging functions*/
@@ -14,8 +14,7 @@
 #ifdef DEBUG
 	#include <assert.h>
 	#define pfda_debug_cdl(num) if(checkdebug(dl,num))
-	// #define pfda_debug_msg(s, args...) Rprintf(s,args) /// for debugging messages.  works like cat.  Requires an fflush(stdout); to print imediatly.
-	#define pfda_debug_msg Rprintf /// for debugging messages.  works like cat.  Requires an fflush(stdout); to print imediatly.
+	#define pfda_debug_msg Rprintf 
 	#define pfda_debug_dualstep if(checkdebug(dl,debugnum_dual_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
 	#define pfda_debug_singlestep if(checkdebug(dl,debugnum_singe_steps)){pfda_debug_msg("%s\n",__FUNCTION__);fflush(stdout);}
 	#define pfda_debug_step pfda_debug_dualstep pfda_debug_singlestep
@@ -37,7 +36,7 @@
 	#define pfda_debug_yveci(y) pfda_debug_argyveci(y,nobs,N)
 #else
 	#define pfda_debug_cdl(num) if(0L)
-	#define pfda_debug_msg(s,args...)
+	#define pfda_debug_msg(...)
 	#define pfda_debug_dualstep
 	#define pfda_debug_singlestep
 	#define pfda_debug_step 
@@ -57,7 +56,7 @@
 	#define pfda_debug_yvec(y)
 	#define pfda_debug_argyveci(y,o,n)
 	#define pfda_debug_yveci(y)
-#endif  //DEBUG
+#endif  /*DEBUG*/
 
 /*!  	@enum pfda_debug_num
 	@brief the enumerated debugging numbers
@@ -70,8 +69,6 @@ enum pfda_debug_num{
 	debugnum_s_i_break_alpha = 97,
 	debugnum_s_1_break_tm = 98,
 	debugnum_s_i = 99,
-	// pfdaSingle (100-199)
-	// ---------------------------
 	debugnum_singe_steps				= 100,
 	debugnum_single_inputs 				= 101,
 	debugnum_single_inputs_large 			= 102,
@@ -93,8 +90,6 @@ enum pfda_debug_num{
 	debugnum_single_e 					= 160,
 	debugnum_single_e_inloop 		 	= 161,
 	debugnum_single_finish 				= 190,
-	// pfdaDual (200-299)
-	// --------------------------
 	debugnum_dual_steps 				= 200,
 	debugnum_dual_inputs 				= 201,
 	debugnum_dual_inputs_large 			= 202,
@@ -112,7 +107,6 @@ enum pfda_debug_num{
 	debugnum_dual_e2 					= 280,
 	debugnum_dual_e3 					= 290,
 	debugnum_dual_e3_1 					= 291,
-	// others --------
 	debugnum_cond_dd 					= 301,
 	debugnum_cond_ab 					= 302,
 	debugnum_sum_cond_dd				= 303,
@@ -132,13 +126,11 @@ enum pfda_debug_num{
 	debugnum_pfda_rtruncnorm_attempts       = 317,
 	debugnum_pfda_matrix_drop1              = 318,
 	debugnum_pfda_gen_truncnorm              = 319,
-	// binary conditional,
 	debugnum_pfda_bin_cond_aa               = 355,
 	debugnum_test_pdfa_bin_cond_aa 		= 356,
 	debugnum_pfda_bin_cond_bb 			= 357,
 	debugnum_test_pfda_bin_cond_bb 		= 358,
 	debugnum_pfda_bin_cond_ab 			= 359,
-	// Bin and General
 	debugnum_memory 					= 400,
 	debugnum_pfda_gen_e_eta = 401,
 	debugnum_pfda_gen_e1_aa = 402,
@@ -172,7 +164,6 @@ enum pfda_debug_num{
 	debugnum_pfda_robert_truncnorm = 431,
 	debugnum_pfda_roberts_1 = 432,
 	debugnum_pfda_bin_s_gen_w = 433,
-	// Calcium
 	debugnum_dual_ca_inputs = 450
 };
 extern int  checkdebug(int const * const dl, const int level);

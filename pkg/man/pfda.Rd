@@ -26,7 +26,7 @@ pfda(model, data = environment(model), ..., driver)
 }
 where
 	\itemize{
-		\item{\code{y} denotes a response variable. If this is a binary variable this must be of class \code{\link{logical}} or a 2 level \code{\link{factor}}.  If the binary drivers are used \code{y} must be coercible into a binary form. }
+		\item{\code{y} denotes a response variable. If this is a binary variable this must be of class \code{\link[base]{logical}} or a 2 level \code{\link[base]{factor}}.  If the binary drivers are used \code{y} must be coercible into a binary form. }
 		\item{\code{z} is the second variable in dual/paired models, and is always continuous.}
 		\item{\code{t} the domain variable of the functions.}
 		\item{\code{x} A second domain variable for the additive model.}

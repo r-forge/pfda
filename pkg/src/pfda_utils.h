@@ -66,7 +66,7 @@ extern void pfda_computebtb(
 	int const * const dl);
 extern void pfda_computeResid(
 	double       * const Ry,
-	double const * const y, 		//on exit y will hold residuals.
+	double const * const y, 		
 	int    const * const nobs,
 	int    const * const M, 
 	int    const * const N, 

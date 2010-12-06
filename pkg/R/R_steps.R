@@ -1576,15 +1576,6 @@ dual.bc<-function(y,z,t,subject, knots=NULL, penalties=NULL,df=NULL, k=NULL, con
 	}
 	list(alpha=alpha,beta=beta)
 }
-.dual.bc.n2L.1.parts<-function(Yi, Zi, Bi, tm, tn, tf, tg, alpha, beta, Da, Db, lambda){
-	stop("Not finished")
-	ni=length(Yi)
-	c(
-		determinant(Da)$modulus+determinant(Da-Da%*%t(lambda)%*%solve(Db,lambda%*%Da))$modulus ,
-		ni*s.xi,
-		#not finished
-	)
-}
 .dual.bc.n2L<-function(y, z, B, subject, tm, tn, tf, tg, lambda, Da, Db, sxi){
   ka = length(Da)
 	kb = length(Db)

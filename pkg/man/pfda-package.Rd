@@ -6,7 +6,7 @@
 }
 \details{
 	Computes the models of functional principal components for the single, single binary, paired, with mixed binary and continuous responses, and the additive model.  All the models are accessed through the \code{\link{pfda}} function.
-  Also of interest is the functions for working with \code{\link{SplineBasis}}.
+  Also of interest is the functions for working with \code{\link[orthogonalsplinebasis]{SplineBasis}}.
 }
 \references{
 \emph{Joint modelling of paired sparse functional data using principal components}
