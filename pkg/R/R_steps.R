@@ -852,7 +852,7 @@ AIC.pfda.single.b<-function(object,...){
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset=NULL){
 	{ # setup
 	fname = deparse(match.call()[[1L]])
-	localfuncs('.F.single.optimize.npc')
+	localfuncs('.F.single.optimize.npc','.F.optimize.penalties')
 	eval(.X.subset)
 	eval(.X.single.knots)
 	eval(.X.single.penalties)
@@ -863,7 +863,7 @@ single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, con
 	} else
 	if(any(is.na(penalties))) {
 		funcall <- match.call()
-		eval(.X.optimize.penalties)
+		.F.optimize.penalties()
 	}
 	else {
 		eval(.X.binary.y)
