@@ -309,7 +309,7 @@ NULL
 		aicf<-function(pen){
 			# fc<-funcall
 			p<-penalties
-	  	p[pix]<-exp(pen)
+			p[pix]<-exp(pen)
 			if(any(is.infinite(p)))return(Inf)
 			# fc$penalties<-p
 			tryCatch({
@@ -852,7 +852,7 @@ AIC.pfda.single.b<-function(object,...){
 single.b<-function(y,t,subject, knots=NULL, penalties=NULL, df=NULL, k=NULL, control=pfdaControl(),subset=NULL){
 	{ # setup
 	fname = deparse(match.call()[[1L]])
-	localfuncs('.F.single.optimize.npc','.F.optimize.penalties')
+	localfuncs(c('.F.single.optimize.npc','.F.optimize.penalties'))
 	eval(.X.subset)
 	eval(.X.single.knots)
 	eval(.X.single.penalties)
