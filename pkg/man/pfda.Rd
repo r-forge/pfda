@@ -36,7 +36,7 @@ where
 
 The \code{...} argument is to hold the optional arguments that control the fit.  All optional arguments have default values that are implied if the argument is omitted.  The possible arguments are
 \itemize{
-	\item{\code{knots} The knots for the basis functions.  For the additive model the knots argument should be a list of length 2.  The list can be named with the names the same as those in the m\code{model}, but otherwise are taken in order.}
+	\item{\code{knots} The knots for the basis functions.  For the additive model the knots argument should be a list of length 2.  The list can be named with the names the same as those in the m\code{model}, but otherwise are taken in order. Alternatively, can be an object that has methods evaluate and penaltyMatrix, of a list with the already evaluated matrix and penalty matrix.}
 	\item{\code{penalties} The penalties for the model.  Takes precedence over the \code{df} argument.}
 	\item{\code{df} The penalties for the curves specified in terms of target degrees.}
 	\item{\code{k} the number of principal components.  Should be a vector of length 2 for dual and additive models.}

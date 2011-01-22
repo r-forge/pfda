@@ -1,3 +1,7 @@
+Version 1.1.0
+-------------
+single models can now take predefined basis matrices and penalty matrices through the knots argument.
+
 Version 1.0.1
 -------------
 Changed binary to use embeddable functions instead of relying on eval

@@ -129,14 +129,25 @@ NULL
 	}
 })
 .X.single.knots<-expression({ # knots identification
-	if(!exists("tbase",inherits=FALSE) || is.null(tbase)){
-		if(is.null(knots)){
-			kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=control$nknots))))
-		} else kt<-knots
-		tbase = OBasis(kt)
-	}
-	Bt = evaluate(tbase,t)
-	Kt = OuterProdSecondDerivative(tbase)
+  if(is.list(knots)){
+    Bt = knots[[1]]
+    Kt = knots[[2]]
+    if(!all(dim(Kt)==dim(Bt)[2]))stop("If knots are provided as a list the first component must be the evaluated coefficient matrix for the basis functions, and the second must be the penalty matrix to be used.")
+  }else {
+    if(!exists("tbase",inherits=FALSE) || is.null(tbase)){
+      if(is.null(knots)){
+        kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=control$nknots))))
+        tbase = OBasis(kt)
+      } else if(is(knots,'numeric') {
+        kt<-knots
+        tbase = OBasis(kt)
+      } else {
+        tbase = knots
+      }
+      Bt = evaluate(tbase,t)
+      Kt = penaltyMatrix(tbase)
+    }
+  }
 })
 .X.single.penalties<-expression({ # penalties
 	if(is.null(penalties)){
