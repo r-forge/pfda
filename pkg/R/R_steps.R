@@ -138,7 +138,7 @@ NULL
       if(is.null(knots)){
         kt<-expand.knots(unique(quantile(t,seq(0,1,length.out=control$nknots))))
         tbase = OBasis(kt)
-      } else if(is(knots,'numeric') {
+      } else if(is(knots,'numeric')) {
         kt<-knots
         tbase = OBasis(kt)
       } else {
@@ -527,7 +527,7 @@ logLik.pfda.single.c.R<-logLik.pfda.single.c.rawC<-function(object,...,newdata=N
 	r<-with(object,with(newdata,.single.c.n2L(y,subject,B,tm,tf,Da,sigma)))
 	if(n2L) r else exp(-r/2)
 }
-single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset=NULL){
+single.c<-function(y,Z,t,subject,knots=NULL,penalties=NULL,df=NULL,k=NULL,control=pfdaControl(),subset=NULL,...){
 	{ # setup
 	fname = deparse(match.call()[[1L]])
 	localfuncs(c('.F.single.optimize.npc','.F.optimize.penalties'))
